@@ -1,0 +1,36 @@
+Thanks for having interest in our open source software
+Follow the steps below for the installation:
+
+STEPS 1: LOCAL SERVER INSTALLATION
+1. Go to phpMyadmin (Wamp or xamp or ....)
+2. Create a database and import the database.sql file found in sql folder
+3. Go to software folder - application - config folder and open database.php with dreamweaver or sublime text or notepad++ or any text editor software you have
+4. Supply your database information and save
+5. Test software and enjoy
+
+STEPS 2: LIVE SERVER INSTALLATION
+1. Login to your cpanel (Nginx or Apache)
+2. Create database via your mysql wizard or any
+3. Go to public_html and upload software zip file
+3. Go to software folder - application - config folder and open database.php with your server editor
+4. Supply your database information and save
+5. Test software and enjoy
+
+NB: If you are using software as a subdomain like school.servername.com you may experience eror 404 not found,
+    dont be scared, it is your .htaccess issue, you will need to configure it, if you dont know how to
+    do that, you can message us or send message to your hosting service provider.
+
+Login Details: Change Admin After Login & Delete other users
+..............................................................
+Admin: admin@admin.com
+Pass: 1234
+
+Student: student@student.com
+Pass: 1234
+
+Teacher: teacher@teacher.com
+Pass: 1234
+
+Parent: parent@parent.com
+Pass: 1234
+
