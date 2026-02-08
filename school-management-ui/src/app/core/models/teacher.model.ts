@@ -1,18 +1,19 @@
 export interface Teacher {
-  teacherId: number;
+  teacherId?: number;  // Frontend uses this
+  userId?: number;     // Backend returns this
   name: string;
   email?: string;
   phone?: string;
   address?: string;
-  password: string;
+  password?: string;
   departmentId?: number;
   designationId?: number;
-  loginStatus: string;
+  loginStatus?: string;
   department?: Department;
 }
 
 export interface Department {
-  departmentId: number;
+  departmentId?: number;
   name: string;
 }
 

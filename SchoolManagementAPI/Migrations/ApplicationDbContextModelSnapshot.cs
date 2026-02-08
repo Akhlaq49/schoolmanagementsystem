@@ -253,6 +253,65 @@ namespace SchoolManagementAPI.Migrations
                     b.ToTable("department");
                 });
 
+            modelBuilder.Entity("SchoolManagementAPI.Models.DiscountRule", b =>
+                {
+                    b.Property<int>("RuleId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("rule_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RuleId"));
+
+                    b.Property<string>("CalculationType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("calculation_type");
+
+                    b.Property<string>("Conditions")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("conditions");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_date");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("description");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("discount_amount");
+
+                    b.Property<string>("DiscountType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("discount_type");
+
+                    b.Property<int?>("FeeTypeId")
+                        .HasColumnType("int")
+                        .HasColumnName("fee_type_id");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_active");
+
+                    b.Property<DateTime>("ModifiedDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("modified_date");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("name");
+
+                    b.HasKey("RuleId");
+
+                    b.HasIndex("FeeTypeId");
+
+                    b.ToTable("discount_rule");
+                });
+
             modelBuilder.Entity("SchoolManagementAPI.Models.Dormitory", b =>
                 {
                     b.Property<int>("DormitoryId")
@@ -369,6 +428,212 @@ namespace SchoolManagementAPI.Migrations
                     b.ToTable("expense_category");
                 });
 
+            modelBuilder.Entity("SchoolManagementAPI.Models.FeeSchedule", b =>
+                {
+                    b.Property<int>("ScheduleId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("schedule_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ScheduleId"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<int>("ClassId")
+                        .HasColumnType("int")
+                        .HasColumnName("class_id");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_date");
+
+                    b.Property<int>("DueDay")
+                        .HasColumnType("int")
+                        .HasColumnName("due_day");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("end_date");
+
+                    b.Property<int>("FeeTypeId")
+                        .HasColumnType("int")
+                        .HasColumnName("fee_type_id");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_active");
+
+                    b.Property<DateTime>("ModifiedDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("modified_date");
+
+                    b.Property<string>("RecurrenceType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("recurrence_type");
+
+                    b.Property<int?>("SectionId")
+                        .HasColumnType("int")
+                        .HasColumnName("section_id");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("start_date");
+
+                    b.HasKey("ScheduleId");
+
+                    b.HasIndex("ClassId");
+
+                    b.HasIndex("FeeTypeId");
+
+                    b.HasIndex("SectionId");
+
+                    b.ToTable("fee_schedule");
+                });
+
+            modelBuilder.Entity("SchoolManagementAPI.Models.FeeType", b =>
+                {
+                    b.Property<int>("FeeTypeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("fee_type_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FeeTypeId"));
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_date");
+
+                    b.Property<decimal>("DefaultAmount")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("default_amount");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IsRecurring")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_recurring");
+
+                    b.Property<DateTime>("ModifiedDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("modified_date");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("name");
+
+                    b.HasKey("FeeTypeId");
+
+                    b.ToTable("fee_type");
+                });
+
+            modelBuilder.Entity("SchoolManagementAPI.Models.FineRule", b =>
+                {
+                    b.Property<int>("RuleId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("rule_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RuleId"));
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_date");
+
+                    b.Property<int>("DaysAfterDue")
+                        .HasColumnType("int")
+                        .HasColumnName("days_after_due");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("description");
+
+                    b.Property<int?>("FeeTypeId")
+                        .HasColumnType("int")
+                        .HasColumnName("fee_type_id");
+
+                    b.Property<decimal>("FineAmount")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("fine_amount");
+
+                    b.Property<string>("FineType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("fine_type");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_active");
+
+                    b.Property<DateTime>("ModifiedDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("modified_date");
+
+                    b.HasKey("RuleId");
+
+                    b.HasIndex("FeeTypeId");
+
+                    b.ToTable("fine_rule");
+                });
+
+            modelBuilder.Entity("SchoolManagementAPI.Models.GradingScale", b =>
+                {
+                    b.Property<int>("ScaleId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("scale_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ScaleId"));
+
+                    b.Property<int>("ClassId")
+                        .HasColumnType("int")
+                        .HasColumnName("class_id");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_date");
+
+                    b.Property<string>("Grade")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("grade");
+
+                    b.Property<decimal>("GradePoint")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("grade_point");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_active");
+
+                    b.Property<decimal>("MaxMarks")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("max_marks");
+
+                    b.Property<decimal>("MinMarks")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("min_marks");
+
+                    b.Property<DateTime>("ModifiedDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("modified_date");
+
+                    b.Property<string>("Remarks")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("remarks");
+
+                    b.HasKey("ScaleId");
+
+                    b.HasIndex("ClassId");
+
+                    b.ToTable("grading_scale");
+                });
+
             modelBuilder.Entity("SchoolManagementAPI.Models.Invoice", b =>
                 {
                     b.Property<int>("InvoiceId")
@@ -394,9 +659,29 @@ namespace SchoolManagementAPI.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("description");
 
+                    b.Property<decimal>("DiscountAmount")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("discount_amount");
+
                     b.Property<decimal>("Due")
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("due");
+
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("due_date");
+
+                    b.Property<int?>("FeeTypeId")
+                        .HasColumnType("int")
+                        .HasColumnName("fee_type_id");
+
+                    b.Property<decimal>("FinalAmount")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("final_amount");
+
+                    b.Property<decimal>("FineAmount")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("fine_amount");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -413,6 +698,8 @@ namespace SchoolManagementAPI.Migrations
                         .HasColumnName("title");
 
                     b.HasKey("InvoiceId");
+
+                    b.HasIndex("FeeTypeId");
 
                     b.HasIndex("StudentId");
 
@@ -496,6 +783,91 @@ namespace SchoolManagementAPI.Migrations
                     b.HasKey("NoticeId");
 
                     b.ToTable("noticeboard");
+                });
+
+            modelBuilder.Entity("SchoolManagementAPI.Models.NotificationLog", b =>
+                {
+                    b.Property<int>("LogId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LogId"));
+
+                    b.Property<int>("Channel")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ExternalMessageId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("RecipientId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TemplateId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("LogId");
+
+                    b.HasIndex("RecipientId");
+
+                    b.HasIndex("TemplateId");
+
+                    b.ToTable("NotificationLogs");
+                });
+
+            modelBuilder.Entity("SchoolManagementAPI.Models.NotificationTemplate", b =>
+                {
+                    b.Property<int>("TemplateId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TemplateId"));
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MessageTemplate")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("TemplateId");
+
+                    b.ToTable("NotificationTemplates");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.Parent", b =>
@@ -830,6 +1202,73 @@ namespace SchoolManagementAPI.Migrations
                     b.ToTable("student");
                 });
 
+            modelBuilder.Entity("SchoolManagementAPI.Models.StudentResult", b =>
+                {
+                    b.Property<int>("ResultId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("result_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ResultId"));
+
+                    b.Property<DateTime>("CalculatedDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("calculated_date");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_date");
+
+                    b.Property<int>("ExamId")
+                        .HasColumnType("int")
+                        .HasColumnName("exam_id");
+
+                    b.Property<decimal>("GPA")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("gpa");
+
+                    b.Property<string>("Grade")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("grade");
+
+                    b.Property<bool>("IsPassed")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_passed");
+
+                    b.Property<decimal>("ObtainedMarks")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("obtained_marks");
+
+                    b.Property<decimal>("Percentage")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("percentage");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("int")
+                        .HasColumnName("position");
+
+                    b.Property<string>("Remarks")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("remarks");
+
+                    b.Property<int>("StudentId")
+                        .HasColumnType("int")
+                        .HasColumnName("student_id");
+
+                    b.Property<decimal>("TotalMarks")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("total_marks");
+
+                    b.HasKey("ResultId");
+
+                    b.HasIndex("ExamId");
+
+                    b.HasIndex("StudentId");
+
+                    b.ToTable("student_result");
+                });
+
             modelBuilder.Entity("SchoolManagementAPI.Models.StudyMaterial", b =>
                 {
                     b.Property<int>("StudyMaterialId")
@@ -1090,13 +1529,73 @@ namespace SchoolManagementAPI.Migrations
                     b.Navigation("Student");
                 });
 
+            modelBuilder.Entity("SchoolManagementAPI.Models.DiscountRule", b =>
+                {
+                    b.HasOne("SchoolManagementAPI.Models.FeeType", "FeeType")
+                        .WithMany()
+                        .HasForeignKey("FeeTypeId");
+
+                    b.Navigation("FeeType");
+                });
+
+            modelBuilder.Entity("SchoolManagementAPI.Models.FeeSchedule", b =>
+                {
+                    b.HasOne("SchoolManagementAPI.Models.Class", "Class")
+                        .WithMany()
+                        .HasForeignKey("ClassId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SchoolManagementAPI.Models.FeeType", "FeeType")
+                        .WithMany()
+                        .HasForeignKey("FeeTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SchoolManagementAPI.Models.Section", "Section")
+                        .WithMany()
+                        .HasForeignKey("SectionId");
+
+                    b.Navigation("Class");
+
+                    b.Navigation("FeeType");
+
+                    b.Navigation("Section");
+                });
+
+            modelBuilder.Entity("SchoolManagementAPI.Models.FineRule", b =>
+                {
+                    b.HasOne("SchoolManagementAPI.Models.FeeType", "FeeType")
+                        .WithMany()
+                        .HasForeignKey("FeeTypeId");
+
+                    b.Navigation("FeeType");
+                });
+
+            modelBuilder.Entity("SchoolManagementAPI.Models.GradingScale", b =>
+                {
+                    b.HasOne("SchoolManagementAPI.Models.Class", "Class")
+                        .WithMany()
+                        .HasForeignKey("ClassId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Class");
+                });
+
             modelBuilder.Entity("SchoolManagementAPI.Models.Invoice", b =>
                 {
+                    b.HasOne("SchoolManagementAPI.Models.FeeType", "FeeType")
+                        .WithMany()
+                        .HasForeignKey("FeeTypeId");
+
                     b.HasOne("SchoolManagementAPI.Models.Student", "Student")
                         .WithMany()
                         .HasForeignKey("StudentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("FeeType");
 
                     b.Navigation("Student");
                 });
@@ -1126,6 +1625,24 @@ namespace SchoolManagementAPI.Migrations
                     b.Navigation("Student");
 
                     b.Navigation("Subject");
+                });
+
+            modelBuilder.Entity("SchoolManagementAPI.Models.NotificationLog", b =>
+                {
+                    b.HasOne("SchoolManagementAPI.Models.User", "Recipient")
+                        .WithMany()
+                        .HasForeignKey("RecipientId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("SchoolManagementAPI.Models.NotificationTemplate", "Template")
+                        .WithMany()
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Recipient");
+
+                    b.Navigation("Template");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.Payment", b =>
@@ -1193,6 +1710,25 @@ namespace SchoolManagementAPI.Migrations
                     b.Navigation("Parent");
 
                     b.Navigation("Section");
+                });
+
+            modelBuilder.Entity("SchoolManagementAPI.Models.StudentResult", b =>
+                {
+                    b.HasOne("SchoolManagementAPI.Models.Exam", "Exam")
+                        .WithMany()
+                        .HasForeignKey("ExamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SchoolManagementAPI.Models.User", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Exam");
+
+                    b.Navigation("Student");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.StudyMaterial", b =>

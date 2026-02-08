@@ -179,7 +179,7 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
             <tbody>
               <tr *ngFor="let teacher of teachers">
                 <td>
-                  <span class="id-badge">{{ teacher.teacherId }}</span>
+                  <span class="id-badge">{{ teacher.teacherId || teacher.userId }}</span>
                 </td>
                 <td>
                   <strong>{{ teacher.name }}</strong>
@@ -412,8 +412,9 @@ export class TeachersComponent implements OnInit {
     }
 
     this.saving = true;
-    const operation = this.editingTeacher
-      ? this.teacherService.updateTeacher(this.editingTeacher.teacherId, this.teacherForm as Teacher)
+    const teacherId = this.editingTeacher?.teacherId || this.editingTeacher?.userId;
+    const operation = this.editingTeacher && teacherId
+      ? this.teacherService.updateTeacher(teacherId, this.teacherForm as Teacher)
       : this.teacherService.createTeacher(this.teacherForm as Teacher);
 
     operation.subscribe({
@@ -437,13 +438,17 @@ export class TeachersComponent implements OnInit {
   editTeacher(teacher: Teacher) {
     this.editingTeacher = teacher;
     this.teacherForm = { ...teacher };
+    // Ensure we have the ID in the right property for the update
+    if (teacher.userId && !teacher.teacherId) {
+      this.editingTeacher.teacherId = teacher.userId;
+    }
     this.showAddForm = true;
     this.submitted = false;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   confirmDelete(teacher: Teacher) {
-    this.teacherToDelete = teacher.teacherId;
+    this.teacherToDelete = (teacher.teacherId || teacher.userId) ?? null;
     this.showDeleteConfirm = true;
   }
 

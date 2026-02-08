@@ -16,7 +16,14 @@ export class ProfileService {
   }
 
   updateProfile(profile: any): Observable<any> {
-    return this.http.put<any>(this.apiUrl, profile);
+    // Only send editable profile fields, exclude UserRoles and navigation properties
+    const updateData = {
+      name: profile.name,
+      email: profile.email,
+      phone: profile.phone,
+      address: profile.address
+    };
+    return this.http.put<any>(this.apiUrl, updateData);
   }
 
   changePassword(passwordData: { newPassword: string; confirmPassword: string }): Observable<any> {

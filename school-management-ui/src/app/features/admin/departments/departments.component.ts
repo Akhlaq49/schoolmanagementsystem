@@ -48,7 +48,7 @@ import { Department } from '../../../core/models/teacher.model';
                 <button class="btn btn-sm btn-edit" (click)="editDepartment(dept)">
                   <i class="fa fa-edit"></i>
                 </button>
-                <button class="btn btn-sm btn-delete" (click)="deleteDepartment(dept.departmentId)">
+                <button class="btn btn-sm btn-delete" (click)="dept.departmentId && deleteDepartment(dept.departmentId)">
                   <i class="fa fa-trash"></i>
                 </button>
               </td>
@@ -176,7 +176,7 @@ export class DepartmentsComponent implements OnInit {
   }
 
   saveDepartment() {
-    if (this.editingDepartment) {
+    if (this.editingDepartment && this.editingDepartment.departmentId) {
       this.departmentService.updateDepartment(this.editingDepartment.departmentId, this.departmentForm as Department)
         .subscribe(() => {
           this.loadDepartments();

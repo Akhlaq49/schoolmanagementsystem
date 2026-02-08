@@ -121,6 +121,12 @@ builder.Services.AddScoped<ISubjectService, SubjectService>();
 builder.Services.AddScoped<IAttendanceService, AttendanceService>();
 builder.Services.AddScoped<IExamService, ExamService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IFeeTypeService, FeeTypeService>();
+builder.Services.AddScoped<IRecurringFeeService, RecurringFeeService>();
+builder.Services.AddScoped<FeeCalculationService>();
+builder.Services.AddScoped<FinancialReportService>();
+builder.Services.AddScoped<IGradingService, GradingService>();
+builder.Services.AddScoped<ResultCalculationService>();
 builder.Services.AddScoped<IAssignmentService, AssignmentService>();
 builder.Services.AddScoped<IStudyMaterialService, StudyMaterialService>();
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
@@ -134,6 +140,10 @@ builder.Services.AddScoped<IDormitoryService, DormitoryService>();
 builder.Services.AddScoped<ITransportService, TransportService>();
 builder.Services.AddScoped<IExamQuestionService, ExamQuestionService>();
 builder.Services.AddScoped<IQuestionBankService, QuestionBankService>();
+builder.Services.AddScoped<IPdfService, PdfService>();
+builder.Services.AddScoped<INotificationAutomationService, NotificationAutomationService>();
+builder.Services.AddScoped<IBackupService, SqlServerBackupService>();
+builder.Services.AddHostedService<BackupHostedService>();
 
 // WhatsApp Service (Twilio)
 builder.Services.AddScoped<IWhatsAppService, WhatsAppService>();

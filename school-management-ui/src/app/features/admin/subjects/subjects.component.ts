@@ -61,7 +61,7 @@ import { Class } from '../../../core/models/student.model';
                 <button class="btn btn-sm btn-edit" (click)="editSubject(subject)">
                   <i class="fa fa-edit"></i>
                 </button>
-                <button class="btn btn-sm btn-delete" (click)="deleteSubject(subject.subjectId)">
+                <button class="btn btn-sm btn-delete" (click)="subject.subjectId && deleteSubject(subject.subjectId)">
                   <i class="fa fa-trash"></i>
                 </button>
               </td>
@@ -212,7 +212,7 @@ export class SubjectsComponent implements OnInit {
   }
 
   saveSubject() {
-    if (this.editingSubject) {
+    if (this.editingSubject && this.editingSubject.subjectId) {
       this.subjectService.updateSubject(this.editingSubject.subjectId, this.subjectForm as Subject)
         .subscribe(() => {
           this.loadSubjects();

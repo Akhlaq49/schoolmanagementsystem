@@ -1,5 +1,5 @@
 export interface Exam {
-  examId: number;
+  examId?: number;
   name: string;
   date?: Date;
   comment?: string;

@@ -11,10 +11,12 @@ namespace SchoolManagementAPI.Controllers;
 public class ExamsController : ControllerBase
 {
     private readonly IExamService _examService;
+    private readonly ResultCalculationService _resultCalculationService;
 
-    public ExamsController(IExamService examService)
+    public ExamsController(IExamService examService, ResultCalculationService resultCalculationService)
     {
         _examService = examService;
+        _resultCalculationService = resultCalculationService;
     }
 
     [HttpGet]
@@ -65,6 +67,13 @@ public class ExamsController : ControllerBase
             return NotFound();
         }
         return NoContent();
+    }
+
+    [HttpGet("{examId}/statistics")]
+    public async Task<ActionResult<ExamStatistics>> GetExamStatistics(int examId, [FromQuery] int classId)
+    {
+        var statistics = await _resultCalculationService.GetExamStatisticsAsync(examId, classId);
+        return Ok(statistics);
     }
 }
 

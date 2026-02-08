@@ -24,16 +24,41 @@ export class AssignmentService {
     return this.http.get<Assignment[]>(`${this.apiUrl}/class/${classId}`);
   }
 
-  getAssignmentsByStudent(studentId: number): Observable<Assignment[]> {
+  getAssignmentsByStudent(studentId: number | null | undefined): Observable<Assignment[]> {
+    if (!studentId || studentId <= 0) {
+      return new Observable(observer => {
+        observer.error(new Error('Invalid student ID'));
+      });
+    }
     return this.http.get<Assignment[]>(`${this.apiUrl}/student/${studentId}`);
   }
 
   createAssignment(assignment: Assignment): Observable<Assignment> {
-    return this.http.post<Assignment>(this.apiUrl, assignment);
+    // Clean the assignment data - only send necessary fields
+    const createData = {
+      name: assignment.name,
+      subjectId: assignment.subjectId ? Number(assignment.subjectId) : undefined,
+      classId: assignment.classId ? Number(assignment.classId) : undefined,
+      teacherId: assignment.teacherId ? Number(assignment.teacherId) : undefined,
+      description: assignment.description,
+      fileName: assignment.fileName,
+      fileType: assignment.fileType
+    };
+    return this.http.post<Assignment>(this.apiUrl, createData);
   }
 
   updateAssignment(id: number, assignment: Assignment): Observable<Assignment> {
-    return this.http.put<Assignment>(`${this.apiUrl}/${id}`, assignment);
+    // Clean the assignment data - exclude navigation properties
+    const updateData = {
+      name: assignment.name,
+      subjectId: assignment.subjectId ? Number(assignment.subjectId) : undefined,
+      classId: assignment.classId ? Number(assignment.classId) : undefined,
+      teacherId: assignment.teacherId ? Number(assignment.teacherId) : undefined,
+      description: assignment.description,
+      fileName: assignment.fileName,
+      fileType: assignment.fileType
+    };
+    return this.http.put<Assignment>(`${this.apiUrl}/${id}`, updateData);
   }
 
   deleteAssignment(id: number): Observable<void> {

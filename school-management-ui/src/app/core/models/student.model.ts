@@ -1,5 +1,6 @@
 export interface Student {
-  studentId: number;
+  studentId?: number;  // Frontend uses this
+  userId?: number;     // Backend returns this
   name: string;
   birthday?: Date;
   age?: number;
@@ -7,34 +8,35 @@ export interface Student {
   email?: string;
   phone?: string;
   address?: string;
-  password: string;
+  password?: string;
   classId?: number;
   sectionId?: number;
   parentId?: number;
   roll?: string;
   session?: string;
-  loginStatus: string;
+  loginStatus?: string;
   class?: Class;
   section?: Section;
   parent?: Parent;
 }
 
 export interface Class {
-  classId: number;
+  classId?: number;
   name: string;
   nameNumeric?: string;
   teacherId?: number;
 }
 
 export interface Section {
-  sectionId: number;
+  sectionId?: number;
   name: string;
   classId?: number;
   teacherId?: number;
 }
 
 export interface Parent {
-  parentId: number;
+  parentId?: number;   // Frontend uses this
+  userId?: number;     // Backend returns this
   name: string;
   email?: string;
   phone?: string;

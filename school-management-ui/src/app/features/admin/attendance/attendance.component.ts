@@ -5,6 +5,7 @@ import { AttendanceService } from '../../../core/services/attendance.service';
 import { StudentService } from '../../../core/services/student.service';
 import { ClassService } from '../../../core/services/class.service';
 import { SectionService } from '../../../core/services/section.service';
+import { PdfService } from '../../../core/services/pdf.service';
 
 @Component({
   selector: 'app-attendance',
@@ -37,6 +38,22 @@ import { SectionService } from '../../../core/services/section.service';
               </select>
             </div>
           </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Report Start</label>
+              <input type="date" [(ngModel)]="reportStartDate" name="reportStartDate" required class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Report End</label>
+              <input type="date" [(ngModel)]="reportEndDate" name="reportEndDate" required class="form-control">
+            </div>
+            <div class="form-group report-actions">
+              <label>&nbsp;</label>
+              <button type="button" class="btn btn-secondary" (click)="downloadAttendanceReport()">
+                <i class="fa fa-file-pdf-o"></i> Download Report
+              </button>
+            </div>
+          </div>
           <button type="submit" class="btn btn-primary">Load Attendance</button>
         </form>
       </div>
@@ -55,11 +72,11 @@ import { SectionService } from '../../../core/services/section.service';
             </thead>
             <tbody>
               <tr *ngFor="let student of students">
-                <td>{{ student.studentId }}</td>
+                <td>{{ student.studentId || student.userId }}</td>
                 <td>{{ student.name }}</td>
                 <td>{{ student.roll || '-' }}</td>
                 <td>
-                  <select [(ngModel)]="attendanceStatus[student.studentId]" name="status_{{student.studentId}}" class="form-control">
+                  <select [(ngModel)]="attendanceStatus[student.studentId || student.userId || 0]" name="status_{{student.studentId || student.userId}}" class="form-control">
                     <option [value]="1">Present</option>
                     <option [value]="2">Absent</option>
                     <option [value]="3">Holiday</option>
@@ -115,6 +132,15 @@ import { SectionService } from '../../../core/services/section.service';
       background: #667eea;
       color: white;
     }
+    .btn-secondary {
+      background: #e74c3c;
+      color: white;
+    }
+    .report-actions {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
     .data-table {
       width: 100%;
       border-collapse: collapse;
@@ -137,6 +163,8 @@ export class AttendanceComponent implements OnInit {
   sections: any[] = [];
   students: any[] = [];
   selectedDate: string = new Date().toISOString().split('T')[0];
+  reportStartDate: string = new Date().toISOString().split('T')[0];
+  reportEndDate: string = new Date().toISOString().split('T')[0];
   selectedClassId: number | null = null;
   selectedSectionId: number | null = null;
   attendanceStatus: { [key: number]: number } = {};
@@ -145,7 +173,8 @@ export class AttendanceComponent implements OnInit {
     private attendanceService: AttendanceService,
     private studentService: StudentService,
     private classService: ClassService,
-    private sectionService: SectionService
+    private sectionService: SectionService,
+    private pdfService: PdfService
   ) {}
 
   ngOnInit() {
@@ -171,7 +200,10 @@ export class AttendanceComponent implements OnInit {
       this.studentService.getStudentsByClass(this.selectedClassId).subscribe(students => {
         this.students = students;
         students.forEach(student => {
-          this.attendanceStatus[student.studentId] = 1; // Default to Present
+          const id = student.studentId || student.userId;
+          if (id) {
+            this.attendanceStatus[id] = 1; // Default to Present
+          }
         });
       });
     }
@@ -180,6 +212,30 @@ export class AttendanceComponent implements OnInit {
   saveAttendance() {
     // Implementation for saving attendance
     alert('Attendance saved successfully!');
+  }
+
+  downloadAttendanceReport() {
+    if (!this.selectedClassId) {
+      alert('Please select a class to download the report.');
+      return;
+    }
+
+    this.pdfService.getAttendanceReport(this.selectedClassId, this.reportStartDate, this.reportEndDate).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `attendance-report-${this.selectedClassId}-${this.reportStartDate}-${this.reportEndDate}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      },
+      error: (error) => {
+        console.error('Error downloading attendance report:', error);
+        alert('Error downloading attendance report. Please try again.');
+      }
+    });
   }
 }
 

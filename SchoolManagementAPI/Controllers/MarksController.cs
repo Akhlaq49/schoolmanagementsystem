@@ -11,10 +11,12 @@ namespace SchoolManagementAPI.Controllers;
 public class MarksController : ControllerBase
 {
     private readonly IMarkService _markService;
+    private readonly ResultCalculationService _resultCalculationService;
 
-    public MarksController(IMarkService markService)
+    public MarksController(IMarkService markService, ResultCalculationService resultCalculationService)
     {
         _markService = markService;
+        _resultCalculationService = resultCalculationService;
     }
 
     [HttpGet]
@@ -85,6 +87,37 @@ public class MarksController : ControllerBase
         var result = await _markService.DeleteMarkAsync(id);
         if (!result) return NotFound();
         return NoContent();
+    }
+
+    // Result Calculation Endpoints
+    [HttpPost("calculate-results/{examId}")]
+    [Authorize(Roles = "admin,teacher")]
+    public async Task<ActionResult<object>> CalculateResults(int examId)
+    {
+        var count = await _resultCalculationService.CalculateExamResultsAsync(examId);
+        return Ok(new { message = $"Calculated results for {count} students", resultsCalculated = count });
+    }
+
+    [HttpGet("merit-list/{examId}/{classId}")]
+    public async Task<ActionResult<List<MeritListEntry>>> GetMeritList(int examId, int classId)
+    {
+        var meritList = await _resultCalculationService.GetMeritListAsync(examId, classId);
+        return Ok(meritList);
+    }
+
+    [HttpGet("subject-toppers/{examId}/{subjectId}")]
+    public async Task<ActionResult<List<SubjectTopperEntry>>> GetSubjectToppers(int examId, int subjectId)
+    {
+        var toppers = await _resultCalculationService.GetSubjectToppersAsync(examId, subjectId);
+        return Ok(toppers);
+    }
+
+    [HttpGet("student-result/{studentId}/{examId}")]
+    public async Task<ActionResult<StudentResult>> GetStudentResult(int studentId, int examId)
+    {
+        var result = await _resultCalculationService.CalculateStudentResultAsync(studentId, examId);
+        if (result == null) return NotFound("No marks found for this student and exam");
+        return Ok(result);
     }
 }
 

@@ -28,10 +28,16 @@ public class ApplicationDbContext : DbContext
     public DbSet<ExamQuestion> ExamQuestions { get; set; }
     public DbSet<Mark> Marks { get; set; }
     public DbSet<QuestionBank> QuestionBanks { get; set; }
+    public DbSet<GradingScale> GradingScales { get; set; }
+    public DbSet<StudentResult> StudentResults { get; set; }
 
     // Payment
     public DbSet<Invoice> Invoices { get; set; }
     public DbSet<Payment> Payments { get; set; }
+    public DbSet<FeeType> FeeTypes { get; set; }
+    public DbSet<FeeSchedule> FeeSchedules { get; set; }
+    public DbSet<FineRule> FineRules { get; set; }
+    public DbSet<DiscountRule> DiscountRules { get; set; }
 
     // Assignment & Study Material
     public DbSet<Assignment> Assignments { get; set; }
@@ -46,6 +52,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<Transport> Transports { get; set; }
     public DbSet<Setting> Settings { get; set; }
     public DbSet<ExpenseCategory> ExpenseCategories { get; set; }
+
+    // Notification System
+    public DbSet<NotificationTemplate> NotificationTemplates { get; set; }
+    public DbSet<NotificationLog> NotificationLogs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -121,5 +131,24 @@ public class ApplicationDbContext : DbContext
             .WithMany()
             .HasForeignKey(q => q.TeacherId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Notification System Configuration
+        modelBuilder.Entity<NotificationTemplate>()
+            .HasKey(nt => nt.TemplateId);
+
+        modelBuilder.Entity<NotificationLog>()
+            .HasKey(nl => nl.LogId);
+
+        modelBuilder.Entity<NotificationLog>()
+            .HasOne(nl => nl.Template)
+            .WithMany()
+            .HasForeignKey(nl => nl.TemplateId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<NotificationLog>()
+            .HasOne(nl => nl.Recipient)
+            .WithMany()
+            .HasForeignKey(nl => nl.RecipientId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

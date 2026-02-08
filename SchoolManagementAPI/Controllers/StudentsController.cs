@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SchoolManagementAPI.Models;
 using SchoolManagementAPI.Services;
+using SchoolManagementAPI.DTOs;
 
 namespace SchoolManagementAPI.Controllers;
 
@@ -44,17 +45,17 @@ public class StudentsController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = "admin")]
-    public async Task<ActionResult<User>> CreateStudent([FromBody] User student)
+    public async Task<ActionResult<User>> CreateStudent([FromBody] CreateStudentRequest request)
     {
-        var created = await _studentService.CreateStudentAsync(student);
+        var created = await _studentService.CreateStudentAsync(request);
         return CreatedAtAction(nameof(GetStudent), new { id = created.UserId }, created);
     }
 
     [HttpPut("{id}")]
     [Authorize(Roles = "admin")]
-    public async Task<IActionResult> UpdateStudent(int id, [FromBody] User student)
+    public async Task<IActionResult> UpdateStudent(int id, [FromBody] UpdateStudentRequest request)
     {
-        var updated = await _studentService.UpdateStudentAsync(id, student);
+        var updated = await _studentService.UpdateStudentAsync(id, request);
         if (updated == null)
         {
             return NotFound();

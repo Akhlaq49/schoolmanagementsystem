@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { StudentService } from '../../../core/services/student.service';
+import { PdfService } from '../../../core/services/pdf.service';
 import { ClassService } from '../../../core/services/class.service';
 import { Student, Class } from '../../../core/models/student.model';
 import { NotificationService } from '../../../shared/services/notification.service';
@@ -215,7 +216,7 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
             <tbody>
               <tr *ngFor="let student of filteredStudents; let i = index">
                 <td>
-                  <span class="id-badge">{{ student.studentId }}</span>
+                  <span class="id-badge">{{ student.studentId || student.userId }}</span>
                 </td>
                 <td>
                   <div class="student-name">
@@ -243,6 +244,9 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
                 </td>
                 <td>
                   <div class="modern-table-actions">
+                    <button class="modern-btn-icon modern-btn-pdf" (click)="downloadIdCard(student)" title="Download ID Card">
+                      <i class="fa fa-id-card"></i>
+                    </button>
                     <button class="modern-btn-icon modern-btn-edit" (click)="editStudent(student)" title="Edit Student">
                       <i class="fa fa-edit"></i>
                     </button>
@@ -421,6 +425,11 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
       color: var(--text-tertiary);
       font-style: italic;
     }
+
+    .modern-btn-pdf {
+      background: #e74c3c;
+      color: #fff;
+    }
     
     @media (max-width: 768px) {
       .students-container {
@@ -470,8 +479,33 @@ export class StudentsComponent implements OnInit {
   constructor(
     private studentService: StudentService,
     private classService: ClassService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private pdfService: PdfService
   ) {}
+
+  downloadIdCard(student: Student) {
+    const studentId = student.studentId || student.userId;
+    if (!studentId || studentId <= 0) {
+      this.notificationService.error('Invalid student ID');
+      return;
+    }
+    this.pdfService.getStudentIdCard(studentId).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `student-id-card-${studentId}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      },
+      error: (error) => {
+        this.notificationService.error('Failed to download ID card');
+        console.error('Error downloading ID card:', error);
+      }
+    });
+  }
 
   ngOnInit() {
     this.loadClasses();
@@ -558,8 +592,9 @@ export class StudentsComponent implements OnInit {
     }
 
     this.saving = true;
-    const operation = this.editingStudent
-      ? this.studentService.updateStudent(this.editingStudent.studentId, this.studentForm as Student)
+    const studentId = this.editingStudent?.studentId || this.editingStudent?.userId;
+    const operation = this.editingStudent && studentId
+      ? this.studentService.updateStudent(studentId, this.studentForm as Student)
       : this.studentService.createStudent(this.studentForm as Student);
 
     operation.subscribe({
@@ -583,13 +618,17 @@ export class StudentsComponent implements OnInit {
   editStudent(student: Student) {
     this.editingStudent = student;
     this.studentForm = { ...student };
+    // Ensure we have the ID in the right property for the update
+    if (student.userId && !student.studentId) {
+      this.editingStudent.studentId = student.userId;
+    }
     this.showAddForm = true;
     this.submitted = false;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   confirmDelete(student: Student) {
-    this.studentToDelete = student.studentId;
+    this.studentToDelete = (student.studentId || student.userId) ?? null;
     this.showDeleteConfirm = true;
   }
 

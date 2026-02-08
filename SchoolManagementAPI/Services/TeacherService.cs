@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SchoolManagementAPI.Data;
 using SchoolManagementAPI.Models;
+using SchoolManagementAPI.DTOs;
 using BCrypt.Net;
 
 namespace SchoolManagementAPI.Services;
@@ -32,43 +33,44 @@ public class TeacherService : ITeacherService
             .FirstOrDefaultAsync();
     }
 
-    public async Task<User> CreateTeacherAsync(User teacher)
+    public async Task<User> CreateTeacherAsync(CreateTeacherRequest request)
     {
-        // Hash password if it's not already hashed (check if it looks like a BCrypt hash)
-        if (!string.IsNullOrEmpty(teacher.Password) && !teacher.Password.StartsWith("$2"))
+        var teacher = new User
         {
-            teacher.Password = BCrypt.Net.BCrypt.HashPassword(teacher.Password);
-        }
+            Name = request.Name,
+            Email = request.Email,
+            Phone = request.Phone,
+            Address = request.Address,
+            DepartmentId = request.DepartmentId,
+            DesignationId = request.DesignationId,
+            Password = BCrypt.Net.BCrypt.HashPassword("defaultpass123") // Generate default password
+        };
         
         _context.Users.Add(teacher);
         
-        // Add Teacher role if not already present
-        if (teacher.UserRoles == null)
+        // Add Teacher role
+        teacher.UserRoles = new List<UserRoleMapping>
         {
-            teacher.UserRoles = new List<UserRoleMapping>();
-        }
-        if (!teacher.UserRoles.Any(ur => ur.Role == UserRole.Teacher))
-        {
-            teacher.UserRoles.Add(new UserRoleMapping { Role = UserRole.Teacher });
-        }
+            new UserRoleMapping { Role = UserRole.Teacher }
+        };
         
         await _context.SaveChangesAsync();
         return teacher;
     }
 
-    public async Task<User?> UpdateTeacherAsync(int id, User teacher)
+    public async Task<User?> UpdateTeacherAsync(int id, UpdateTeacherRequest request)
     {
         var existingTeacher = await _context.Users
             .Include(u => u.UserRoles)
             .FirstOrDefaultAsync(u => u.UserId == id && u.UserRoles.Any(ur => ur.Role == UserRole.Teacher));
         if (existingTeacher == null) return null;
 
-        existingTeacher.Name = teacher.Name;
-        existingTeacher.Email = teacher.Email;
-        existingTeacher.Phone = teacher.Phone;
-        existingTeacher.Address = teacher.Address;
-        existingTeacher.DepartmentId = teacher.DepartmentId;
-        existingTeacher.DesignationId = teacher.DesignationId;
+        existingTeacher.Name = request.Name;
+        existingTeacher.Email = request.Email;
+        existingTeacher.Phone = request.Phone;
+        existingTeacher.Address = request.Address;
+        existingTeacher.DepartmentId = request.DepartmentId;
+        existingTeacher.DesignationId = request.DesignationId;
 
         await _context.SaveChangesAsync();
         return existingTeacher;

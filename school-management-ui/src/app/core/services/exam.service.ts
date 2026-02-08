@@ -21,11 +21,23 @@ export class ExamService {
   }
 
   createExam(exam: Exam): Observable<Exam> {
-    return this.http.post<Exam>(this.apiUrl, exam);
+    // Clean the exam data - only send necessary fields
+    const createData = {
+      name: exam.name,
+      date: exam.date,
+      comment: exam.comment
+    };
+    return this.http.post<Exam>(this.apiUrl, createData);
   }
 
   updateExam(id: number, exam: Exam): Observable<Exam> {
-    return this.http.put<Exam>(`${this.apiUrl}/${id}`, exam);
+    // Clean the exam data - only send necessary fields
+    const updateData = {
+      name: exam.name,
+      date: exam.date,
+      comment: exam.comment
+    };
+    return this.http.put<Exam>(`${this.apiUrl}/${id}`, updateData);
   }
 
   deleteExam(id: number): Observable<void> {

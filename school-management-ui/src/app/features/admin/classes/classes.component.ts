@@ -311,8 +311,9 @@ export class ClassesComponent implements OnInit {
     }
 
     this.saving = true;
-    const operation = this.editingClass
-      ? this.classService.updateClass(this.editingClass.classId, this.classForm as Class)
+    const classId = this.editingClass?.classId;
+    const operation = this.editingClass && classId
+      ? this.classService.updateClass(classId, this.classForm as Class)
       : this.classService.createClass(this.classForm as Class);
 
     operation.subscribe({
@@ -342,7 +343,7 @@ export class ClassesComponent implements OnInit {
   }
 
   confirmDelete(classItem: Class) {
-    this.classToDelete = classItem.classId;
+    this.classToDelete = classItem.classId ?? null;
     this.showDeleteConfirm = true;
   }
 

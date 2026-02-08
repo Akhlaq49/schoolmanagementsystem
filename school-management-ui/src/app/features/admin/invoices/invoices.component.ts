@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { InvoiceService } from '../../../core/services/invoice.service';
 import { StudentService } from '../../../core/services/student.service';
+import { PdfService } from '../../../core/services/pdf.service';
 import { Invoice, Payment } from '../../../core/models/invoice.model';
 
 @Component({
@@ -86,10 +87,13 @@ import { Invoice, Payment } from '../../../core/models/invoice.model';
                 <button class="btn btn-sm btn-payment" (click)="showPaymentForm(invoice)">
                   <i class="fa fa-money"></i>
                 </button>
+                <button class="btn btn-sm btn-pdf" (click)="invoice.invoiceId && downloadFeeReceipt(invoice.invoiceId)" title="Download Fee Receipt">
+                  <i class="fa fa-file-pdf-o"></i>
+                </button>
                 <button class="btn btn-sm btn-edit" (click)="editInvoice(invoice)">
                   <i class="fa fa-edit"></i>
                 </button>
-                <button class="btn btn-sm btn-delete" (click)="deleteInvoice(invoice.invoiceId)">
+                <button class="btn btn-sm btn-delete" (click)="invoice.invoiceId && deleteInvoice(invoice.invoiceId)">
                   <i class="fa fa-trash"></i>
                 </button>
               </td>
@@ -158,6 +162,11 @@ import { Invoice, Payment } from '../../../core/models/invoice.model';
     }
     .btn-payment {
       background: #2ecc71;
+      color: white;
+      margin-right: 0.5rem;
+    }
+    .btn-pdf {
+      background: #e74c3c;
       color: white;
       margin-right: 0.5rem;
     }
@@ -286,8 +295,28 @@ export class InvoicesComponent implements OnInit {
 
   constructor(
     private invoiceService: InvoiceService,
-    private studentService: StudentService
+    private studentService: StudentService,
+    private pdfService: PdfService
   ) {}
+
+  downloadFeeReceipt(invoiceId: number) {
+    this.pdfService.getFeeReceipt(invoiceId).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `fee-receipt-${invoiceId}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      },
+      error: (error) => {
+        console.error('Error downloading fee receipt:', error);
+        alert('Error downloading fee receipt. Please try again.');
+      }
+    });
+  }
 
   ngOnInit() {
     this.loadInvoices();
@@ -342,7 +371,7 @@ export class InvoicesComponent implements OnInit {
         paymentMethod: this.paymentForm.paymentMethod || 'cash',
         timestamp: new Date()
       };
-      this.invoiceService.createPayment(this.selectedInvoice.invoiceId, payment)
+      this.selectedInvoice.invoiceId && this.invoiceService.createPayment(this.selectedInvoice.invoiceId, payment)
         .subscribe(() => {
           this.loadInvoices();
           this.closePaymentModal();

@@ -1,15 +1,15 @@
 import { Student } from './student.model';
 
 export interface Invoice {
-  invoiceId: number;
-  studentId: number;
+  invoiceId?: number;
+  studentId?: number;
   title: string;
   description?: string;
-  amount: number;
-  amountPaid: number;
-  due: number;
-  status: string;
-  creationTimestamp: Date;
+  amount?: number;
+  amountPaid?: number;
+  due?: number;
+  status?: string;
+  creationTimestamp?: Date;
   student?: Student;
 }
 

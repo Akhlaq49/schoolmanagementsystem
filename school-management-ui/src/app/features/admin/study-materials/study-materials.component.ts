@@ -76,7 +76,7 @@ import { StudyMaterial } from '../../../core/models/study-material.model';
                 <button class="btn btn-sm btn-edit" (click)="editMaterial(material)">
                   <i class="fa fa-edit"></i>
                 </button>
-                <button class="btn btn-sm btn-delete" (click)="deleteMaterial(material.studyMaterialId)">
+                <button class="btn btn-sm btn-delete" (click)="material.studyMaterialId && deleteMaterial(material.studyMaterialId)">
                   <i class="fa fa-trash"></i>
                 </button>
               </td>
@@ -235,7 +235,7 @@ export class StudyMaterialsComponent implements OnInit {
   }
 
   saveMaterial() {
-    if (this.editingMaterial) {
+    if (this.editingMaterial && this.editingMaterial.studyMaterialId) {
       this.studyMaterialService.updateStudyMaterial(this.editingMaterial.studyMaterialId, this.materialForm as StudyMaterial)
         .subscribe(() => {
           this.loadMaterials();

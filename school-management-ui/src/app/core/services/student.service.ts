@@ -16,7 +16,13 @@ export class StudentService {
     return this.http.get<Student[]>(this.apiUrl);
   }
 
-  getStudentById(id: number): Observable<Student> {
+  getStudentById(id: number | null | undefined): Observable<Student> {
+    // Guard against undefined or null IDs
+    if (!id || id <= 0) {
+      return new Observable(observer => {
+        observer.error(new Error('Invalid student ID'));
+      });
+    }
     return this.http.get<Student>(`${this.apiUrl}/${id}`);
   }
 
@@ -25,11 +31,41 @@ export class StudentService {
   }
 
   createStudent(student: Student): Observable<Student> {
-    return this.http.post<Student>(this.apiUrl, student);
+    // Clean the student data - only send necessary fields for creation (no password needed)
+    const createData = {
+      name: student.name,
+      email: student.email,
+      phone: student.phone,
+      address: student.address,
+      classId: student.classId ? Number(student.classId) : undefined,
+      sectionId: student.sectionId ? Number(student.sectionId) : undefined,
+      roll: student.roll,
+      birthday: student.birthday,
+      age: student.age ? Number(student.age) : undefined,
+      sex: student.sex,
+      session: student.session,
+      parentId: student.parentId ? Number(student.parentId) : undefined
+    };
+    return this.http.post<Student>(this.apiUrl, createData);
   }
 
   updateStudent(id: number, student: Student): Observable<Student> {
-    return this.http.put<Student>(`${this.apiUrl}/${id}`, student);
+    // Clean the student data - only send editable fields, exclude navigation properties
+    const updateData = {
+      name: student.name,
+      email: student.email,
+      phone: student.phone,
+      address: student.address,
+      classId: student.classId ? Number(student.classId) : undefined,
+      sectionId: student.sectionId ? Number(student.sectionId) : undefined,
+      roll: student.roll,
+      birthday: student.birthday,
+      age: student.age ? Number(student.age) : undefined,
+      sex: student.sex,
+      session: student.session,
+      parentId: student.parentId ? Number(student.parentId) : undefined
+    };
+    return this.http.put<Student>(`${this.apiUrl}/${id}`, updateData);
   }
 
   deleteStudent(id: number): Observable<void> {

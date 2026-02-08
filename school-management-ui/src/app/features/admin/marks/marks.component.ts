@@ -6,6 +6,7 @@ import { ExamService } from '../../../core/services/exam.service';
 import { StudentService } from '../../../core/services/student.service';
 import { ClassService } from '../../../core/services/class.service';
 import { SubjectService } from '../../../core/services/subject.service';
+import { PdfService } from '../../../core/services/pdf.service';
 import { Mark } from '../../../core/models/mark.model';
 
 @Component({
@@ -38,11 +39,14 @@ import { Mark } from '../../../core/models/mark.model';
               <label>Student *</label>
               <select [(ngModel)]="selectedStudentId" name="studentId" required class="form-control">
                 <option value="">Select Student</option>
-                <option *ngFor="let student of students" [value]="student.studentId">{{ student.name }}</option>
+                <option *ngFor="let student of students" [value]="student.studentId || student.userId">{{ student.name }}</option>
               </select>
             </div>
           </div>
           <button type="submit" class="btn btn-primary">Load Marks</button>
+          <button type="button" class="btn btn-secondary" (click)="downloadResultCard()">
+            <i class="fa fa-file-pdf-o"></i> Download Result Card
+          </button>
         </form>
       </div>
 
@@ -127,6 +131,11 @@ import { Mark } from '../../../core/models/mark.model';
       background: #667eea;
       color: white;
     }
+    .btn-secondary {
+      background: #e74c3c;
+      color: white;
+      margin-left: 0.75rem;
+    }
     .data-table {
       width: 100%;
       border-collapse: collapse;
@@ -168,7 +177,8 @@ export class MarksComponent implements OnInit {
     private examService: ExamService,
     private studentService: StudentService,
     private classService: ClassService,
-    private subjectService: SubjectService
+    private subjectService: SubjectService,
+    private pdfService: PdfService
   ) {}
 
   ngOnInit() {
@@ -197,6 +207,30 @@ export class MarksComponent implements OnInit {
         this.subjects = subjects;
       });
     }
+  }
+
+  downloadResultCard() {
+    if (!this.selectedExamId || this.selectedExamId <= 0 || !this.selectedStudentId || this.selectedStudentId <= 0) {
+      alert('Please select valid exam and student before downloading the result card.');
+      return;
+    }
+
+    this.pdfService.getResultCard(this.selectedStudentId, this.selectedExamId).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `result-card-${this.selectedStudentId}-${this.selectedExamId}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      },
+      error: (error) => {
+        console.error('Error downloading result card:', error);
+        alert('Error downloading result card. Please try again.');
+      }
+    });
   }
 
   loadMarks() {

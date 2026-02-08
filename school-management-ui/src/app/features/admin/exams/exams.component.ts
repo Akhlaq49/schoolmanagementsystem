@@ -643,8 +643,9 @@ export class ExamsComponent implements OnInit {
     }
 
     this.saving = true;
-    const operation = this.editingExam
-      ? this.examService.updateExam(this.editingExam.examId, this.examForm as Exam)
+    const examId = this.editingExam?.examId;
+    const operation = this.editingExam && examId
+      ? this.examService.updateExam(examId, this.examForm as Exam)
       : this.examService.createExam(this.examForm as Exam);
 
     operation.subscribe({
@@ -674,7 +675,7 @@ export class ExamsComponent implements OnInit {
   }
 
   confirmDelete(exam: Exam) {
-    this.examToDelete = exam.examId;
+    this.examToDelete = exam.examId ?? null;
     this.showDeleteConfirm = true;
   }
 

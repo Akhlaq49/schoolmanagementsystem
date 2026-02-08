@@ -76,7 +76,7 @@ import { Assignment } from '../../../core/models/assignment.model';
                 <button class="btn btn-sm btn-edit" (click)="editAssignment(assignment)">
                   <i class="fa fa-edit"></i>
                 </button>
-                <button class="btn btn-sm btn-delete" (click)="deleteAssignment(assignment.assignmentId)">
+                <button class="btn btn-sm btn-delete" (click)="assignment.assignmentId && deleteAssignment(assignment.assignmentId)">
                   <i class="fa fa-trash"></i>
                 </button>
               </td>
@@ -236,7 +236,7 @@ export class AssignmentsComponent implements OnInit {
   }
 
   saveAssignment() {
-    if (this.editingAssignment) {
+    if (this.editingAssignment && this.editingAssignment.assignmentId) {
       this.assignmentService.updateAssignment(this.editingAssignment.assignmentId, this.assignmentForm as Assignment)
         .subscribe(() => {
           this.loadAssignments();

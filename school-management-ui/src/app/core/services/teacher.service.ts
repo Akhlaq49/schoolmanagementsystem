@@ -21,11 +21,29 @@ export class TeacherService {
   }
 
   createTeacher(teacher: Teacher): Observable<Teacher> {
-    return this.http.post<Teacher>(this.apiUrl, teacher);
+    // Clean the teacher data - only send necessary fields for creation (no password needed)
+    const createData = {
+      name: teacher.name,
+      email: teacher.email,
+      phone: teacher.phone,
+      address: teacher.address,
+      departmentId: teacher.departmentId ? Number(teacher.departmentId) : undefined,
+      designationId: teacher.designationId ? Number(teacher.designationId) : undefined
+    };
+    return this.http.post<Teacher>(this.apiUrl, createData);
   }
 
   updateTeacher(id: number, teacher: Teacher): Observable<Teacher> {
-    return this.http.put<Teacher>(`${this.apiUrl}/${id}`, teacher);
+    // Clean the teacher data - only send editable fields, exclude navigation properties
+    const updateData = {
+      name: teacher.name,
+      email: teacher.email,
+      phone: teacher.phone,
+      address: teacher.address,
+      departmentId: teacher.departmentId ? Number(teacher.departmentId) : undefined,
+      designationId: teacher.designationId ? Number(teacher.designationId) : undefined
+    };
+    return this.http.put<Teacher>(`${this.apiUrl}/${id}`, updateData);
   }
 
   deleteTeacher(id: number): Observable<void> {

@@ -428,6 +428,112 @@ public static class DatabaseSeeder
             context.Circulars.AddRange(circulars);
             await context.SaveChangesAsync();
         }
+
+        // Seed Fee Types
+        if (!await context.FeeTypes.AnyAsync())
+        {
+            var feeTypes = new[]
+            {
+                new FeeType { Name = "Tuition Fee", Description = "Monthly tuition fee", IsRecurring = true, DefaultAmount = 5000M },
+                new FeeType { Name = "Transport Fee", Description = "Monthly transport/bus fee", IsRecurring = true, DefaultAmount = 1000M },
+                new FeeType { Name = "Hostel Fee", Description = "Monthly hostel accommodation fee", IsRecurring = true, DefaultAmount = 3000M },
+                new FeeType { Name = "Exam Fee", Description = "Annual examination fee", IsRecurring = false, DefaultAmount = 2000M },
+                new FeeType { Name = "Library Fee", Description = "Annual library membership fee", IsRecurring = false, DefaultAmount = 500M },
+                new FeeType { Name = "Sports Fee", Description = "Annual sports activities fee", IsRecurring = false, DefaultAmount = 1500M }
+            };
+            context.FeeTypes.AddRange(feeTypes);
+            await context.SaveChangesAsync();
+        }
+
+        // Seed Grading Scales
+        if (!await context.GradingScales.AnyAsync())
+        {
+            var classes = await context.Classes.ToListAsync();
+            var gradingScales = new List<GradingScale>();
+
+            // Standard grading scale for all classes
+            var gradeDefinitions = new[]
+            {
+                new { MinMarks = 90, MaxMarks = 100, Grade = "A+", GradePoint = 4.0M, Remarks = "Outstanding" },
+                new { MinMarks = 80, MaxMarks = 89, Grade = "A", GradePoint = 3.7M, Remarks = "Excellent" },
+                new { MinMarks = 70, MaxMarks = 79, Grade = "B+", GradePoint = 3.3M, Remarks = "Very Good" },
+                new { MinMarks = 60, MaxMarks = 69, Grade = "B", GradePoint = 3.0M, Remarks = "Good" },
+                new { MinMarks = 50, MaxMarks = 59, Grade = "C+", GradePoint = 2.7M, Remarks = "Satisfactory" },
+                new { MinMarks = 40, MaxMarks = 49, Grade = "C", GradePoint = 2.0M, Remarks = "Pass" },
+                new { MinMarks = 33, MaxMarks = 39, Grade = "D", GradePoint = 1.0M, Remarks = "Below Average" },
+                new { MinMarks = 0, MaxMarks = 32, Grade = "F", GradePoint = 0.0M, Remarks = "Fail" }
+            };
+
+            foreach (var classItem in classes)
+            {
+                foreach (var gradeDef in gradeDefinitions)
+                {
+                    gradingScales.Add(new GradingScale
+                    {
+                        ClassId = classItem.ClassId,
+                        MinMarks = gradeDef.MinMarks,
+                        MaxMarks = gradeDef.MaxMarks,
+                        Grade = gradeDef.Grade,
+                        GradePoint = gradeDef.GradePoint,
+                        Remarks = gradeDef.Remarks
+                    });
+                }
+            }
+
+            context.GradingScales.AddRange(gradingScales);
+            await context.SaveChangesAsync();
+        }
+
+        // Seed Notification Templates
+        if (!await context.NotificationTemplates.AnyAsync())
+        {
+            var templates = new[]
+            {
+                new NotificationTemplate
+                {
+                    Name = "Attendance Alert",
+                    Type = NotificationType.Attendance,
+                    MessageTemplate = "Dear Parent, {StudentName} was absent on {Date} in class {Class}. Please follow up.",
+                    Description = "Sent when a student is marked absent",
+                    IsActive = true
+                },
+                new NotificationTemplate
+                {
+                    Name = "Fee Due Reminder",
+                    Type = NotificationType.Fee,
+                    MessageTemplate = "Dear Parent, Fee payment of Rs. {Amount} ({FeeType}) is due on {DueDate}. Please make payment at your earliest convenience.",
+                    Description = "Sent when fee is due",
+                    IsActive = true
+                },
+                new NotificationTemplate
+                {
+                    Name = "Exam Result Notification",
+                    Type = NotificationType.Result,
+                    MessageTemplate = "Congratulations! Result for {ExamName} is now available. GPA: {GPA}, Grade: {Grade}, Position: {Position}.",
+                    Description = "Sent when exam results are published",
+                    IsActive = true
+                },
+                new NotificationTemplate
+                {
+                    Name = "General Announcement",
+                    Type = NotificationType.Announcement,
+                    MessageTemplate = "Important Announcement: {Message}",
+                    Description = "For general announcements to parents",
+                    IsActive = true
+                },
+                new NotificationTemplate
+                {
+                    Name = "Birthday Wishes",
+                    Type = NotificationType.Birthday,
+                    MessageTemplate = "Happy Birthday {StudentName}! Wishing you a wonderful year ahead. Best wishes from the school family!",
+                    Description = "Sent on student's birthday",
+                    IsActive = true
+                }
+            };
+
+            context.NotificationTemplates.AddRange(templates);
+            await context.SaveChangesAsync();
+        }
     }
 }
 

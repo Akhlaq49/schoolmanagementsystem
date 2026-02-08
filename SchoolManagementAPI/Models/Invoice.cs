@@ -34,8 +34,27 @@ public class Invoice
     [Column("creation_timestamp")]
     public DateTime CreationTimestamp { get; set; }
 
+    // Fee Management Fields
+    [Column("fee_type_id")]
+    public int? FeeTypeId { get; set; }
+
+    [Column("due_date")]
+    public DateTime? DueDate { get; set; }
+
+    [Column("fine_amount")]
+    public decimal FineAmount { get; set; } = 0;
+
+    [Column("discount_amount")]
+    public decimal DiscountAmount { get; set; } = 0;
+
+    [Column("final_amount")]
+    public decimal FinalAmount { get; set; }
+
     // Navigation Properties
     [ForeignKey("StudentId")]
     public virtual Student Student { get; set; } = null!;
+
+    [ForeignKey("FeeTypeId")]
+    public virtual FeeType? FeeType { get; set; }
 }
 

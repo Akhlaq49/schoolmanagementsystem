@@ -22,6 +22,6 @@ public class UserRoleMapping
     // Navigation Properties
     [ForeignKey("UserId")]
     [JsonIgnore] // Prevent circular reference in JSON serialization
-    public virtual User User { get; set; } = null!;
+    public virtual User? User { get; set; }
 }
 
