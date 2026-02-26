@@ -88,6 +88,26 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./transports/transports.component').then(m => m.TransportsComponent)
       },
       {
+        path: 'family',
+        loadComponent: () => import('./family/family-list/family-list.component').then(m => m.FamilyListComponent)
+      },
+      {
+        path: 'family/add',
+        loadComponent: () => import('./family/family-add/family-add.component').then(m => m.FamilyAddComponent)
+      },
+      {
+        path: 'family/list',
+        loadComponent: () => import('./family/family-list/family-list.component').then(m => m.FamilyListComponent)
+      },
+      {
+        path: 'family/fee-add-on',
+        loadComponent: () => import('./family/fee-add-on/fee-add-on.component').then(m => m.FeeAddOnComponent)
+      },
+      {
+        path: 'family/defaulter-families',
+        loadComponent: () => import('./family/defaulter-families/defaulter-families.component').then(m => m.DefaulterFamiliesComponent)
+      },
+      {
         path: 'whatsapp-notifications',
         loadComponent: () => import('./whatsapp-notifications/whatsapp-notifications.component').then(m => m.WhatsAppNotificationsComponent)
       },

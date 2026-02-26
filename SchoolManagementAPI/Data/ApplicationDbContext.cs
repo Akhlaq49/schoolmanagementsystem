@@ -46,6 +46,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Transport> Transports { get; set; }
     public DbSet<Setting> Settings { get; set; }
     public DbSet<ExpenseCategory> ExpenseCategories { get; set; }
+    public DbSet<Family> Families { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

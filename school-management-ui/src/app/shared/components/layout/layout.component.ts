@@ -47,17 +47,46 @@ import { AuthService } from '../../../core/services/auth.service';
           </div>
           <ul class="nav-menu">
             <li *ngFor="let item of menuItems">
-              <a 
-                [routerLink]="item.route" 
-                routerLinkActive="active" 
-                [routerLinkActiveOptions]="{exact: item.exact}"
-                class="nav-link">
-                <span class="nav-icon">
-                  <i [class]="item.icon"></i>
-                </span>
-                <span class="nav-label">{{ item.label }}</span>
-                <span class="nav-indicator"></span>
-              </a>
+              <!-- Group item with children (e.g. Family) -->
+              <div *ngIf="item.children?.length; else singleLink" class="nav-group">
+                <button 
+                  type="button" 
+                  class="nav-group-header" 
+                  (click)="toggleGroup(item)">
+                  <span class="nav-icon">
+                    <i [class]="item.icon"></i>
+                  </span>
+                  <span class="nav-label">{{ item.label }}</span>
+                  <span class="nav-group-caret" [class.expanded]="item.expanded">
+                    <i class="fa fa-chevron-down"></i>
+                  </span>
+                </button>
+                <ul class="nav-submenu" [class.expanded]="item.expanded">
+                  <li *ngFor="let child of item.children">
+                    <a 
+                      [routerLink]="child.route" 
+                      routerLinkActive="active" 
+                      [routerLinkActiveOptions]="{exact: child.exact}"
+                      class="nav-link nav-sublink">
+                      <span class="nav-label">{{ child.label }}</span>
+                    </a>
+                  </li>
+                </ul>
+              </div>
+              <!-- Single flat link -->
+              <ng-template #singleLink>
+                <a 
+                  [routerLink]="item.route" 
+                  routerLinkActive="active" 
+                  [routerLinkActiveOptions]="{exact: item.exact}"
+                  class="nav-link">
+                  <span class="nav-icon">
+                    <i [class]="item.icon"></i>
+                  </span>
+                  <span class="nav-label">{{ item.label }}</span>
+                  <span class="nav-indicator"></span>
+                </a>
+              </ng-template>
             </li>
             <li *ngIf="menuItems.length === 0 && userRoles.length > 0" class="nav-empty">
               <span class="nav-label text-muted">No menu items available</span>
@@ -296,6 +325,60 @@ import { AuthService } from '../../../core/services/auth.service';
       margin-bottom: 0.25rem;
     }
     
+    .nav-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    
+    .nav-group-header {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      padding: 0.875rem 1rem;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      text-align: left;
+      position: relative;
+    }
+    
+    .nav-group-header:hover {
+      background: var(--bg-secondary);
+      color: var(--primary);
+      transform: translateX(4px);
+    }
+    
+    .nav-group-caret {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: auto;
+      transition: transform var(--transition-fast);
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+    }
+    
+    .nav-group-caret.expanded {
+      transform: rotate(180deg);
+    }
+    
+    .nav-submenu {
+      list-style: none;
+      margin: 0;
+      padding: 0 0 0 2.5rem;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height var(--transition-fast);
+    }
+    
+    .nav-submenu.expanded {
+      max-height: 500px;
+    }
+    
     .nav-link {
       display: flex;
       align-items: center;
@@ -354,6 +437,12 @@ import { AuthService } from '../../../core/services/auth.service';
     .nav-label {
       flex: 1;
       font-size: 0.9375rem;
+    }
+    
+    .nav-sublink {
+      padding-left: 0;
+      background: transparent;
+      font-size: 0.9rem;
     }
     
     .nav-indicator {
@@ -572,6 +661,18 @@ export class LayoutComponent implements OnInit {
         { route: '/admin/departments', label: 'Departments', icon: 'fa fa-building', role: 'admin' },
         { route: '/admin/dormitories', label: 'Dormitories', icon: 'fa fa-home', role: 'admin' },
         { route: '/admin/transports', label: 'Transport', icon: 'fa fa-bus', role: 'admin' },
+        {
+          label: 'Family',
+          icon: 'fa fa-graduation-cap',
+          role: 'admin',
+          expanded: false,
+          children: [
+            { route: '/admin/family/add', label: 'Add New Family', role: 'admin' },
+            { route: '/admin/family/list', label: 'Family List', role: 'admin' },
+            { route: '/admin/family/fee-add-on', label: 'Fees Addons', role: 'admin' },
+            { route: '/admin/family/defaulter-families', label: 'Defaulter families', role: 'admin' }
+          ]
+        },
         { route: '/admin/whatsapp-notifications', label: 'WhatsApp Notifications', icon: 'fa fa-whatsapp', role: 'admin' },
         { route: '/admin/profile', label: 'Profile', icon: 'fa fa-user', role: 'admin' }
       ],
@@ -608,9 +709,18 @@ export class LayoutComponent implements OnInit {
     roles.forEach(role => {
       const roleMenus = allMenuItems[role.toLowerCase()] || [];
       roleMenus.forEach(item => {
-        // Use route as key to avoid duplicates
-        if (!menuItemsMap.has(item.route)) {
-          menuItemsMap.set(item.route, item);
+        // Group items (with children) are keyed by label+role
+        if (item.children?.length) {
+          const key = `group:${role}:${item.label}`;
+          if (!menuItemsMap.has(key)) {
+            menuItemsMap.set(key, item);
+          }
+        } else if (item.route) {
+          // Flat items are keyed by route
+          const key = `route:${item.route}`;
+          if (!menuItemsMap.has(key)) {
+            menuItemsMap.set(key, item);
+          }
         }
       });
     });
@@ -628,5 +738,9 @@ export class LayoutComponent implements OnInit {
       const priorityB = rolePriority[b.role] || 99;
       return priorityA - priorityB;
     });
+  }
+
+  toggleGroup(item: any) {
+    item.expanded = !item.expanded;
   }
 }
