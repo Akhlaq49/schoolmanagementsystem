@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SchoolManagementAPI.Data;
 using SchoolManagementAPI.Services;
+using SchoolManagementAPI.Services.Family;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -100,14 +101,23 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// CORS
+// CORS - allow local frontend dev servers on any localhost/loopback port
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngularApp", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.SetIsOriginAllowed(origin =>
+              {
+                  if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                  {
+                      return false;
+                  }
+
+                  return uri.IsLoopback;
+              })
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 
@@ -134,6 +144,9 @@ builder.Services.AddScoped<IDormitoryService, DormitoryService>();
 builder.Services.AddScoped<ITransportService, TransportService>();
 builder.Services.AddScoped<IExamQuestionService, ExamQuestionService>();
 builder.Services.AddScoped<IQuestionBankService, QuestionBankService>();
+builder.Services.AddScoped<IFamilyService, FamilyService>();
+builder.Services.AddScoped<IFeeAddonService, FeeAddonService>();
+builder.Services.AddScoped<IAcademicSessionService, AcademicSessionService>();
 
 // WhatsApp Service (Twilio)
 builder.Services.AddScoped<IWhatsAppService, WhatsAppService>();
@@ -174,9 +187,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// CORS must be before HTTPS redirection to handle preflight requests
+// CORS must be before authentication/authorization so preflight (OPTIONS) gets CORS headers
 app.UseCors("AllowAngularApp");
-app.UseHttpsRedirection();
+// Skip HTTPS redirection in Development so preflight to http://localhost:5xxx gets CORS headers
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

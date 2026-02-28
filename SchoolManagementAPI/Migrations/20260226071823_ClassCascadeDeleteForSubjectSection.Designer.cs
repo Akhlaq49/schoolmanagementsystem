@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SchoolManagementAPI.Data;
 
@@ -11,9 +12,11 @@ using SchoolManagementAPI.Data;
 namespace SchoolManagementAPI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260226071823_ClassCascadeDeleteForSubjectSection")]
+    partial class ClassCascadeDeleteForSubjectSection
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,41 +24,6 @@ namespace SchoolManagementAPI.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("SchoolManagementAPI.Models.AcademicSession", b =>
-                {
-                    b.Property<int>("AcademicSessionId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("academic_session_id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AcademicSessionId"));
-
-                    b.Property<DateTime?>("EndDate")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("end_date");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_active");
-
-                    b.Property<bool>("IsCurrent")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_current");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("name");
-
-                    b.Property<DateTime?>("StartDate")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("start_date");
-
-                    b.HasKey("AcademicSessionId");
-
-                    b.ToTable("academic_session");
-                });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.AcademicSyllabus", b =>
                 {
@@ -1317,7 +1285,7 @@ namespace SchoolManagementAPI.Migrations
                     b.HasOne("SchoolManagementAPI.Models.Class", "Class")
                         .WithMany()
                         .HasForeignKey("ClassId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Class");
                 });

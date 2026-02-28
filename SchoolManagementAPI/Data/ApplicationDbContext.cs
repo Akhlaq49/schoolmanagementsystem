@@ -47,6 +47,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<Setting> Settings { get; set; }
     public DbSet<ExpenseCategory> ExpenseCategories { get; set; }
     public DbSet<Family> Families { get; set; }
+    public DbSet<AcademicSession> AcademicSessions { get; set; }
+    public DbSet<FeeAddon> FeeAddons { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -103,7 +105,7 @@ public class ApplicationDbContext : DbContext
             .HasOne(s => s.Class)
             .WithMany()
             .HasForeignKey(s => s.ClassId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<QuestionBank>()
             .HasOne(q => q.Subject)

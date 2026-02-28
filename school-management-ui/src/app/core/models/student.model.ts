@@ -24,6 +24,7 @@ export interface Class {
   name: string;
   nameNumeric?: string;
   teacherId?: number;
+  fee?: number;
 }
 
 export interface Section {

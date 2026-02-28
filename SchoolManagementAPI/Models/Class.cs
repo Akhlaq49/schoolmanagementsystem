@@ -19,5 +19,8 @@ public class Class
 
     [Column("teacher_id")]
     public int? TeacherId { get; set; }
+
+    [Column("fee", TypeName = "decimal(18,2)")]
+    public decimal? Fee { get; set; }
 }
 

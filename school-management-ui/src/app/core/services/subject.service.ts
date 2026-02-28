@@ -28,8 +28,16 @@ export class SubjectService {
     return this.http.post<Subject>(this.apiUrl, subject);
   }
 
+  createSubjectForClasses(payload: { name: string; classIds: number[]; teacherId?: number }): Observable<Subject[]> {
+    return this.http.post<Subject[]>(`${this.apiUrl}/multiple-classes`, payload);
+  }
+
   updateSubject(id: number, subject: Subject): Observable<Subject> {
     return this.http.put<Subject>(`${this.apiUrl}/${id}`, subject);
+  }
+
+  updateSubjectsByName(payload: { originalName: string; newName: string; classIds: number[]; teacherId?: number }): Observable<Subject[]> {
+    return this.http.put<Subject[]>(`${this.apiUrl}/by-name`, payload);
   }
 
   deleteSubject(id: number): Observable<void> {

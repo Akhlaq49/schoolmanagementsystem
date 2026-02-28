@@ -38,6 +38,7 @@ public class ClassService : IClassService
         existing.Name = classEntity.Name;
         existing.NameNumeric = classEntity.NameNumeric;
         existing.TeacherId = classEntity.TeacherId;
+        existing.Fee = classEntity.Fee;
 
         await _context.SaveChangesAsync();
         return existing;
@@ -47,6 +48,16 @@ public class ClassService : IClassService
     {
         var classEntity = await _context.Classes.FindAsync(id);
         if (classEntity == null) return false;
+
+        // Delete dependent subjects explicitly (sections are handled by cascade delete)
+        var subjects = await _context.Subjects
+            .Where(s => s.ClassId == id)
+            .ToListAsync();
+
+        if (subjects.Count > 0)
+        {
+            _context.Subjects.RemoveRange(subjects);
+        }
 
         _context.Classes.Remove(classEntity);
         await _context.SaveChangesAsync();

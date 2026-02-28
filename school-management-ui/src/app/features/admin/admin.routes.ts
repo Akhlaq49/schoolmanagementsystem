@@ -80,6 +80,10 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./departments/departments.component').then(m => m.DepartmentsComponent)
       },
       {
+        path: 'sessions',
+        loadComponent: () => import('./sessions/sessions.component').then(m => m.SessionsComponent)
+      },
+      {
         path: 'dormitories',
         loadComponent: () => import('./dormitories/dormitories.component').then(m => m.DormitoriesComponent)
       },

@@ -10,5 +10,7 @@ public interface ISubjectService
     Task<Subject> CreateSubjectAsync(Subject subject);
     Task<Subject?> UpdateSubjectAsync(int id, Subject subject);
     Task<bool> DeleteSubjectAsync(int id);
+    Task<List<Subject>> CreateSubjectsForClassesAsync(string name, IEnumerable<int> classIds, int? teacherId);
+    Task<List<Subject>> UpdateSubjectsForNameAsync(string originalName, string newName, IEnumerable<int> classIds, int? teacherId);
 }
 

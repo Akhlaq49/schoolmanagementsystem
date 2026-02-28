@@ -645,9 +645,18 @@ export class LayoutComponent implements OnInit {
         { route: '/admin/dashboard', label: 'Dashboard', icon: 'fa fa-home', exact: true, role: 'admin' },
         { route: '/admin/students', label: 'Students', icon: 'fa fa-users', role: 'admin' },
         { route: '/admin/teachers', label: 'Teachers', icon: 'fa fa-chalkboard-teacher', role: 'admin' },
-        { route: '/admin/classes', label: 'Classes', icon: 'fa fa-book', role: 'admin' },
-        { route: '/admin/sections', label: 'Sections', icon: 'fa fa-list', role: 'admin' },
-        { route: '/admin/subjects', label: 'Subjects', icon: 'fa fa-bookmark', role: 'admin' },
+        {
+          label: 'Classes',
+          icon: 'fa fa-book',
+          role: 'admin',
+          expanded: false,
+          children: [
+            { route: '/admin/classes', label: 'Classes', role: 'admin' },
+            { route: '/admin/sections', label: 'Section', role: 'admin' },
+            { route: '/admin/subjects', label: 'Subjects', role: 'admin' },
+            { route: '/admin/sessions', label: 'Session', role: 'admin' }
+          ]
+        },
         { route: '/admin/attendance', label: 'Attendance', icon: 'fa fa-check-square', role: 'admin' },
         { route: '/admin/exams', label: 'Exams', icon: 'fa fa-file-text', role: 'admin' },
         { route: '/admin/marks', label: 'Marks', icon: 'fa fa-star', role: 'admin' },

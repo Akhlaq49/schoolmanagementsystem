@@ -19,8 +19,8 @@ import { Class } from '../../../core/models/student.model';
         </button>
       </div>
 
-      <div *ngIf="showAddForm || editingSubject" class="form-card">
-        <h3>{{ editingSubject ? 'Edit Subject' : 'Add New Subject' }}</h3>
+      <div *ngIf="showAddForm || editingSubjectName" class="form-card">
+        <h3>{{ editingSubjectName ? 'Edit Subject' : 'Add New Subject' }}</h3>
         <form (ngSubmit)="saveSubject()">
           <div class="form-row">
             <div class="form-group">
@@ -28,11 +28,18 @@ import { Class } from '../../../core/models/student.model';
               <input type="text" [(ngModel)]="subjectForm.name" name="name" required class="form-control">
             </div>
             <div class="form-group">
-              <label>Class *</label>
-              <select [(ngModel)]="subjectForm.classId" name="classId" required class="form-control">
-                <option value="">Select Class</option>
-                <option *ngFor="let cls of classes" [value]="cls.classId">{{ cls.name }}</option>
-              </select>
+              <label>Classes *</label>
+              <div class="class-checkboxes">
+                <label *ngFor="let cls of classes" class="checkbox-item">
+                  <input
+                    type="checkbox"
+                    [value]="cls.classId"
+                    (change)="onClassCheckboxChange($event, cls.classId)"
+                    [checked]="selectedClassIds.includes(cls.classId)"
+                  />
+                  <span>{{ cls.nameNumeric || cls.name }}</span>
+                </label>
+              </div>
             </div>
           </div>
           <div class="form-actions">
@@ -46,27 +53,27 @@ import { Class } from '../../../core/models/student.model';
         <table class="data-table">
           <thead>
             <tr>
-              <th>ID</th>
+              <th>#</th>
               <th>Subject Name</th>
-              <th>Class</th>
+              <th>Classes</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let subject of subjects">
-              <td>{{ subject.subjectId }}</td>
-              <td>{{ subject.name }}</td>
-              <td>{{ subject.class?.name || '-' }}</td>
+            <tr *ngFor="let group of groupedSubjects; let i = index">
+              <td>{{ i + 1 }}</td>
+              <td>{{ group.name }}</td>
+              <td>{{ group.classLabels }}</td>
               <td>
-                <button class="btn btn-sm btn-edit" (click)="editSubject(subject)">
+                <button class="btn btn-sm btn-edit" (click)="editByName(group.name)">
                   <i class="fa fa-edit"></i>
                 </button>
-                <button class="btn btn-sm btn-delete" (click)="deleteSubject(subject.subjectId)">
+                <button class="btn btn-sm btn-delete" (click)="deleteByName(group.name)">
                   <i class="fa fa-trash"></i>
                 </button>
               </td>
             </tr>
-            <tr *ngIf="subjects.length === 0">
+            <tr *ngIf="groupedSubjects.length === 0">
               <td colspan="4" class="text-center">No subjects found</td>
             </tr>
           </tbody>
@@ -176,18 +183,44 @@ import { Class } from '../../../core/models/student.model';
     .text-center {
       text-align: center;
     }
+    .class-checkboxes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1rem;
+      margin-top: 0.25rem;
+    }
+    .checkbox-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid #d4c4a8;
+      background: #fffdf8;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .checkbox-item input {
+      margin: 0;
+    }
+    .checkbox-item span {
+      white-space: nowrap;
+    }
   `]
 })
 export class SubjectsComponent implements OnInit {
   subjects: Subject[] = [];
+  groupedSubjects: { name: string; classLabels: string; classIds: number[] }[] = [];
   classes: Class[] = [];
   showAddForm: boolean = false;
-  editingSubject: Subject | null = null;
+  editingSubjectName: string | null = null;
   
   subjectForm: Partial<Subject> = {
     name: '',
     classId: undefined
   };
+
+  selectedClassIds: number[] = [];
 
   constructor(
     private subjectService: SubjectService,
@@ -202,6 +235,29 @@ export class SubjectsComponent implements OnInit {
   loadSubjects() {
     this.subjectService.getAllSubjects().subscribe(subjects => {
       this.subjects = subjects;
+
+      const map = new Map<string, { name: string; classIds: number[]; classLabels: string[] }>();
+
+      for (const s of subjects) {
+        const key = s.name.toLowerCase();
+        const entry = map.get(key) || { name: s.name, classIds: [], classLabels: [] };
+
+        const label = s.class?.nameNumeric || s.class?.name || '';
+        if (s.classId && !entry.classIds.includes(s.classId)) {
+          entry.classIds.push(s.classId);
+        }
+        if (label && !entry.classLabels.includes(label)) {
+          entry.classLabels.push(label);
+        }
+
+        map.set(key, entry);
+      }
+
+      this.groupedSubjects = Array.from(map.values()).map(e => ({
+        name: e.name,
+        classIds: e.classIds,
+        classLabels: e.classLabels.join(', ')
+      }));
     });
   }
 
@@ -212,42 +268,88 @@ export class SubjectsComponent implements OnInit {
   }
 
   saveSubject() {
-    if (this.editingSubject) {
-      this.subjectService.updateSubject(this.editingSubject.subjectId, this.subjectForm as Subject)
-        .subscribe(() => {
-          this.loadSubjects();
-          this.cancelForm();
-        });
-    } else {
-      this.subjectService.createSubject(this.subjectForm as Subject)
-        .subscribe(() => {
-          this.loadSubjects();
-          this.cancelForm();
-        });
+    const name = (this.subjectForm.name || '').trim();
+    if (!name || this.selectedClassIds.length === 0) {
+      alert('Please enter a subject name and select at least one class.');
+      return;
     }
-  }
 
-  editSubject(subject: Subject) {
-    this.editingSubject = subject;
-    this.subjectForm = { ...subject };
-    this.showAddForm = true;
-  }
-
-  deleteSubject(id: number) {
-    if (confirm('Are you sure you want to delete this subject?')) {
-      this.subjectService.deleteSubject(id).subscribe(() => {
+    if (this.editingSubjectName) {
+      this.subjectService.updateSubjectsByName({
+        originalName: this.editingSubjectName,
+        newName: name,
+        classIds: this.selectedClassIds
+      }).subscribe(() => {
         this.loadSubjects();
+        this.cancelForm();
+      });
+    } else {
+      this.subjectService.createSubjectForClasses({
+        name,
+        classIds: this.selectedClassIds
+      }).subscribe(() => {
+        this.loadSubjects();
+        this.cancelForm();
       });
     }
   }
 
+  editByName(name: string) {
+    this.editingSubjectName = name;
+    this.subjectForm = { name };
+    const related = this.subjects.filter(s => s.name === name);
+    this.selectedClassIds = related
+      .map(s => s.classId!)
+      .filter((id, idx, arr) => id && arr.indexOf(id) === idx);
+    this.showAddForm = true;
+  }
+
+  deleteByName(name: string) {
+    if (!confirm('Are you sure you want to delete this subject from all classes?')) {
+      return;
+    }
+    const related = this.subjects.filter(s => s.name === name);
+    if (related.length === 0) {
+      return;
+    }
+    let pending = related.length;
+    related.forEach(s => {
+      this.subjectService.deleteSubject(s.subjectId).subscribe({
+        next: () => {
+          pending--;
+          if (pending === 0) {
+            this.loadSubjects();
+          }
+        },
+        error: () => {
+          pending--;
+          if (pending === 0) {
+            this.loadSubjects();
+          }
+        }
+      });
+    });
+  }
+
   cancelForm() {
     this.showAddForm = false;
-    this.editingSubject = null;
+    this.editingSubjectName = null;
     this.subjectForm = {
       name: '',
       classId: undefined
     };
+    this.selectedClassIds = [];
+  }
+
+  onClassCheckboxChange(event: Event, classId: number) {
+    const checked = (event.target as HTMLInputElement).checked;
+    if (checked) {
+      if (!this.selectedClassIds.includes(classId)) {
+        this.selectedClassIds.push(classId);
+      }
+    } else {
+      this.selectedClassIds = this.selectedClassIds.filter(id => id !== classId);
+    }
   }
 }
 

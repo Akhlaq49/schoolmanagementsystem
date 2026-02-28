@@ -68,6 +68,23 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
                   placeholder="e.g., 1, 2, 3">
               </div>
             </div>
+            <div class="modern-form-group">
+              <label>
+                <i class="fa fa-money"></i>
+                Fee
+              </label>
+              <div class="modern-input-wrapper">
+                <i class="fa fa-money modern-input-icon"></i>
+                <input
+                  type="number"
+                  [(ngModel)]="classForm.fee"
+                  name="fee"
+                  class="modern-form-control"
+                  placeholder="e.g., 1500"
+                  min="0"
+                  step="0.01">
+              </div>
+            </div>
           </div>
           <div class="modern-form-actions">
             <button type="submit" class="btn btn-primary" [disabled]="saving">
@@ -101,6 +118,7 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
                 <th><i class="fa fa-hashtag"></i> ID</th>
                 <th><i class="fa fa-book"></i> Class Name</th>
                 <th><i class="fa fa-hashtag"></i> Numeric Name</th>
+                <th><i class="fa fa-money"></i> Fee</th>
                 <th><i class="fa fa-cog"></i> Actions</th>
               </tr>
             </thead>
@@ -115,6 +133,14 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
                 <td>
                   <span *ngIf="classItem.nameNumeric" class="numeric-badge">{{ classItem.nameNumeric }}</span>
                   <span *ngIf="!classItem.nameNumeric" class="text-muted">-</span>
+                </td>
+                <td>
+                  <span *ngIf="classItem.fee != null; else noFee">
+                    {{ classItem.fee | number:'1.2-2' }}
+                  </span>
+                  <ng-template #noFee>
+                    <span class="text-muted">-</span>
+                  </ng-template>
                 </td>
                 <td>
                   <div class="modern-table-actions">
@@ -275,7 +301,8 @@ export class ClassesComponent implements OnInit {
   
   classForm: Partial<Class> = {
     name: '',
-    nameNumeric: ''
+    nameNumeric: '',
+    fee: undefined
   };
 
   constructor(
@@ -375,7 +402,8 @@ export class ClassesComponent implements OnInit {
     this.submitted = false;
     this.classForm = {
       name: '',
-      nameNumeric: ''
+      nameNumeric: '',
+      fee: undefined
     };
   }
 }
