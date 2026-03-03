@@ -69,6 +69,24 @@ public class User
     [Column("session")]
     public string? Session { get; set; }
 
+    [Column("family_id")]
+    public int? FamilyId { get; set; }
+
+    [Column("school_reg_num")]
+    public string? SchoolRegNum { get; set; }
+
+    [Column("b_form_cnic")]
+    public string? BFormCnic { get; set; }
+
+    [Column("religion")]
+    public string? Religion { get; set; }
+
+    [Column("blood_group")]
+    public string? BloodGroup { get; set; }
+
+    [Column("status")]
+    public string Status { get; set; } = "Active"; // Active, Dropped
+
     // Parent-specific fields
     [Column("profession")]
     public string? Profession { get; set; }
@@ -86,6 +104,13 @@ public class User
     [ForeignKey("ParentId")]
     [JsonIgnore] // Prevent circular reference in JSON serialization
     public virtual User? Parent { get; set; }
+
+    [ForeignKey("FamilyId")]
+    public virtual Family? Family { get; set; }
+
+    public virtual StudentPreviousInstitute? PreviousInstitute { get; set; }
+    public virtual StudentAdmission? Admission { get; set; }
+    public virtual Student? StudentProfile { get; set; }
 
     // Navigation Properties for Roles
     public virtual ICollection<UserRoleMapping> UserRoles { get; set; } = new List<UserRoleMapping>();
