@@ -12,200 +12,140 @@ import { Class } from '../../../core/models/student.model';
   imports: [CommonModule, FormsModule],
   template: `
     <div class="subjects-container">
-      <div class="page-header">
-        <h2>Subject Management</h2>
-        <button class="btn btn-primary" (click)="showAddForm = true">
-          <i class="fa fa-plus"></i> Add New Subject
-        </button>
+      <div class="page-header-card">
+        <div class="header-content">
+          <div>
+            <h2>Subject Management</h2>
+            <p class="page-subtitle">Manage subjects and assign to classes</p>
+          </div>
+          <button class="btn btn-primary" (click)="showAddForm = true">
+            <i class="fa fa-plus"></i> Add New Subject
+          </button>
+        </div>
       </div>
 
-      <div *ngIf="showAddForm || editingSubjectName" class="form-card">
+      <div *ngIf="showAddForm || editingSubjectName" class="academy-form-card">
         <h3>{{ editingSubjectName ? 'Edit Subject' : 'Add New Subject' }}</h3>
         <form (ngSubmit)="saveSubject()">
-          <div class="form-row">
-            <div class="form-group">
-              <label>Subject Name *</label>
-              <input type="text" [(ngModel)]="subjectForm.name" name="name" required class="form-control">
+          <div class="academy-form-row">
+            <div class="academy-form-group">
+              <label>Subject Name <span class="required">*</span></label>
+              <input type="text" [(ngModel)]="subjectForm.name" name="name" required class="academy-input" placeholder="e.g., Mathematics">
             </div>
-            <div class="form-group">
-              <label>Classes *</label>
+            <div class="academy-form-group academy-form-group-full">
+              <label>Classes <span class="required">*</span></label>
               <div class="class-checkboxes">
                 <label *ngFor="let cls of classes" class="checkbox-item">
-                  <input
-                    type="checkbox"
-                    [value]="cls.classId"
-                    (change)="onClassCheckboxChange($event, cls.classId)"
-                    [checked]="selectedClassIds.includes(cls.classId)"
-                  />
+                  <input type="checkbox" [value]="cls.classId" (change)="onClassCheckboxChange($event, cls.classId)" [checked]="selectedClassIds.includes(cls.classId)" />
                   <span>{{ cls.nameNumeric || cls.name }}</span>
                 </label>
               </div>
             </div>
           </div>
-          <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Save</button>
+          <div class="academy-form-actions">
+            <button type="submit" class="btn btn-primary">Save Subject</button>
             <button type="button" class="btn btn-secondary" (click)="cancelForm()">Cancel</button>
           </div>
         </form>
       </div>
 
-      <div class="table-card">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Subject Name</th>
-              <th>Classes</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
+      <div class="academy-table-card">
+        <div class="academy-table-header">
+          <div class="academy-table-title">Subjects List</div>
+          <div class="academy-table-count">Total: {{ groupedSubjects.length }} subject(s)</div>
+        </div>
+        <div class="academy-table-responsive">
+          <table class="academy-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Subject Name</th>
+                <th>Classes</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
           <tbody>
             <tr *ngFor="let group of groupedSubjects; let i = index">
               <td>{{ i + 1 }}</td>
               <td>{{ group.name }}</td>
               <td>{{ group.classLabels }}</td>
               <td>
-                <button class="btn btn-sm btn-edit" (click)="editByName(group.name)">
-                  <i class="fa fa-edit"></i>
-                </button>
-                <button class="btn btn-sm btn-delete" (click)="deleteByName(group.name)">
-                  <i class="fa fa-trash"></i>
-                </button>
+                <div class="table-actions">
+                  <button class="btn-icon btn-edit" (click)="editByName(group.name)" title="Edit"><i class="fa fa-edit"></i></button>
+                  <button class="btn-icon btn-delete" (click)="deleteByName(group.name)" title="Delete"><i class="fa fa-trash"></i></button>
+                </div>
               </td>
             </tr>
             <tr *ngIf="groupedSubjects.length === 0">
-              <td colspan="4" class="text-center">No subjects found</td>
+              <td colspan="4" class="academy-table-empty"><p>No subjects found</p></td>
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   `,
   styles: [`
-    .subjects-container {
-      padding: 2rem;
+    .subjects-container { padding: 0; }
+    .page-header-card {
+      background: #fff; border-radius: 16px; padding: 1.75rem 2rem; margin-bottom: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;
     }
-    .page-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 2rem;
+    .header-content { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .page-header-card h2 { margin: 0; font-size: 1.5rem; font-weight: 700; color: #0f2744; }
+    .page-subtitle { margin: 0.25rem 0 0 0; font-size: 0.9375rem; color: #6a8cad; }
+    .academy-form-card {
+      background: #fff; border-radius: 16px; padding: 2rem; margin-bottom: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;
     }
-    .btn {
-      padding: 0.75rem 1.5rem;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: all 0.3s;
+    .academy-form-card h3 { margin: 0 0 1.5rem 0; font-size: 1.25rem; font-weight: 700; color: #0f2744; }
+    .academy-form-row { display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+    .academy-form-group label { margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 600; color: #1e3a5f; }
+    .academy-form-group .required { color: #dc2626; }
+    .academy-form-group-full { grid-column: 1 / -1; }
+    .academy-input {
+      padding: 0.75rem 1rem; border: 2px solid #d9e2ec; border-radius: 0.75rem;
+      font-size: 0.9375rem; font-weight: 500; color: #0f2744; background: #fff;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .btn-primary {
-      background: #667eea;
-      color: white;
-    }
-    .btn-primary:hover {
-      background: #5568d3;
-    }
-    .btn-secondary {
-      background: #6c757d;
-      color: white;
-    }
-    .btn-sm {
-      padding: 0.5rem 1rem;
-      font-size: 0.875rem;
-    }
-    .btn-edit {
-      background: #3498db;
-      color: white;
-      margin-right: 0.5rem;
-    }
-    .btn-delete {
-      background: #e74c3c;
-      color: white;
-    }
-    .form-card {
-      background: white;
-      padding: 2rem;
-      border-radius: 8px;
-      margin-bottom: 2rem;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .form-row {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 1rem;
-      margin-bottom: 1rem;
-    }
-    .form-group {
-      display: flex;
-      flex-direction: column;
-    }
-    .form-group label {
-      margin-bottom: 0.5rem;
-      font-weight: 500;
-      color: #333;
-    }
-    .form-control {
-      width: 100%;
-      padding: 0.75rem;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 1rem;
-    }
-    .form-actions {
-      display: flex;
-      gap: 1rem;
-      margin-top: 1.5rem;
-    }
-    .table-card {
-      background: white;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    .data-table thead {
-      background: #667eea;
-      color: white;
-    }
-    .data-table th,
-    .data-table td {
-      padding: 1rem;
-      text-align: left;
-      border-bottom: 1px solid #ddd;
-    }
-    .data-table tbody tr:hover {
-      background: #f8f9fa;
-    }
-    .text-center {
-      text-align: center;
-    }
-    .class-checkboxes {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem 1rem;
-      margin-top: 0.25rem;
-    }
+    .academy-input:focus { outline: none; border-color: #1e3a5f; box-shadow: 0 0 0 4px rgba(30,58,95,0.12); }
+    .academy-form-actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #eef2f7; }
+    .btn { padding: 0.65rem 1.25rem; border: none; border-radius: 0.75rem; cursor: pointer; font-size: 0.9375rem; font-weight: 600;
+      display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s; }
+    .btn-primary { background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%); color: #fff; box-shadow: 0 4px 14px rgba(30,58,95,0.35); }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(30,58,95,0.4); }
+    .btn-secondary { background: #6b7280; color: #fff; }
+    .btn-secondary:hover { background: #4b5563; }
+    .class-checkboxes { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; margin-top: 0.25rem; }
     .checkbox-item {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      padding: 0.35rem 0.75rem;
-      border-radius: 999px;
-      border: 1px solid #d4c4a8;
-      background: #fffdf8;
-      font-size: 0.9rem;
-      cursor: pointer;
+      display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.85rem;
+      border-radius: 999px; border: 2px solid #d9e2ec; background: #fff; font-size: 0.9rem;
+      cursor: pointer; font-weight: 500; color: #435d7a; transition: all 0.2s;
     }
-    .checkbox-item input {
-      margin: 0;
-    }
-    .checkbox-item span {
-      white-space: nowrap;
-    }
+    .checkbox-item:hover { border-color: #b5c9da; background: #f7f9fc; }
+    .checkbox-item input { margin: 0; }
+    .checkbox-item input:checked + span { color: #1e3a5f; font-weight: 600; }
+    .checkbox-item:has(input:checked) { border-color: #1e3a5f; background: rgba(30,58,95,0.08); }
+    .academy-table-card { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
+    .academy-table-header { padding: 1.25rem 1.5rem; background: #f7f9fc; border-bottom: 1px solid #e2e8f0;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .academy-table-title { font-size: 1.0625rem; font-weight: 700; color: #0f2744; }
+    .academy-table-count { font-size: 0.9rem; font-weight: 500; color: #6a8cad; }
+    .academy-table-responsive { overflow-x: auto; }
+    .academy-table { width: 100%; border-collapse: collapse; }
+    .academy-table thead { background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%); }
+    .academy-table th { padding: 0.875rem 1rem; text-align: left; font-size: 0.8125rem; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.05em; }
+    .academy-table td { padding: 1rem; border-bottom: 1px solid #eef2f7; font-size: 0.9375rem; color: #435d7a; }
+    .academy-table tbody tr:hover { background: #f7f9fc; }
+    .table-actions { display: flex; gap: 0.5rem; }
+    .btn-icon { width: 34px; height: 34px; border-radius: 8px; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; }
+    .btn-edit { background: #2563eb; color: #fff; }
+    .btn-edit:hover { background: #1d4ed8; }
+    .btn-delete { background: #dc2626; color: #fff; }
+    .btn-delete:hover { background: #b91c1c; }
+    .academy-table-empty { padding: 3rem; text-align: center; color: #6a8cad; }
+    .academy-table-empty p { margin: 0; font-size: 1rem; }
+    @media (max-width: 768px) { .academy-form-row { grid-template-columns: 1fr; } .header-content { flex-direction: column; align-items: flex-start; } }
   `]
 })
 export class SubjectsComponent implements OnInit {
