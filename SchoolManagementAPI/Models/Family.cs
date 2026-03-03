@@ -20,6 +20,12 @@ public class Family
     [Column("father_cnic")]
     public string? FatherCnic { get; set; }
 
+    [Column("father_occupation")]
+    public string? FatherOccupation { get; set; }
+
+    [Column("guardian_name")]
+    public string? GuardianName { get; set; }
+
     [Column("mother_name")]
     public string? MotherName { get; set; }
 
