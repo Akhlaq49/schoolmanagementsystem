@@ -75,16 +75,36 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
         </form>
       </div>
 
-      <div class="academy-table-card">
+      <div class="filters-card" *ngIf="!loading">
+        <div class="search-box">
+          <i class="fa fa-search"></i>
+          <input 
+            type="text" 
+            [(ngModel)]="searchTerm" 
+            (input)="filterClasses()"
+            placeholder="Search by class name or numeric name..."
+            class="modern-form-control search-input">
+        </div>
+      </div>
+
+      <div class="academy-table-card" *ngIf="!loading">
         <div class="academy-table-header">
           <div class="academy-table-title">Classes List</div>
-          <div class="academy-table-count">Total: {{ classes.length }} class(es)</div>
+          <div class="academy-table-toolbar">
+            <div class="show-entries">
+              <span>Show</span>
+              <select [(ngModel)]="pageSize" (ngModelChange)="pageSizeChange()" class="entries-select">
+                <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }}</option>
+              </select>
+              <span>entries</span>
+            </div>
+            <div class="academy-table-count">Total: {{ filteredClasses.length }} class(es)</div>
+          </div>
         </div>
         <div class="academy-table-responsive">
           <table class="academy-table">
             <thead>
               <tr>
-                <th>ID</th>
                 <th>Class Name</th>
                 <th>Numeric Name</th>
                 <th>Fee</th>
@@ -92,10 +112,7 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let classItem of classes">
-                <td>
-                  <span class="id-badge">{{ classItem.classId }}</span>
-                </td>
+              <tr *ngFor="let classItem of paginatedClasses">
                 <td>
                   <strong>{{ classItem.name }}</strong>
                 </td>
@@ -122,13 +139,27 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
                   </div>
                 </td>
               </tr>
-              <tr *ngIf="classes.length === 0 && !loading">
-                <td colspan="5" class="academy-table-empty">
+              <tr *ngIf="filteredClasses.length === 0 && !loading">
+                <td colspan="4" class="academy-table-empty">
                   <p>No classes found</p>
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+        <div class="pagination-bar" *ngIf="filteredClasses.length > 0">
+          <div class="pagination-info">
+            Showing {{ (currentPage - 1) * pageSize + 1 }} to {{ getPageEndIndex() }} of {{ filteredClasses.length }} entries
+          </div>
+          <div class="pagination-controls">
+            <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(1)" title="First"><i class="fa fa-angle-double-left"></i></button>
+            <button class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)" title="Previous"><i class="fa fa-angle-left"></i></button>
+            <span class="page-numbers">
+              <button *ngFor="let p of getPageNumbers()" class="page-num" [class.active]="p === currentPage" (click)="goToPage(p)">{{ p }}</button>
+            </span>
+            <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)" title="Next"><i class="fa fa-angle-right"></i></button>
+            <button class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(totalPages)" title="Last"><i class="fa fa-angle-double-right"></i></button>
+          </div>
         </div>
       </div>
 
@@ -179,10 +210,28 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
     .btn-secondary { background: #6b7280; color: #fff; }
     .btn-secondary:hover:not(:disabled) { background: #4b5563; }
     .academy-table-card { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
+    .filters-card {
+      display: flex; gap: 1rem; margin-bottom: 1.5rem; padding: 1.25rem 1.5rem;
+      background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .search-box { position: relative; flex: 1; min-width: 300px; }
+    .search-box i { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #8aa8c4; z-index: 1; }
+    .search-input { padding-left: 3rem; }
     .academy-table-header { padding: 1.25rem 1.5rem; background: #f7f9fc; border-bottom: 1px solid #e2e8f0;
       display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
     .academy-table-title { font-size: 1.0625rem; font-weight: 700; color: #0f2744; }
+    .academy-table-toolbar { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+    .show-entries { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: #6a8cad; }
+    .entries-select { padding: 0.35rem 0.6rem; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.9rem; background: white; min-width: 60px; }
     .academy-table-count { font-size: 0.9rem; font-weight: 500; color: #6a8cad; }
+    .pagination-bar { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-top: 1px solid #e2e8f0; background: #fafbfc; flex-wrap: wrap; gap: 1rem; }
+    .pagination-info { font-size: 0.9rem; color: #64748b; font-weight: 500; }
+    .pagination-controls { display: flex; align-items: center; gap: 0.35rem; }
+    .page-btn, .page-num { padding: 0.5rem 0.75rem; border: 1px solid #e2e8f0; background: #fff; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500; min-width: 38px; color: #334155; transition: all 0.2s ease; }
+    .page-btn:hover:not(:disabled), .page-num:hover:not(.active) { background: #f1f5f9; border-color: #cbd5e1; color: #0f172a; }
+    .page-btn:disabled { opacity: 0.4; cursor: not-allowed; background: #f8fafc; }
+    .page-num.active { background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%); color: white; border-color: transparent; }
+    .page-numbers { display: flex; gap: 0.35rem; }
     .academy-table-responsive { overflow-x: auto; }
     .academy-table { width: 100%; border-collapse: collapse; }
     .academy-table thead { background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%); }
@@ -205,6 +254,11 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
 })
 export class ClassesComponent implements OnInit {
   classes: Class[] = [];
+  filteredClasses: Class[] = [];
+  searchTerm = '';
+  pageSizeOptions = [10, 25, 50, 100];
+  pageSize = 10;
+  currentPage = 1;
   showAddForm: boolean = false;
   editingClass: Class | null = null;
   loading: boolean = false;
@@ -212,6 +266,15 @@ export class ClassesComponent implements OnInit {
   submitted: boolean = false;
   showDeleteConfirm: boolean = false;
   classToDelete: number | null = null;
+
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredClasses.length / this.pageSize));
+  }
+
+  get paginatedClasses(): Class[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredClasses.slice(start, start + this.pageSize);
+  }
   
   classForm: Partial<Class> = {
     name: '',
@@ -228,16 +291,50 @@ export class ClassesComponent implements OnInit {
     this.loadClasses();
   }
 
+  filterClasses() {
+    if (!this.searchTerm.trim()) {
+      this.filteredClasses = this.classes;
+    } else {
+      const term = this.searchTerm.toLowerCase();
+      this.filteredClasses = this.classes.filter(c =>
+        c.name?.toLowerCase().includes(term) ||
+        (c.nameNumeric || '').toLowerCase().includes(term)
+      );
+    }
+    this.currentPage = 1;
+  }
+
+  pageSizeChange() { this.currentPage = 1; }
+  goToPage(page: number) { this.currentPage = Math.max(1, Math.min(page, this.totalPages)); }
+  getPageNumbers(): number[] {
+    const total = this.totalPages;
+    let start = Math.max(1, this.currentPage - 2);
+    let end = Math.min(total, this.currentPage + 2);
+    if (end - start < 4) {
+      if (start === 1) end = Math.min(total, 5);
+      else if (end === total) start = Math.max(1, total - 4);
+    }
+    const pages: number[] = [];
+    for (let i = start; i <= end; i++) pages.push(i);
+    return pages;
+  }
+  getPageEndIndex(): number {
+    return Math.min(this.currentPage * this.pageSize, this.filteredClasses.length);
+  }
+
   loadClasses() {
     this.loading = true;
     this.classService.getAllClasses().subscribe({
       next: (classes) => {
         this.classes = classes;
+        this.filterClasses();
         this.loading = false;
       },
       error: (error) => {
         this.notificationService.error('Failed to load classes');
         console.error('Error loading classes:', error);
+        this.classes = [];
+        this.filteredClasses = [];
         this.loading = false;
       }
     });

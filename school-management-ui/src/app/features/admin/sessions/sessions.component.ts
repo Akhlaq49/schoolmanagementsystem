@@ -96,25 +96,27 @@ import { NotificationService } from '../../../shared/services/notification.servi
           </button>
         </div>
 
-        <div class="toolbar">
-          <span class="show-entries">
-            Show
-            <select class="entries-select" [ngModel]="pageSize" (ngModelChange)="onPageSizeChange($event)">
+        <div class="filters-card">
+          <div class="search-box">
+            <i class="fa fa-search"></i>
+            <input 
+              type="text" 
+              [(ngModel)]="searchTerm" 
+              (input)="applyFilter()"
+              placeholder="Search by session name..."
+              class="modern-form-control search-input">
+          </div>
+        </div>
+
+        <div class="table-header-row" *ngIf="filteredSessions.length > 0">
+          <div class="show-entries">
+            <span>Show</span>
+            <select class="entries-select" [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange($event)">
               <option *ngFor="let opt of pageSizeOptions" [ngValue]="opt">{{ opt }}</option>
             </select>
-            entries
-          </span>
-          <div class="search-box">
-            <label for="search">Search:</label>
-            <input
-              id="search"
-              type="text"
-              class="search-input"
-              [(ngModel)]="searchTerm"
-              (ngModelChange)="applyFilter()"
-              (input)="applyFilter()"
-            />
+            <span>entries</span>
           </div>
+          <div class="table-count">Total: {{ filteredSessions.length }} session(s)</div>
         </div>
 
         <div class="table-wrapper">
@@ -131,13 +133,12 @@ import { NotificationService } from '../../../shared/services/notification.servi
             </thead>
             <tbody>
               <tr *ngIf="loading">
-                <td colspan="6">Loading...</td>
+                <td colspan="5">Loading...</td>
               </tr>
               <tr *ngIf="!loading && paginatedSessions.length === 0">
-                <td colspan="6">No entries found</td>
+                <td colspan="5">No entries found</td>
               </tr>
-              <tr *ngFor="let s of paginatedSessions; let i = index">
-                <td>{{ (currentPage - 1) * pageSize + i + 1 }}</td>
+              <tr *ngFor="let s of paginatedSessions">
                 <td>{{ s.name }}</td>
                 <td>
                   <span *ngIf="s.isCurrent" class="badge-current">Yes</span>
@@ -159,40 +160,18 @@ import { NotificationService } from '../../../shared/services/notification.servi
           </table>
         </div>
 
-        <div class="pagination-bar">
-          <span class="pagination-info">
+        <div class="pagination-bar" *ngIf="filteredSessions.length > 0">
+          <div class="pagination-info">
             Showing {{ startEntry }} to {{ endEntry }} of {{ filteredSessions.length }} entries
-          </span>
-          <div class="pagination-buttons">
-            <button
-              type="button"
-              class="btn-pagination"
-              [disabled]="currentPage <= 1"
-              (click)="goToPage(currentPage - 1)"
-            >
-              Previous
-            </button>
+          </div>
+          <div class="pagination-controls">
+            <button type="button" class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(1)" title="First"><i class="fa fa-angle-double-left"></i></button>
+            <button type="button" class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)" title="Previous"><i class="fa fa-angle-left"></i></button>
             <span class="page-numbers">
-              <button
-                *ngFor="let p of pageNumbers"
-                type="button"
-                class="btn-page-num"
-                [class.active]="p === currentPage"
-                [class.ellipsis]="p === -1"
-                [disabled]="p === -1"
-                (click)="p !== -1 && goToPage(p)"
-              >
-                {{ p === -1 ? '...' : p }}
-              </button>
+              <button *ngFor="let p of getPageNumbers()" type="button" class="page-num" [class.active]="p === currentPage" (click)="goToPage(p)">{{ p }}</button>
             </span>
-            <button
-              type="button"
-              class="btn-pagination"
-              [disabled]="currentPage >= totalPages"
-              (click)="goToPage(currentPage + 1)"
-            >
-              Next
-            </button>
+            <button type="button" class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)" title="Next"><i class="fa fa-angle-right"></i></button>
+            <button type="button" class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(totalPages)" title="Last"><i class="fa fa-angle-double-right"></i></button>
           </div>
         </div>
       </div>
@@ -242,12 +221,17 @@ import { NotificationService } from '../../../shared/services/notification.servi
     .list-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem; }
     .list-title { margin: 0; font-size: 1.5rem; font-weight: 700; color: #0f2744; }
     .page-subtitle { margin: 0.25rem 0 0 0; font-size: 0.9375rem; color: #6a8cad; }
-    .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .filters-card {
+      display: flex; gap: 1rem; margin-bottom: 1.5rem; padding: 1.25rem 1.5rem;
+      background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .search-box { position: relative; flex: 1; min-width: 300px; }
+    .search-box i { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #8aa8c4; z-index: 1; }
+    .search-input { padding-left: 3rem; }
+    .table-header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
     .show-entries { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: #6a8cad; }
-    .entries-select { padding: 0.5rem 2rem 0.5rem 0.75rem; border: 2px solid #d9e2ec; border-radius: 0.625rem; font-size: 0.9rem; background: #fff; cursor: pointer; }
-    .search-box { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
-    .search-input { padding: 0.5rem 1rem; border: 2px solid #d9e2ec; border-radius: 0.625rem; font-size: 0.9rem; min-width: 200px; }
-    .search-input:focus { outline: none; border-color: #1e3a5f; }
+    .entries-select { padding: 0.35rem 0.6rem; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.9rem; background: white; min-width: 60px; cursor: pointer; }
+    .table-count { font-size: 0.9rem; font-weight: 500; color: #6a8cad; }
     .btn-add { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1.25rem;
       background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%); color: #fff; border: none;
       border-radius: 0.75rem; font-size: 0.9375rem; font-weight: 600; cursor: pointer; box-shadow: 0 4px 14px rgba(30,58,95,0.35); }
@@ -267,16 +251,14 @@ import { NotificationService } from '../../../shared/services/notification.servi
     .badge-current { padding: 0.2rem 0.5rem; border-radius: 8px; background: #059669; color: #fff; font-size: 0.75rem; font-weight: 600; }
     .badge-inactive { margin-left: 0.35rem; padding: 0.2rem 0.5rem; border-radius: 8px; background: #6b7280; color: #fff; font-size: 0.75rem; font-weight: 600; }
     .text-muted { color: #8aa8c4; }
-    .pagination-bar { margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; font-size: 0.9rem; color: #6a8cad; }
-    .pagination-buttons { display: flex; align-items: center; gap: 0.5rem; }
-    .btn-pagination { padding: 0.5rem 1rem; border: 2px solid #d9e2ec; border-radius: 0.5rem; background: #fff; cursor: pointer; font-weight: 500; }
-    .btn-pagination:hover:not(:disabled) { border-color: #1e3a5f; color: #1e3a5f; }
-    .btn-pagination:disabled { opacity: 0.5; cursor: not-allowed; }
-    .page-numbers { display: flex; gap: 0.25rem; }
-    .btn-page-num { min-width: 2rem; padding: 0.5rem 0.65rem; border: 2px solid #d9e2ec; border-radius: 0.5rem; background: #fff; cursor: pointer; font-weight: 500; }
-    .btn-page-num:hover:not(:disabled):not(.ellipsis) { border-color: #1e3a5f; color: #1e3a5f; }
-    .btn-page-num.active { background: #1e3a5f; border-color: #1e3a5f; color: #fff; }
-    .btn-page-num.ellipsis { border: none; background: transparent; cursor: default; }
+    .pagination-bar { margin-top: 1rem; padding: 1rem 1.5rem; border-top: 1px solid #e2e8f0; background: #fafbfc; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .pagination-info { font-size: 0.9rem; color: #64748b; font-weight: 500; }
+    .pagination-controls { display: flex; align-items: center; gap: 0.35rem; }
+    .page-btn, .page-num { padding: 0.5rem 0.75rem; border: 1px solid #e2e8f0; background: #fff; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500; min-width: 38px; color: #334155; transition: all 0.2s ease; }
+    .page-btn:hover:not(:disabled), .page-num:hover:not(.active) { background: #f1f5f9; border-color: #cbd5e1; color: #0f172a; }
+    .page-btn:disabled { opacity: 0.4; cursor: not-allowed; background: #f8fafc; }
+    .page-num.active { background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%); color: white; border-color: transparent; }
+    .page-numbers { display: flex; gap: 0.35rem; }
     .confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
     .confirm-box { background: #fff; padding: 1.5rem; border-radius: 12px; min-width: 320px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); }
     .confirm-actions { display: flex; gap: 0.75rem; margin-top: 1rem; }
@@ -331,28 +313,16 @@ export class SessionsComponent implements OnInit {
     return Math.min(this.currentPage * this.pageSize, this.filteredSessions.length);
   }
 
-  get pageNumbers(): number[] {
+  getPageNumbers(): number[] {
     const total = this.totalPages;
-    const current = this.currentPage;
-    if (total <= 7) {
-      return Array.from({ length: total }, (_, i) => i + 1);
+    let start = Math.max(1, this.currentPage - 2);
+    let end = Math.min(total, this.currentPage + 2);
+    if (end - start < 4) {
+      if (start === 1) end = Math.min(total, 5);
+      else if (end === total) start = Math.max(1, total - 4);
     }
     const pages: number[] = [];
-    if (current <= 4) {
-      for (let i = 1; i <= 5; i++) pages.push(i);
-      pages.push(-1);
-      pages.push(total);
-    } else if (current >= total - 3) {
-      pages.push(1);
-      pages.push(-1);
-      for (let i = total - 4; i <= total; i++) pages.push(i);
-    } else {
-      pages.push(1);
-      pages.push(-1);
-      pages.push(current - 1, current, current + 1);
-      pages.push(-1);
-      pages.push(total);
-    }
+    for (let i = start; i <= end; i++) pages.push(i);
     return pages;
   }
 
