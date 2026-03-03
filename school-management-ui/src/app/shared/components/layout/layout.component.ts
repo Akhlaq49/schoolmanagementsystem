@@ -234,6 +234,18 @@ export class LayoutComponent implements OnInit {
       admin: [
         { route: '/admin/dashboard', label: 'Dashboard', icon: 'fa fa-home', exact: true, role: 'admin' },
         {
+          label: 'Family',
+          icon: 'fa fa-graduation-cap',
+          role: 'admin',
+          expanded: false,
+          children: [
+            { route: '/admin/family/add', label: 'Add New Family', role: 'admin' },
+            { route: '/admin/family/list', label: 'Family List', role: 'admin' },
+            { route: '/admin/family/fee-add-on', label: 'Fees Addons', role: 'admin' },
+            { route: '/admin/family/defaulter-families', label: 'Defaulter families', role: 'admin' }
+          ]
+        },
+        {
           label: 'Students',
           icon: 'fa fa-users',
           role: 'admin',
@@ -271,18 +283,6 @@ export class LayoutComponent implements OnInit {
         { route: '/admin/departments', label: 'Departments', icon: 'fa fa-building', role: 'admin' },
         { route: '/admin/dormitories', label: 'Dormitories', icon: 'fa fa-home', role: 'admin' },
         { route: '/admin/transports', label: 'Transport', icon: 'fa fa-bus', role: 'admin' },
-        {
-          label: 'Family',
-          icon: 'fa fa-graduation-cap',
-          role: 'admin',
-          expanded: false,
-          children: [
-            { route: '/admin/family/add', label: 'Add New Family', role: 'admin' },
-            { route: '/admin/family/list', label: 'Family List', role: 'admin' },
-            { route: '/admin/family/fee-add-on', label: 'Fees Addons', role: 'admin' },
-            { route: '/admin/family/defaulter-families', label: 'Defaulter families', role: 'admin' }
-          ]
-        },
         { route: '/admin/whatsapp-notifications', label: 'WhatsApp Notifications', icon: 'fa fa-whatsapp', role: 'admin' },
         { route: '/admin/profile', label: 'Profile', icon: 'fa fa-user', role: 'admin' }
       ],

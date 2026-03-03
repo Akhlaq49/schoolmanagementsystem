@@ -11,32 +11,34 @@ import { NotificationService } from '../../../shared/services/notification.servi
   imports: [CommonModule, ReactiveFormsModule],
   template: `
     <div class="login-container">
-      <div class="login-background">
-        <div class="background-pattern"></div>
-        <div class="background-shapes">
-          <div class="shape shape-1"></div>
-          <div class="shape shape-2"></div>
-          <div class="shape shape-3"></div>
-          <div class="shape shape-4"></div>
-        </div>
+      <div class="login-bg">
+        <div class="bg-blob bg-blob-1"></div>
+        <div class="bg-blob bg-blob-2"></div>
+        <div class="bg-blob bg-blob-3"></div>
+        <div class="bg-blob bg-blob-4"></div>
+        <div class="bg-circle bg-circle-1"></div>
+        <div class="bg-circle bg-circle-2"></div>
+        <div class="bg-circle bg-circle-3"></div>
+        <div class="bg-pattern"></div>
+        <div class="bg-color-wash"></div>
+        <div class="bg-shine"></div>
       </div>
-      
-      <div class="login-content">
-        <div class="login-card">
-          <div class="login-header">
-            <div class="logo-container">
-              <i class="fa fa-graduation-cap logo-icon"></i>
-            </div>
-            <h1 class="brand-name">EduManage</h1>
-            <h2 class="login-title">Welcome Back</h2>
-            <p class="login-subtitle">Sign in to your school management account</p>
+      <div class="login-wrapper">
+        <div class="login-left">
+          <div class="logo-container">
+            <i class="fa fa-graduation-cap logo-icon"></i>
           </div>
-          
+          <h1 class="brand-name">EduManage</h1>
+          <h2 class="login-title">Welcome Back</h2>
+          <p class="login-subtitle">Sign in to your school management account</p>
+        </div>
+        
+        <div class="login-right">
           <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
             <div class="form-group">
               <label for="email" class="form-label">
                 <i class="fa fa-envelope label-icon"></i>
-                Email Address
+                EMAIL ADDRESS
               </label>
               <div class="input-wrapper">
                 <i class="fa fa-envelope input-icon"></i>
@@ -58,7 +60,7 @@ import { NotificationService } from '../../../shared/services/notification.servi
             <div class="form-group">
               <label for="password" class="form-label">
                 <i class="fa fa-lock label-icon"></i>
-                Password
+                PASSWORD
               </label>
               <div class="input-wrapper">
                 <i class="fa fa-lock input-icon"></i>
@@ -83,184 +85,223 @@ import { NotificationService } from '../../../shared/services/notification.servi
 
             <button 
               type="submit" 
-              class="btn btn-primary" 
+              class="btn-signin" 
               [disabled]="loginForm.invalid || loading">
               <span *ngIf="loading" class="btn-content">
                 <i class="fa fa-spinner fa-spin"></i>
                 <span>Signing in...</span>
               </span>
-              <span *ngIf="!loading" class="btn-content">
-                <i class="fa fa-sign-in-alt"></i>
-                <span>Sign In</span>
-              </span>
+              <span *ngIf="!loading" class="btn-content">Sign In</span>
             </button>
           </form>
-          
-          <div class="login-footer">
-            <p class="footer-text">
-              <i class="fa fa-shield-alt"></i>
-              Secure login with encrypted credentials
-            </p>
-          </div>
         </div>
+      </div>
+      
+      <div class="login-footer">
+        <p class="footer-text">Secure login with encrypted credentials</p>
       </div>
     </div>
   `,
   styles: [`
     .login-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
       min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      background: linear-gradient(135deg, #fcf4eb 0%, #f5e6d3 25%, #e8d4c4 50%, #ede0d4 75%, #f8efe6 100%);
       position: relative;
-      overflow: hidden;
-      background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 50%, #2b6cb0 100%);
     }
     
-    .login-background {
+    .login-bg {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+    }
+    
+    .bg-blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(60px);
+      opacity: 0.85;
+      animation: blobFloat 20s ease-in-out infinite;
+    }
+    
+    .bg-blob-1 {
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(47, 72, 96, 0.4) 0%, rgba(47, 72, 96, 0.2) 40%, transparent 70%);
+      top: -120px;
+      right: -120px;
+      animation-delay: 0s;
+    }
+    
+    .bg-blob-2 {
+      width: 450px;
+      height: 450px;
+      background: radial-gradient(circle, rgba(229, 193, 94, 0.5) 0%, rgba(229, 193, 94, 0.2) 40%, transparent 70%);
+      bottom: -100px;
+      left: -100px;
+      animation-delay: -5s;
+    }
+    
+    .bg-blob-3 {
+      width: 280px;
+      height: 280px;
+      background: radial-gradient(circle, rgba(47, 72, 96, 0.25) 0%, transparent 70%);
+      top: 45%;
+      left: 10%;
+      animation-delay: -10s;
+    }
+    
+    .bg-blob-4 {
+      width: 220px;
+      height: 220px;
+      background: radial-gradient(circle, rgba(229, 193, 94, 0.35) 0%, transparent 70%);
+      top: 15%;
+      right: 20%;
+      animation-delay: -7s;
+    }
+    
+    @keyframes blobFloat {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -20px) scale(1.05); }
+      66% { transform: translate(-20px, 25px) scale(0.95); }
+    }
+    
+    .bg-circle {
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid rgba(47, 72, 96, 0.12);
+      animation: circlePulse 8s ease-in-out infinite;
+    }
+    
+    .bg-circle-1 {
+      width: 180px;
+      height: 180px;
+      top: 12%;
+      left: 8%;
+      animation-delay: 0s;
+    }
+    
+    .bg-circle-2 {
+      width: 120px;
+      height: 120px;
+      bottom: 25%;
+      right: 12%;
+      border-color: rgba(229, 193, 94, 0.18);
+      animation-delay: -2s;
+    }
+    
+    .bg-circle-3 {
+      width: 90px;
+      height: 90px;
+      top: 70%;
+      left: 25%;
+      border-color: rgba(47, 72, 96, 0.1);
+      animation-delay: -4s;
+    }
+    
+    @keyframes circlePulse {
+      0%, 100% { opacity: 0.6; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.08); }
+    }
+    
+    .bg-pattern {
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle at 1px 1px, rgba(47, 72, 96, 0.12) 2px, transparent 0);
+      background-size: 40px 40px;
+    }
+    
+    .bg-shine {
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
-      bottom: 0;
-      overflow: hidden;
-      z-index: 0;
-    }
-    
-    .background-pattern {
-      position: absolute;
-      inset: 0;
-      background-image: radial-gradient(circle at 20% 80%, rgba(212, 168, 75, 0.08) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.06) 0%, transparent 40%);
+      height: 60%;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.05) 100%);
       pointer-events: none;
     }
     
-    .background-shapes {
-      position: relative;
-      width: 100%;
-      height: 100%;
-    }
-    
-    .shape {
+    .bg-color-wash {
       position: absolute;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.06);
-      backdrop-filter: blur(8px);
-      animation: float 25s infinite ease-in-out;
+      inset: 0;
+      background: 
+        linear-gradient(120deg, rgba(47, 72, 96, 0.08) 0%, transparent 50%),
+        linear-gradient(300deg, rgba(229, 193, 94, 0.12) 0%, transparent 50%);
+      pointer-events: none;
     }
     
-    .shape-1 {
-      width: 320px;
-      height: 320px;
-      top: -120px;
-      left: -80px;
-      animation-delay: 0s;
-    }
-    
-    .shape-2 {
-      width: 180px;
-      height: 180px;
-      bottom: 10%;
-      right: 5%;
-      animation-delay: 4s;
-    }
-    
-    .shape-3 {
-      width: 120px;
-      height: 120px;
-      top: 40%;
-      right: 15%;
-      animation-delay: 8s;
-    }
-    
-    .shape-4 {
-      width: 200px;
-      height: 200px;
-      bottom: -60px;
-      right: 25%;
-      background: rgba(212, 168, 75, 0.08);
-      animation-delay: 2s;
-    }
-    
-    @keyframes float {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      33% { transform: translate(25px, -25px) scale(1.02); }
-      66% { transform: translate(-15px, 15px) scale(0.98); }
-    }
-    
-    .login-content {
+    .login-wrapper {
       position: relative;
       z-index: 1;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 4rem;
+      max-width: 900px;
       width: 100%;
-      max-width: 440px;
-      padding: 2rem;
     }
     
-    .login-card {
-      background: #ffffff;
-      padding: 2.75rem 2.5rem;
-      border-radius: 1.25rem;
-      box-shadow: 0 25px 80px rgba(15, 39, 68, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.1);
-      animation: cardFadeIn 0.5s ease-out;
-    }
-    
-    @keyframes cardFadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .login-header {
+    .login-left {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       text-align: center;
-      margin-bottom: 2.25rem;
     }
     
     .logo-container {
-      display: inline-flex;
+      display: flex;
       align-items: center;
       justify-content: center;
-      width: 72px;
-      height: 72px;
-      background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
-      border-radius: 1rem;
-      margin-bottom: 1.25rem;
-      box-shadow: 0 8px 24px rgba(30, 58, 95, 0.35);
+      width: 80px;
+      height: 80px;
+      background-color: #2f4860;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
     }
     
     .logo-icon {
-      font-size: 2.25rem;
-      color: #d4a84b;
+      font-size: 2.5rem;
+      color: #e5c15e;
     }
     
     .brand-name {
       margin: 0 0 0.25rem 0;
-      font-family: 'Libre Baskerville', Georgia, serif;
       font-size: 1.75rem;
       font-weight: 700;
-      color: #1e3a5f;
-      letter-spacing: -0.02em;
+      color: #404040;
     }
     
     .login-title {
-      margin: 0 0 0.35rem 0;
-      font-size: 1.5rem;
+      margin: 0 0 0.5rem 0;
+      font-size: 1.75rem;
       font-weight: 700;
-      color: #0f2744;
-      letter-spacing: -0.02em;
+      color: #404040;
     }
     
     .login-subtitle {
       margin: 0;
-      color: #6a8cad;
       font-size: 0.9375rem;
-      font-weight: 500;
+      color: #707070;
+    }
+    
+    .login-right {
+      flex: 1;
+      max-width: 380px;
     }
     
     .login-form {
-      margin-bottom: 1.75rem;
+      width: 100%;
     }
     
     .form-group {
-      margin-bottom: 1.375rem;
+      margin-bottom: 1.25rem;
     }
     
     .form-label {
@@ -269,16 +310,16 @@ import { NotificationService } from '../../../shared/services/notification.servi
       gap: 0.5rem;
       margin-bottom: 0.5rem;
       font-weight: 600;
-      font-size: 0.8125rem;
-      color: #1e3a5f;
+      font-size: 0.75rem;
+      color: #404040;
       text-transform: uppercase;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.05em;
     }
     
     .label-icon {
-      color: #1e3a5f;
+      color: #404040;
       font-size: 0.875rem;
-      opacity: 0.8;
+      opacity: 0.85;
     }
     
     .input-wrapper {
@@ -290,46 +331,33 @@ import { NotificationService } from '../../../shared/services/notification.servi
     .input-icon {
       position: absolute;
       left: 1rem;
-      color: #6a8cad;
+      color: #a0a0a0;
       font-size: 1rem;
       z-index: 1;
-      transition: color 0.2s;
     }
     
     .form-control {
       width: 100%;
       padding: 0.75rem 1rem 0.75rem 2.75rem;
-      border: 2px solid #d9e2ec;
-      border-radius: 0.75rem;
+      border: 1px solid #dbd1c9;
+      border-radius: 10px;
       font-size: 0.9375rem;
-      font-weight: 500;
-      background: #fff;
-      color: #0f2744;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif;
+      background: #fcf4eb;
+      color: #404040;
+      transition: border-color 0.2s;
     }
     
     .form-control:focus {
       outline: none;
-      border-color: #1e3a5f;
-      box-shadow: 0 0 0 4px rgba(30, 58, 95, 0.12);
-    }
-    
-    .input-wrapper:focus-within .input-icon {
-      color: #1e3a5f;
+      border-color: #2f4860;
     }
     
     .form-control::placeholder {
-      color: #8aa8c4;
+      color: #a0a0a0;
     }
     
     .form-control.is-invalid {
       border-color: #dc2626;
-      background: rgba(220, 38, 38, 0.02);
-    }
-    
-    .form-control.is-invalid:focus {
-      box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.12);
     }
     
     .invalid-feedback {
@@ -339,72 +367,44 @@ import { NotificationService } from '../../../shared/services/notification.servi
       margin-top: 0.5rem;
       color: #dc2626;
       font-size: 0.8125rem;
-      font-weight: 500;
-    }
-    
-    .invalid-feedback i {
-      font-size: 0.875rem;
     }
     
     .alert {
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      padding: 0.875rem 1rem;
-      border-radius: 0.75rem;
-      margin-bottom: 1.25rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
       font-size: 0.875rem;
-      font-weight: 500;
-    }
-    
-    .alert-danger {
       background: rgba(220, 38, 38, 0.08);
       color: #b91c1c;
-      border: 1px solid rgba(220, 38, 38, 0.2);
     }
     
     .alert-danger i {
       font-size: 1rem;
-      flex-shrink: 0;
     }
     
-    .btn {
+    .btn-signin {
       width: 100%;
       padding: 0.875rem 1.25rem;
       border: none;
-      border-radius: 0.75rem;
+      border-radius: 10px;
       font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s ease;
-      font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
+      background-color: #afafaf;
+      color: #ffffff;
+      transition: background-color 0.2s;
     }
     
-    .btn-primary {
-      background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
-      color: #fff;
-      box-shadow: 0 4px 14px rgba(30, 58, 95, 0.35);
+    .btn-signin:hover:not(:disabled) {
+      background-color: #9a9a9a;
     }
     
-    .btn-primary:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(30, 58, 95, 0.4);
-      background: linear-gradient(135deg, #0f2744 0%, #1e3a5f 100%);
-    }
-    
-    .btn-primary:active:not(:disabled) {
-      transform: translateY(0);
-    }
-    
-    .btn-primary:disabled {
-      background: #b5c9da;
+    .btn-signin:disabled {
+      opacity: 0.6;
       cursor: not-allowed;
-      opacity: 0.85;
-      box-shadow: none;
     }
     
     .btn-content {
@@ -414,70 +414,41 @@ import { NotificationService } from '../../../shared/services/notification.servi
       gap: 0.5rem;
     }
     
-    .btn-content i {
-      font-size: 1rem;
-    }
-    
     .login-footer {
+      position: absolute;
+      bottom: 1.5rem;
+      left: 0;
+      right: 0;
       text-align: center;
-      padding-top: 1.25rem;
-      border-top: 1px solid #eef2f7;
+      z-index: 1;
     }
     
     .footer-text {
       margin: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      color: #6a8cad;
       font-size: 0.8125rem;
-      font-weight: 500;
-    }
-    
-    .footer-text i {
-      color: #059669;
-      font-size: 0.875rem;
+      color: #707070;
     }
     
     @media (max-width: 768px) {
-      .login-content {
-        padding: 1.25rem;
+      .login-wrapper {
+        flex-direction: column;
+        gap: 2rem;
       }
       
-      .login-card {
-        padding: 2.25rem 1.75rem;
+      .login-right {
+        max-width: 100%;
       }
       
-      .brand-name {
-        font-size: 1.5rem;
-      }
-      
-      .login-title {
-        font-size: 1.375rem;
-      }
+      .brand-name { font-size: 1.5rem; }
+      .login-title { font-size: 1.5rem; }
       
       .logo-container {
-        width: 64px;
-        height: 64px;
+        width: 70px;
+        height: 70px;
       }
       
       .logo-icon {
         font-size: 2rem;
-      }
-    }
-    
-    @media (max-width: 480px) {
-      .login-card {
-        padding: 1.75rem 1.25rem;
-      }
-      
-      .brand-name {
-        font-size: 1.375rem;
-      }
-      
-      .login-title {
-        font-size: 1.25rem;
       }
     }
   `]

@@ -33,25 +33,25 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
           <div class="academy-form-row">
             <div class="academy-form-group">
               <label>Class Name <span class="required">*</span></label>
-              <input 
-                type="text" 
-                [(ngModel)]="classForm.name" 
-                name="name" 
-                required 
+                <input 
+                  type="text" 
+                  [(ngModel)]="classForm.name" 
+                  name="name" 
+                  required 
                 class="academy-input"
-                placeholder="e.g., Grade 1, Class A"
-                [class.is-invalid]="submitted && !classForm.name">
+                  placeholder="e.g., Grade 1, Class A"
+                  [class.is-invalid]="submitted && !classForm.name">
               <div *ngIf="submitted && !classForm.name" class="academy-invalid">Class name is required</div>
             </div>
             <div class="academy-form-group">
               <label>Numeric Name</label>
-              <input 
-                type="text" 
-                [(ngModel)]="classForm.nameNumeric" 
-                name="nameNumeric" 
+                <input 
+                  type="text" 
+                  [(ngModel)]="classForm.nameNumeric" 
+                  name="nameNumeric" 
                 class="academy-input"
-                placeholder="e.g., 1, 2, 3">
-            </div>
+                  placeholder="e.g., 1, 2, 3">
+              </div>
             <div class="academy-form-group">
               <label>Fee</label>
               <input
@@ -97,7 +97,7 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
                 <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }}</option>
               </select>
               <span>entries</span>
-            </div>
+          </div>
             <div class="academy-table-count">Total: {{ filteredClasses.length }} class(es)</div>
           </div>
         </div>
