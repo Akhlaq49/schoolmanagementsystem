@@ -12,89 +12,120 @@ import { Family } from '../../../../core/models/family.model';
   imports: [CommonModule, FormsModule, RouterModule],
   template: `
     <div class="family-page-container">
-      <div class="family-card">
-        <h3 class="family-title">NEW FAMILY DETAILS</h3>
+      <div class="page-header-card">
+        <div class="header-content">
+          <div>
+            <h2><i class="fa fa-users"></i> Add New Family</h2>
+            <p class="page-subtitle">Enter family details for father, mother and contact information</p>
+          </div>
+          <a routerLink="/admin/family/list" class="btn-back">
+            <i class="fa fa-arrow-left"></i> Back to Family List
+          </a>
+        </div>
+      </div>
 
+      <div class="academy-form-card">
+        <h3><i class="fa fa-user-plus"></i> Family Details</h3>
         <form (ngSubmit)="saveFamily()">
-          <div class="family-row">
-            <div class="family-field">
-              <label>Father Name</label>
-              <input
-                type="text"
-                class="family-input"
-                [(ngModel)]="familyForm.fatherName"
-                name="fatherName"
-                [class.is-invalid]="submitted && !familyForm.fatherName"
-              />
-            </div>
-            <div class="family-field">
-              <label>Phone Number</label>
-              <input
-                type="text"
-                class="family-input"
-                [(ngModel)]="familyForm.fatherPhone"
-                name="fatherPhone"
-              />
-            </div>
-            <div class="family-field">
-              <label>CNIC</label>
-              <input
-                type="text"
-                class="family-input"
-                [(ngModel)]="familyForm.fatherCnic"
-                name="fatherCnic"
-              />
-            </div>
-          </div>
-
-          <div class="family-row">
-            <div class="family-field">
-              <label>Mother Name</label>
-              <input
-                type="text"
-                class="family-input"
-                [(ngModel)]="familyForm.motherName"
-                name="motherName"
-              />
-            </div>
-            <div class="family-field">
-              <label>Phone Number</label>
-              <input
-                type="text"
-                class="family-input"
-                [(ngModel)]="familyForm.motherPhone"
-                name="motherPhone"
-              />
-            </div>
-            <div class="family-field">
-              <label>CNIC</label>
-              <input
-                type="text"
-                class="family-input"
-                [(ngModel)]="familyForm.motherCnic"
-                name="motherCnic"
-              />
+          <div class="form-section">
+            <h4 class="section-label"><i class="fa fa-male"></i> Father Information</h4>
+            <div class="academy-form-row">
+              <div class="academy-form-group">
+                <label>Father Name <span class="required">*</span></label>
+                <input
+                  type="text"
+                  class="academy-input"
+                  [(ngModel)]="familyForm.fatherName"
+                  name="fatherName"
+                  placeholder="e.g., Ahmad Khan"
+                  [class.is-invalid]="submitted && !familyForm.fatherName"
+                />
+                <div *ngIf="submitted && !familyForm.fatherName" class="academy-invalid">Father name is required</div>
+              </div>
+              <div class="academy-form-group">
+                <label>Phone Number</label>
+                <input
+                  type="text"
+                  class="academy-input"
+                  [(ngModel)]="familyForm.fatherPhone"
+                  name="fatherPhone"
+                  placeholder="e.g., 03XX-XXXXXXX"
+                />
+              </div>
+              <div class="academy-form-group">
+                <label>CNIC</label>
+                <input
+                  type="text"
+                  class="academy-input"
+                  [(ngModel)]="familyForm.fatherCnic"
+                  name="fatherCnic"
+                  placeholder="e.g., 35201-XXXXXXX-X"
+                />
+              </div>
             </div>
           </div>
 
-          <div class="family-row">
-            <div class="family-field sms-field">
-              <label>SMS Number (Contact Number)</label>
-              <input
-                type="text"
-                class="family-input"
-                [(ngModel)]="familyForm.smsNumber"
-                name="smsNumber"
-                [class.is-invalid]="submitted && !familyForm.smsNumber"
-              />
+          <div class="form-section">
+            <h4 class="section-label"><i class="fa fa-female"></i> Mother Information</h4>
+            <div class="academy-form-row">
+              <div class="academy-form-group">
+                <label>Mother Name</label>
+                <input
+                  type="text"
+                  class="academy-input"
+                  [(ngModel)]="familyForm.motherName"
+                  name="motherName"
+                  placeholder="e.g., Fatima Khan"
+                />
+              </div>
+              <div class="academy-form-group">
+                <label>Phone Number</label>
+                <input
+                  type="text"
+                  class="academy-input"
+                  [(ngModel)]="familyForm.motherPhone"
+                  name="motherPhone"
+                  placeholder="e.g., 03XX-XXXXXXX"
+                />
+              </div>
+              <div class="academy-form-group">
+                <label>CNIC</label>
+                <input
+                  type="text"
+                  class="academy-input"
+                  [(ngModel)]="familyForm.motherCnic"
+                  name="motherCnic"
+                  placeholder="e.g., 35201-XXXXXXX-X"
+                />
+              </div>
             </div>
           </div>
 
-          <div class="family-actions">
-            <button type="submit" class="btn-save" [disabled]="saving">
-              {{ saving ? 'Saving...' : 'Save' }}
+          <div class="form-section">
+            <h4 class="section-label"><i class="fa fa-phone"></i> Contact</h4>
+            <div class="academy-form-row">
+              <div class="academy-form-group sms-field">
+                <label>SMS Number (Contact Number) <span class="required">*</span></label>
+                <input
+                  type="text"
+                  class="academy-input"
+                  [(ngModel)]="familyForm.smsNumber"
+                  name="smsNumber"
+                  placeholder="Primary contact for SMS notifications"
+                  [class.is-invalid]="submitted && !familyForm.smsNumber"
+                />
+                <div *ngIf="submitted && !familyForm.smsNumber" class="academy-invalid">SMS number is required</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="academy-form-actions">
+            <button type="submit" class="btn btn-primary" [disabled]="saving">
+              <i class="fa fa-spinner fa-spin" *ngIf="saving"></i>
+              <span *ngIf="saving">Saving...</span>
+              <span *ngIf="!saving"><i class="fa fa-save"></i> Save Family</span>
             </button>
-            <button type="button" class="btn-cancel" (click)="onCancel()" [disabled]="saving">
+            <button type="button" class="btn btn-secondary" (click)="onCancel()" [disabled]="saving">
               Cancel
             </button>
           </div>
@@ -103,109 +134,58 @@ import { Family } from '../../../../core/models/family.model';
     </div>
   `,
   styles: [`
-    .family-page-container {
-      padding: 2rem;
-      background-color: #f3e2c2;
-      min-height: calc(100vh - 120px);
+    .family-page-container { padding: 0; }
+    .page-header-card {
+      background: #fff; border-radius: 16px; padding: 1.75rem 2rem; margin-bottom: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;
     }
-
-    .family-card {
-      background-color: #fdf1dc;
-      border-radius: 4px;
-      padding: 1.5rem 2rem 2rem;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    .header-content { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .page-header-card h2 { margin: 0; font-size: 1.5rem; font-weight: 700; color: #0f2744; display: flex; align-items: center; gap: 0.75rem; }
+    .page-header-card h2 i { color: #1e3a5f; }
+    .page-subtitle { margin: 0.25rem 0 0 0; font-size: 0.9375rem; color: #6a8cad; padding-left: 2.1rem; }
+    .btn-back {
+      display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: 10px;
+      font-size: 0.9375rem; font-weight: 600; color: #1e3a5f; background: transparent;
+      border: 2px solid #1e3a5f; text-decoration: none; cursor: pointer; transition: all 0.2s;
     }
-
-    .family-title {
-      margin: 0 0 1.5rem;
-      font-size: 1rem;
-      font-weight: 600;
-      letter-spacing: 0.05em;
+    .btn-back:hover { background: rgba(30,58,95,0.08); }
+    .academy-form-card {
+      background: #fff; border-radius: 16px; padding: 2rem; margin-bottom: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;
     }
-
-    .family-row {
-      display: flex;
-      gap: 1.5rem;
-      margin-bottom: 1rem;
-      flex-wrap: wrap;
+    .academy-form-card h3 { margin: 0 0 1.5rem 0; font-size: 1.25rem; font-weight: 700; color: #0f2744; display: flex; align-items: center; gap: 0.5rem; }
+    .academy-form-card h3 i { color: #1e3a5f; }
+    .form-section { margin-bottom: 2rem; padding: 1.5rem; background: #fafbfc; border-radius: 12px; border: 1px solid #eef2f7; }
+    .form-section:last-of-type { margin-bottom: 0; }
+    .section-label { margin: 0 0 1rem 0; font-size: 0.9375rem; font-weight: 600; color: #1e3a5f; display: flex; align-items: center; gap: 0.5rem; }
+    .section-label i { color: #6a8cad; font-size: 0.875rem; }
+    .academy-form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 0; }
+    .academy-form-row:last-child { margin-bottom: 0; }
+    .academy-form-group { display: flex; flex-direction: column; }
+    .academy-form-group label { margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 600; color: #1e3a5f; }
+    .academy-form-group .required { color: #dc2626; }
+    .academy-input {
+      padding: 0.75rem 1rem; border: 2px solid #d9e2ec; border-radius: 0.75rem;
+      font-size: 0.9375rem; font-weight: 500; color: #0f2744; background: #fff;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
-
-    .family-field {
-      flex: 1;
-      min-width: 200px;
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
+    .academy-input:focus { outline: none; border-color: #1e3a5f; box-shadow: 0 0 0 4px rgba(30,58,95,0.12); }
+    .academy-input.is-invalid { border-color: #dc2626; }
+    .academy-invalid { margin-top: 0.5rem; font-size: 0.8125rem; color: #dc2626; font-weight: 500; }
+    .academy-form-group.sms-field { grid-column: 1 / -1; }
+    .academy-form-actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #eef2f7; }
+    .btn {
+      padding: 0.65rem 1.25rem; border: none; border-radius: 0.75rem; cursor: pointer; font-size: 0.9375rem; font-weight: 600;
+      display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s;
     }
-
-    .sms-field {
-      flex-basis: 100%;
-    }
-
-    label {
-      font-size: 0.85rem;
-      font-weight: 500;
-    }
-
-    .family-input {
-      width: 100%;
-      padding: 0.5rem 0.75rem;
-      border-radius: 3px;
-      border: 1px solid #d2b892;
-      background-color: #fffdf8;
-      font-size: 0.9rem;
-      outline: none;
-      transition: border-color 0.15s ease, box-shadow 0.15s ease;
-    }
-
-    .family-input:focus {
-      border-color: #a37b46;
-      box-shadow: 0 0 0 2px rgba(163, 123, 70, 0.25);
-    }
-
-    .family-input.is-invalid {
-      border-color: #dc3545;
-    }
-
-    .family-actions {
-      margin-top: 1.5rem;
-      display: flex;
-      gap: 0.75rem;
-    }
-
-    .btn-save,
-    .btn-cancel {
-      min-width: 80px;
-      padding: 0.45rem 1.25rem;
-      border-radius: 3px;
-      border: none;
-      font-size: 0.9rem;
-      cursor: pointer;
-    }
-
-    .btn-save {
-      background-color: #28a745;
-      color: #ffffff;
-    }
-
-    .btn-save:disabled {
-      opacity: 0.7;
-      cursor: default;
-    }
-
-    .btn-cancel {
-      background-color: #6c757d;
-      color: #ffffff;
-    }
-
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
+    .btn-primary { background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%); color: #fff; box-shadow: 0 4px 14px rgba(30,58,95,0.35); }
+    .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(30,58,95,0.4); }
+    .btn-secondary { background: #6b7280; color: #fff; }
+    .btn-secondary:hover:not(:disabled) { background: #4b5563; }
     @media (max-width: 768px) {
-      .family-page-container {
-        padding: 1rem;
-      }
-
-      .family-card {
-        padding: 1rem 1.25rem 1.5rem;
-      }
+      .header-content { flex-direction: column; align-items: flex-start; }
+      .page-header-card, .academy-form-card { padding: 1.25rem; }
     }
   `]
 })
