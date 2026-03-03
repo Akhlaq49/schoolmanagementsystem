@@ -5,427 +5,258 @@ import { RouterModule } from '@angular/router';
 import { FeeAddonService } from '../../../../core/services/family/fee-addon.service';
 import { FeeAddon } from '../../../../core/models/fee-addon.model';
 import { NotificationService } from '../../../../shared/services/notification.service';
+import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
 
 @Component({
   selector: 'app-fee-add-on',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, LoadingComponent],
   template: `
     <div class="fee-addon-container">
+      <app-loading [show]="loading" [message]="'Loading fee add-ons...'"></app-loading>
+
       <!-- List view -->
       <ng-container *ngIf="!showForm">
-        <div class="list-header">
-          <h1 class="list-title">FEE ADDONS</h1>
-          <button type="button" class="btn-add-new" (click)="openAddForm()">
-            <i class="fa fa-plus"></i> Add New
-          </button>
+        <div class="page-header-card">
+          <div class="header-content">
+            <div>
+              <h2><i class="fa fa-plus-circle"></i> Fee Add-ons</h2>
+              <p class="page-subtitle">Manage additional fee types (e.g., transport, laboratory, registration)</p>
+            </div>
+            <button type="button" class="btn btn-primary" (click)="openAddForm()" [disabled]="loading">
+              <i class="fa fa-plus"></i> Add New Add-on
+            </button>
+          </div>
         </div>
 
-        <div class="toolbar">
-          <span class="show-entries">
-            Show
-            <select class="entries-select" [ngModel]="pageSize" (ngModelChange)="onPageSizeChange($event)">
-              <option *ngFor="let opt of pageSizeOptions" [ngValue]="opt">{{ opt }}</option>
-            </select>
-            entries
-          </span>
+        <div class="filters-card" *ngIf="!loading">
           <div class="search-box">
-            <label for="search">Search:</label>
+            <i class="fa fa-search"></i>
             <input
-              id="search"
               type="text"
-              class="search-input"
               [(ngModel)]="searchTerm"
-              (ngModelChange)="applyFilters()"
               (input)="applyFilters()"
-              placeholder="Search..."
+              placeholder="Search by add-on name..."
+              class="modern-form-control search-input"
             />
           </div>
         </div>
 
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Name</th>
-                <th class="col-action">
-                  Action <i class="fa fa-sort"></i>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngIf="loading"><td colspan="3">Loading...</td></tr>
-              <tr *ngIf="!loading && paginatedList.length === 0"><td colspan="3">No entries found</td></tr>
-              <tr *ngFor="let item of paginatedList; let i = index">
-                <td>{{ (currentPage - 1) * pageSize + i + 1 }}</td>
-                <td>{{ item.name }}</td>
-                <td class="col-action">
-                  <button type="button" class="btn-edit" (click)="openEditForm(item)" title="Edit">
-                    <i class="fa fa-pencil"></i>
-                  </button>
-                  <button type="button" class="btn-delete" (click)="confirmDelete(item)" title="Delete">
-                    <i class="fa fa-trash"></i>
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <div class="academy-table-card" *ngIf="!loading">
+          <div class="academy-table-header">
+            <div class="academy-table-title">Fee Add-ons List</div>
+            <div class="academy-table-toolbar">
+              <div class="show-entries">
+                <span>Show</span>
+                <select class="entries-select" [ngModel]="pageSize" (ngModelChange)="onPageSizeChange($event)">
+                  <option *ngFor="let opt of pageSizeOptions" [ngValue]="opt">{{ opt }}</option>
+                </select>
+                <span>entries</span>
+              </div>
+              <div class="academy-table-count">
+                <i class="fa fa-list"></i>
+                <span>Total: {{ filteredList.length }} add-on(s)</span>
+              </div>
+            </div>
+          </div>
+          <div class="academy-table-responsive">
+            <table class="academy-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th class="col-action">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngIf="!loading && paginatedList.length === 0" class="empty-row">
+                  <td colspan="2">No fee add-ons found</td>
+                </tr>
+                <tr *ngFor="let item of paginatedList">
+                  <td><strong>{{ item.name }}</strong></td>
+                  <td class="col-action">
+                    <button type="button" class="btn-edit" (click)="openEditForm(item)" title="Edit">
+                      <i class="fa fa-pencil"></i>
+                    </button>
+                    <button type="button" class="btn-delete" (click)="confirmDelete(item)" title="Delete">
+                      <i class="fa fa-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
-        <div class="pagination-bar">
-          <span class="pagination-info">
-            Showing {{ startEntry }} to {{ endEntry }} of {{ filteredList.length }} entries
-          </span>
-          <div class="pagination-buttons">
-            <button type="button" class="btn-pagination" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)">
-              Previous
-            </button>
-            <span class="page-numbers">
-              <button
-                *ngFor="let p of pageNumbers"
-                type="button"
-                class="btn-page-num"
-                [class.active]="p === currentPage"
-                [class.ellipsis]="p === -1"
-                [disabled]="p === -1"
-                (click)="p !== -1 && goToPage(p)"
-              >
-                {{ p === -1 ? '...' : p }}
+          <div class="pagination-bar" *ngIf="filteredList.length > 0">
+            <div class="pagination-info">
+              Showing {{ startEntry }} to {{ endEntry }} of {{ filteredList.length }} entries
+            </div>
+            <div class="pagination-controls">
+              <button type="button" class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(1)" title="First">
+                <i class="fa fa-angle-double-left"></i>
               </button>
-            </span>
-            <button type="button" class="btn-pagination" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)">
-              Next
-            </button>
+              <button type="button" class="page-btn" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)" title="Previous">
+                <i class="fa fa-angle-left"></i>
+              </button>
+              <span class="page-numbers">
+                <button *ngFor="let p of getPageNumbers()" type="button" class="page-num" [class.active]="p === currentPage" (click)="goToPage(p)">{{ p }}</button>
+              </span>
+              <button type="button" class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)" title="Next">
+                <i class="fa fa-angle-right"></i>
+              </button>
+              <button type="button" class="page-btn" [disabled]="currentPage >= totalPages" (click)="goToPage(totalPages)" title="Last">
+                <i class="fa fa-angle-double-right"></i>
+              </button>
+            </div>
           </div>
         </div>
       </ng-container>
 
       <!-- Add / Edit form -->
-      <div *ngIf="showForm" class="form-container">
-        <h2 class="form-title">{{ editingItem ? 'EDIT FEE ADDON' : 'NEW FEE ADDON' }}</h2>
+      <div *ngIf="showForm" class="academy-form-card">
+        <h3><i class="fa" [ngClass]="editingItem ? 'fa-edit' : 'fa-plus-circle'"></i> {{ editingItem ? 'Edit Fee Add-on' : 'New Fee Add-on' }}</h3>
         <form (ngSubmit)="save()">
-          <div class="form-group">
-            <label for="name">Name</label>
-            <input
-              id="name"
-              type="text"
-              class="form-input"
-              [(ngModel)]="formName"
-              name="name"
-              required
-              [class.is-invalid]="submitted && !formName.trim()"
-            />
+          <div class="academy-form-row">
+            <div class="academy-form-group">
+              <label>Name <span class="required">*</span></label>
+              <input
+                type="text"
+                class="academy-input"
+                [(ngModel)]="formName"
+                name="name"
+                placeholder="e.g., Transport, Laboratory, Registration"
+                [class.is-invalid]="submitted && !formName.trim()"
+              />
+              <div *ngIf="submitted && !formName.trim()" class="academy-invalid">Name is required</div>
+            </div>
           </div>
-          <div class="form-actions">
-            <button type="submit" class="btn-save">Save</button>
-            <button type="button" class="btn-cancel" (click)="cancelForm()">Cancel</button>
+          <div class="academy-form-actions">
+            <button type="submit" class="btn btn-primary">
+              <i class="fa fa-save"></i> Save
+            </button>
+            <button type="button" class="btn btn-secondary" (click)="cancelForm()">Cancel</button>
           </div>
         </form>
       </div>
 
-      <!-- Delete confirm (simple inline) -->
+      <!-- Delete confirm -->
       <div *ngIf="showDeleteConfirm" class="confirm-overlay" (click)="showDeleteConfirm = false">
         <div class="confirm-box" (click)="$event.stopPropagation()">
           <p>Are you sure you want to delete "{{ itemToDelete?.name }}"?</p>
           <div class="confirm-actions">
-            <button type="button" class="btn-save" (click)="deleteItem()">Yes, delete</button>
-            <button type="button" class="btn-cancel" (click)="showDeleteConfirm = false; itemToDelete = null">Cancel</button>
+            <button type="button" class="btn btn-primary" (click)="deleteItem()">Yes, delete</button>
+            <button type="button" class="btn btn-secondary" (click)="showDeleteConfirm = false; itemToDelete = null">Cancel</button>
           </div>
         </div>
       </div>
     </div>
   `,
   styles: [`
-    .fee-addon-container {
-      padding: 1.5rem 2rem;
-      background-color: #f5ebe0;
-      min-height: calc(100vh - 120px);
+    .fee-addon-container { padding: 0; position: relative; }
+    .page-header-card {
+      background: #fff; border-radius: 16px; padding: 1.75rem 2rem; margin-bottom: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;
     }
-
-    .list-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
+    .header-content { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .page-header-card h2 { margin: 0; font-size: 1.5rem; font-weight: 700; color: #0f2744; display: flex; align-items: center; gap: 0.75rem; }
+    .page-header-card h2 i { color: #1e3a5f; }
+    .page-subtitle { margin: 0.25rem 0 0 0; font-size: 0.9375rem; color: #6a8cad; padding-left: 2.1rem; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1.25rem; border: none; border-radius: 0.75rem;
+      font-size: 0.9375rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+      background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%); color: #fff; box-shadow: 0 4px 14px rgba(30,58,95,0.35);
     }
-
-    .list-title {
-      margin: 0;
-      font-size: 1.5rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: #333;
+    .btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(30,58,95,0.4); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
+    .btn-secondary { background: #6b7280 !important; box-shadow: none; }
+    .btn-secondary:hover:not(:disabled) { background: #4b5563 !important; }
+    .filters-card {
+      display: flex; gap: 1rem; margin-bottom: 1.5rem; padding: 1.25rem 1.5rem;
+      background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
-
-    .btn-add-new {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 1rem;
-      background: #28a745;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      font-size: 0.95rem;
-      font-weight: 500;
-      cursor: pointer;
+    .search-box { position: relative; flex: 1; min-width: 300px; }
+    .search-box i { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #8aa8c4; z-index: 1; }
+    .search-input { padding-left: 3rem; }
+    .academy-table-card {
+      background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;
     }
-
-    .btn-add-new:hover {
-      background: #218838;
+    .academy-table-header {
+      padding: 1.25rem 1.5rem; background: #f7f9fc; border-bottom: 1px solid #e2e8f0;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;
     }
-
-    .toolbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
-      margin-bottom: 1rem;
-    }
-
-    .show-entries {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.9rem;
-      color: #555;
-    }
-
+    .academy-table-title { font-size: 1.0625rem; font-weight: 700; color: #0f2744; }
+    .academy-table-toolbar { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+    .show-entries { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: #6a8cad; }
     .entries-select {
-      padding: 0.35rem 1.75rem 0.35rem 0.5rem;
-      border: 1px solid #d4c4a8;
-      border-radius: 4px;
-      font-size: 0.9rem;
-      background: #fff;
-      cursor: pointer;
+      padding: 0.35rem 0.6rem; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.9rem;
+      background: white; min-width: 60px; cursor: pointer;
     }
-
-    .search-box {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
+    .academy-table-count { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: #6a8cad; }
+    .academy-table-responsive { overflow-x: auto; }
+    .academy-table { width: 100%; border-collapse: collapse; font-size: 0.9375rem; }
+    .academy-table thead { background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%); }
+    .academy-table th {
+      padding: 0.875rem 1rem; text-align: left; font-size: 0.8125rem; font-weight: 600; color: #fff;
+      text-transform: uppercase; letter-spacing: 0.05em;
     }
-
-    .search-box label { font-size: 0.9rem; color: #555; }
-    .search-input {
-      padding: 0.4rem 0.75rem;
-      border: 1px solid #d4c4a8;
-      border-radius: 4px;
-      font-size: 0.9rem;
-      min-width: 200px;
-    }
-
-    .table-wrapper {
-      background: #fff;
-      border-radius: 4px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-      overflow-x: auto;
-      margin-bottom: 1rem;
-    }
-
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.9rem;
-    }
-
-    .data-table th,
-    .data-table td {
-      padding: 0.75rem 1rem;
-      text-align: left;
-      border-bottom: 1px solid #eee;
-    }
-
-    .data-table th {
-      background: #f9f6f1;
-      font-weight: 600;
-      color: #444;
-    }
-
+    .academy-table td { padding: 1rem; border-bottom: 1px solid #eef2f7; color: #435d7a; }
+    .academy-table tbody tr:hover { background: #f7f9fc; }
     .col-action { width: 120px; }
     .btn-edit, .btn-delete {
-      padding: 0.35rem 0.6rem;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      margin-right: 0.35rem;
-      font-size: 0.9rem;
+      padding: 0.4rem 0.75rem; border: none; border-radius: 8px; cursor: pointer; margin-right: 0.35rem;
+      font-size: 0.875rem; color: #fff; transition: all 0.2s;
     }
-
-    .btn-edit {
-      background: #fd7e14;
-      color: #fff;
-    }
-    .btn-edit:hover { background: #e96b00; }
-
-    .btn-delete {
-      background: #dc3545;
-      color: #fff;
-    }
-    .btn-delete:hover { background: #c82333; }
-
+    .btn-edit { background: #2563eb; }
+    .btn-edit:hover { background: #1d4ed8; }
+    .btn-delete { background: #dc2626; }
+    .btn-delete:hover { background: #b91c1c; }
+    .empty-row td { text-align: center; padding: 2rem; color: #6a8cad; }
     .pagination-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
-      padding: 0.75rem 0;
+      display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem;
+      border-top: 1px solid #e2e8f0; background: #fafbfc; flex-wrap: wrap; gap: 1rem;
     }
-
-    .pagination-info { font-size: 0.9rem; color: #555; }
-
-    .pagination-buttons {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
+    .pagination-info { font-size: 0.9rem; color: #64748b; font-weight: 500; }
+    .pagination-controls { display: flex; align-items: center; gap: 0.35rem; }
+    .page-btn, .page-num {
+      padding: 0.5rem 0.75rem; border: 1px solid #e2e8f0; background: #fff; border-radius: 8px;
+      cursor: pointer; font-size: 0.9rem; font-weight: 500; min-width: 38px; color: #334155; transition: all 0.2s ease;
     }
-
-    .page-numbers { display: flex; gap: 0.25rem; }
-
-    .btn-page-num {
-      min-width: 2rem;
-      padding: 0.4rem 0.6rem;
-      border: 1px solid #d4c4a8;
-      border-radius: 4px;
-      background: #fff;
-      font-size: 0.9rem;
-      cursor: pointer;
-      color: #555;
+    .page-btn:hover:not(:disabled), .page-num:hover:not(.active) {
+      background: #f1f5f9; border-color: #cbd5e1; color: #0f172a;
     }
-
-    .btn-page-num:hover:not(:disabled):not(.ellipsis) {
-      background: #f9f6f1;
-      border-color: #a37b46;
+    .page-btn:disabled { opacity: 0.4; cursor: not-allowed; background: #f8fafc; }
+    .page-num.active {
+      background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%); color: white; border-color: transparent;
     }
-
-    .btn-page-num.active {
-      background: #28a745;
-      border-color: #28a745;
-      color: #fff;
+    .page-numbers { display: flex; gap: 0.35rem; }
+    .academy-form-card {
+      background: #fff; border-radius: 16px; padding: 2rem; margin-bottom: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;
     }
-
-    .btn-page-num.ellipsis {
-      border: none;
-      background: transparent;
-      cursor: default;
+    .academy-form-card h3 { margin: 0 0 1.5rem 0; font-size: 1.25rem; font-weight: 700; color: #0f2744; display: flex; align-items: center; gap: 0.5rem; }
+    .academy-form-card h3 i { color: #1e3a5f; }
+    .academy-form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
+    .academy-form-group { display: flex; flex-direction: column; }
+    .academy-form-group label { margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 600; color: #1e3a5f; }
+    .academy-form-group .required { color: #dc2626; }
+    .academy-input {
+      padding: 0.75rem 1rem; border: 2px solid #d9e2ec; border-radius: 0.75rem;
+      font-size: 0.9375rem; font-weight: 500; color: #0f2744; background: #fff; transition: border-color 0.2s, box-shadow 0.2s;
     }
-
-    .btn-pagination {
-      padding: 0.4rem 1rem;
-      border: 1px solid #d4c4a8;
-      border-radius: 4px;
-      background: #fff;
-      font-size: 0.9rem;
-      cursor: pointer;
-      color: #555;
-    }
-
-    .btn-pagination:hover:not(:disabled) {
-      background: #f9f6f1;
-      border-color: #a37b46;
-    }
-
-    .btn-pagination:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    /* Form */
-    .form-container {
-      background: #fdf1dc;
-      border-radius: 4px;
-      padding: 1.5rem 2rem;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-      max-width: 500px;
-    }
-
-    .form-title {
-      margin: 0 0 1.25rem;
-      font-size: 1rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: #333;
-    }
-
-    .form-group {
-      margin-bottom: 1rem;
-    }
-
-    .form-group label {
-      display: block;
-      font-size: 0.9rem;
-      font-weight: 500;
-      margin-bottom: 0.35rem;
-      color: #333;
-    }
-
-    .form-input {
-      width: 100%;
-      padding: 0.5rem 0.75rem;
-      border: 1px solid #d2b892;
-      border-radius: 4px;
-      background: #fffdf8;
-      font-size: 0.95rem;
-    }
-
-    .form-input:focus {
-      outline: none;
-      border-color: #a37b46;
-    }
-
-    .form-input.is-invalid { border-color: #dc3545; }
-
-    .form-actions {
-      margin-top: 1.25rem;
-      display: flex;
-      gap: 0.75rem;
-    }
-
-    .btn-save {
-      padding: 0.45rem 1.25rem;
-      background: #28a745;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      font-size: 0.9rem;
-      cursor: pointer;
-    }
-
-    .btn-save:hover { background: #218838; }
-
-    .btn-cancel {
-      padding: 0.45rem 1.25rem;
-      background: #6c757d;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      font-size: 0.9rem;
-      cursor: pointer;
-    }
-
-    .btn-cancel:hover { background: #5a6268; }
-
+    .academy-input:focus { outline: none; border-color: #1e3a5f; box-shadow: 0 0 0 4px rgba(30,58,95,0.12); }
+    .academy-input.is-invalid { border-color: #dc2626; }
+    .academy-invalid { margin-top: 0.5rem; font-size: 0.8125rem; color: #dc2626; font-weight: 500; }
+    .academy-form-actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #eef2f7; }
     .confirm-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.4);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
+      position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000;
     }
-
-    .confirm-box {
-      background: #fff;
-      padding: 1.5rem;
-      border-radius: 8px;
-      min-width: 320px;
-    }
-
-    .confirm-box p { margin: 0 0 1rem; }
+    .confirm-box { background: #fff; padding: 1.5rem; border-radius: 12px; min-width: 320px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); }
+    .confirm-box p { margin: 0 0 1rem; color: #334155; }
     .confirm-actions { display: flex; gap: 0.75rem; }
+    @media (max-width: 768px) {
+      .header-content { flex-direction: column; align-items: flex-start; }
+      .filters-card, .academy-table-header { padding: 1rem; }
+      .search-box { min-width: 100%; }
+    }
   `]
 })
 export class FeeAddOnComponent implements OnInit {
@@ -457,26 +288,16 @@ export class FeeAddOnComponent implements OnInit {
     return Math.min(this.currentPage * this.pageSize, this.filteredList.length);
   }
 
-  get pageNumbers(): number[] {
+  getPageNumbers(): number[] {
     const total = this.totalPages;
-    const current = this.currentPage;
-    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-    const pages: number[] = [];
-    if (current <= 4) {
-      for (let i = 1; i <= 5; i++) pages.push(i);
-      pages.push(-1);
-      pages.push(total);
-    } else if (current >= total - 3) {
-      pages.push(1);
-      pages.push(-1);
-      for (let i = total - 4; i <= total; i++) pages.push(i);
-    } else {
-      pages.push(1);
-      pages.push(-1);
-      pages.push(current - 1, current, current + 1);
-      pages.push(-1);
-      pages.push(total);
+    let start = Math.max(1, this.currentPage - 2);
+    let end = Math.min(total, this.currentPage + 2);
+    if (end - start < 4) {
+      if (start === 1) end = Math.min(total, 5);
+      else if (end === total) start = Math.max(1, total - 4);
     }
+    const pages: number[] = [];
+    for (let i = start; i <= end; i++) pages.push(i);
     return pages;
   }
 
