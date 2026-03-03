@@ -17,100 +17,72 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
     <div class="sections-container">
       <app-loading [show]="loading" [message]="'Loading sections...'"></app-loading>
       
-      <div class="page-header">
+      <div class="page-header-card">
         <div class="header-content">
-          <h2><i class="fa fa-list"></i> Section Management</h2>
+          <div>
+            <h2>Section Management</h2>
+            <p class="page-subtitle">Manage sections within classes</p>
+          </div>
           <button class="btn btn-primary" (click)="showAddForm = true" [disabled]="loading">
             <i class="fa fa-plus"></i> Add New Section
           </button>
         </div>
       </div>
 
-      <div *ngIf="showAddForm || editingSection" class="modern-form-card">
-        <h3>
-          <i class="fa" [class.fa-list-plus]="!editingSection" [class.fa-list-ul]="editingSection"></i>
-          {{ editingSection ? 'Edit Section' : 'Add New Section' }}
-        </h3>
+      <div *ngIf="showAddForm || editingSection" class="academy-form-card">
+        <h3>{{ editingSection ? 'Edit Section' : 'Add New Section' }}</h3>
         <form (ngSubmit)="saveSection()">
-          <div class="modern-form-row">
-            <div class="modern-form-group">
-              <label>
-                <i class="fa fa-list"></i>
-                Section Name
-                <span class="required-indicator">*</span>
-              </label>
-              <div class="modern-input-wrapper">
-                <i class="fa fa-list modern-input-icon"></i>
-                <input 
-                  type="text" 
-                  [(ngModel)]="sectionForm.name" 
-                  name="name" 
-                  required 
-                  class="modern-form-control"
-                  placeholder="e.g., Section A, Section B"
-                  [class.is-invalid]="submitted && !sectionForm.name">
-              </div>
-              <div *ngIf="submitted && !sectionForm.name" class="modern-invalid-feedback">
-                <i class="fa fa-exclamation-circle"></i>
-                Section name is required
-              </div>
+          <div class="academy-form-row">
+            <div class="academy-form-group">
+              <label>Section Name <span class="required">*</span></label>
+              <input 
+                type="text" 
+                [(ngModel)]="sectionForm.name" 
+                name="name" 
+                required 
+                class="academy-input"
+                placeholder="e.g., Section A, Section B"
+                [class.is-invalid]="submitted && !sectionForm.name">
+              <div *ngIf="submitted && !sectionForm.name" class="academy-invalid">Section name is required</div>
             </div>
-            <div class="modern-form-group">
-              <label>
-                <i class="fa fa-book"></i>
-                Class
-                <span class="required-indicator">*</span>
-              </label>
-              <div class="modern-select-wrapper">
-                <select 
-                  [(ngModel)]="sectionForm.classId" 
-                  name="classId" 
-                  required 
-                  class="modern-form-control"
-                  [class.is-invalid]="submitted && !sectionForm.classId">
-                  <option value="">Select Class</option>
-                  <option *ngFor="let cls of classes" [value]="cls.classId">{{ cls.name }}</option>
-                </select>
-              </div>
-              <div *ngIf="submitted && !sectionForm.classId" class="modern-invalid-feedback">
-                <i class="fa fa-exclamation-circle"></i>
-                Class is required
-              </div>
+            <div class="academy-form-group">
+              <label>Class <span class="required">*</span></label>
+              <select 
+                [(ngModel)]="sectionForm.classId" 
+                name="classId" 
+                required 
+                class="academy-select"
+                [class.is-invalid]="submitted && !sectionForm.classId">
+                <option value="">Select Class</option>
+                <option *ngFor="let cls of classes" [value]="cls.classId">{{ cls.name }}</option>
+              </select>
+              <div *ngIf="submitted && !sectionForm.classId" class="academy-invalid">Class is required</div>
             </div>
           </div>
-          <div class="modern-form-actions">
+          <div class="academy-form-actions">
             <button type="submit" class="btn btn-primary" [disabled]="saving">
-              <i class="fa" [class.fa-spinner]="saving" [class.fa-spin]="saving" [class.fa-save]="!saving"></i>
+              <i class="fa fa-spinner fa-spin" *ngIf="saving"></i>
               <span *ngIf="saving">Saving...</span>
               <span *ngIf="!saving">Save Section</span>
             </button>
-            <button type="button" class="btn btn-secondary" (click)="cancelForm()" [disabled]="saving">
-              <i class="fa fa-times"></i>
-              Cancel
-            </button>
+            <button type="button" class="btn btn-secondary" (click)="cancelForm()" [disabled]="saving">Cancel</button>
           </div>
         </form>
       </div>
 
-      <div class="modern-table-card">
-        <div class="modern-table-header">
-          <div class="modern-table-title">
-            <i class="fa fa-table"></i>
-            Sections List
-          </div>
-          <div class="modern-table-count">
-            <i class="fa fa-list"></i>
-            <span>Total: {{ sections.length }} section(s)</span>
-          </div>
+      <div class="academy-table-card">
+        <div class="academy-table-header">
+          <div class="academy-table-title">Sections List</div>
+          <div class="academy-table-count">Total: {{ sections.length }} section(s)</div>
         </div>
-        <div class="modern-table-responsive">
-          <table class="modern-table">
+        <div class="academy-table-responsive">
+          <table class="academy-table">
             <thead>
               <tr>
-                <th><i class="fa fa-hashtag"></i> ID</th>
-                <th><i class="fa fa-list"></i> Section Name</th>
-                <th><i class="fa fa-book"></i> Class</th>
-                <th><i class="fa fa-cog"></i> Actions</th>
+                <th>ID</th>
+                <th>Section Name</th>
+                <th>Class</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -122,10 +94,7 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
                   <strong>{{ section.name }}</strong>
                 </td>
                 <td>
-                  <span *ngIf="section.class?.name" class="modern-badge modern-badge-primary">
-                    <i class="fa fa-book"></i>
-                    {{ section.class?.name }}
-                  </span>
+                  <span *ngIf="section.class?.name" class="academy-badge">{{ section.class?.name }}</span>
                   <span *ngIf="!section.class?.name" class="text-muted">-</span>
                 </td>
                 <td>
@@ -140,8 +109,7 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
                 </td>
               </tr>
               <tr *ngIf="sections.length === 0 && !loading">
-                <td colspan="4" class="modern-table-empty">
-                  <i class="fa fa-inbox"></i>
+                <td colspan="4" class="academy-table-empty">
                   <p>No sections found</p>
                 </td>
               </tr>
@@ -162,106 +130,62 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
     </div>
   `,
   styles: [`
-    .sections-container {
-      padding: 2rem;
-      position: relative;
+    .sections-container { padding: 0; position: relative; }
+    .page-header-card {
+      background: #fff; border-radius: 16px; padding: 1.75rem 2rem; margin-bottom: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;
     }
-    
-    .page-header {
-      margin-bottom: 2rem;
+    .header-content { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .page-header-card h2 { margin: 0; font-size: 1.5rem; font-weight: 700; color: #0f2744; }
+    .page-subtitle { margin: 0.25rem 0 0 0; font-size: 0.9375rem; color: #6a8cad; }
+    .academy-form-card {
+      background: #fff; border-radius: 16px; padding: 2rem; margin-bottom: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;
     }
-    
-    .header-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
+    .academy-form-card h3 { margin: 0 0 1.5rem 0; font-size: 1.25rem; font-weight: 700; color: #0f2744; }
+    .academy-form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
+    .academy-form-group { display: flex; flex-direction: column; }
+    .academy-form-group label { margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 600; color: #1e3a5f; }
+    .academy-form-group .required { color: #dc2626; }
+    .academy-input, .academy-select {
+      padding: 0.75rem 1rem; border: 2px solid #d9e2ec; border-radius: 0.75rem;
+      font-size: 0.9375rem; font-weight: 500; color: #0f2744; background: #fff;
+      transition: border-color 0.2s, box-shadow 0.2s; cursor: pointer;
     }
-    
-    .page-header h2 {
-      margin: 0;
-      color: var(--text-primary);
-      font-size: 1.75rem;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-    
-    .page-header h2 i {
-      color: var(--primary);
-    }
-    
-    .btn {
-      padding: 0.875rem 1.75rem;
-      border: none;
-      border-radius: var(--radius-lg);
-      cursor: pointer;
-      font-size: 1rem;
-      font-weight: 600;
-      transition: all var(--transition-fast);
-      display: inline-flex;
-      align-items: center;
-      gap: 0.75rem;
-      box-shadow: var(--shadow-md);
-    }
-    
-    .btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none !important;
-    }
-    
-    .btn-primary {
-      background: var(--primary-gradient);
-      color: var(--text-inverse);
-    }
-    
-    .btn-primary:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-lg);
-    }
-    
-    .btn-secondary {
-      background: var(--gray-600);
-      color: var(--text-inverse);
-    }
-    
-    .btn-secondary:hover:not(:disabled) {
-      background: var(--gray-700);
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-lg);
-    }
-    
-    .id-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 32px;
-      height: 32px;
-      background: var(--bg-secondary);
-      border-radius: var(--radius-md);
-      font-weight: 600;
-      color: var(--text-secondary);
-      font-size: 0.875rem;
-    }
-    
-    .text-muted {
-      color: var(--text-tertiary);
-      font-style: italic;
-    }
-    
-    @media (max-width: 768px) {
-      .sections-container {
-        padding: 1rem;
-      }
-      
-      .header-content {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-    }
+    .academy-input:focus, .academy-select:focus { outline: none; border-color: #1e3a5f; box-shadow: 0 0 0 4px rgba(30,58,95,0.12); }
+    .academy-input.is-invalid, .academy-select.is-invalid { border-color: #dc2626; }
+    .academy-invalid { margin-top: 0.5rem; font-size: 0.8125rem; color: #dc2626; font-weight: 500; }
+    .academy-form-actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #eef2f7; }
+    .btn { padding: 0.65rem 1.25rem; border: none; border-radius: 0.75rem; cursor: pointer; font-size: 0.9375rem; font-weight: 600;
+      display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
+    .btn-primary { background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%); color: #fff; box-shadow: 0 4px 14px rgba(30,58,95,0.35); }
+    .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(30,58,95,0.4); }
+    .btn-secondary { background: #6b7280; color: #fff; }
+    .btn-secondary:hover:not(:disabled) { background: #4b5563; }
+    .academy-table-card { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
+    .academy-table-header { padding: 1.25rem 1.5rem; background: #f7f9fc; border-bottom: 1px solid #e2e8f0;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .academy-table-title { font-size: 1.0625rem; font-weight: 700; color: #0f2744; }
+    .academy-table-count { font-size: 0.9rem; font-weight: 500; color: #6a8cad; }
+    .academy-table-responsive { overflow-x: auto; }
+    .academy-table { width: 100%; border-collapse: collapse; }
+    .academy-table thead { background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%); }
+    .academy-table th { padding: 0.875rem 1rem; text-align: left; font-size: 0.8125rem; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.05em; }
+    .academy-table td { padding: 1rem; border-bottom: 1px solid #eef2f7; font-size: 0.9375rem; color: #435d7a; }
+    .academy-table tbody tr:hover { background: #f7f9fc; }
+    .academy-badge { display: inline-flex; padding: 0.25rem 0.6rem; background: rgba(30,58,95,0.1); border-radius: 8px; font-weight: 600; color: #1e3a5f; font-size: 0.875rem; }
+    .academy-table .modern-table-actions { display: flex; gap: 0.5rem; }
+    .academy-table .modern-btn-icon { width: 34px; height: 34px; border-radius: 8px; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; }
+    .academy-table .modern-btn-edit { background: #2563eb; color: #fff; }
+    .academy-table .modern-btn-edit:hover { background: #1d4ed8; }
+    .academy-table .modern-btn-delete { background: #dc2626; color: #fff; }
+    .academy-table .modern-btn-delete:hover { background: #b91c1c; }
+    .id-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 28px; padding: 0 0.5rem; background: #eef2f7; border-radius: 8px; font-weight: 600; color: #435d7a; font-size: 0.875rem; }
+    .text-muted { color: #8aa8c4; font-style: italic; }
+    .academy-table-empty { padding: 3rem; text-align: center; color: #6a8cad; }
+    .academy-table-empty p { margin: 0; font-size: 1rem; }
+    @media (max-width: 768px) { .header-content { flex-direction: column; align-items: flex-start; } }
   `]
 })
 export class SectionsComponent implements OnInit {
