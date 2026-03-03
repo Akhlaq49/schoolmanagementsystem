@@ -12,10 +12,12 @@ import { NotificationService } from '../../../shared/services/notification.servi
   template: `
     <div class="login-container">
       <div class="login-background">
+        <div class="background-pattern"></div>
         <div class="background-shapes">
           <div class="shape shape-1"></div>
           <div class="shape shape-2"></div>
           <div class="shape shape-3"></div>
+          <div class="shape shape-4"></div>
         </div>
       </div>
       
@@ -25,8 +27,9 @@ import { NotificationService } from '../../../shared/services/notification.servi
             <div class="logo-container">
               <i class="fa fa-graduation-cap logo-icon"></i>
             </div>
-            <h1 class="login-title">Welcome Back</h1>
-            <p class="login-subtitle">Sign in to your account to continue</p>
+            <h1 class="brand-name">EduManage</h1>
+            <h2 class="login-title">Welcome Back</h2>
+            <p class="login-subtitle">Sign in to your school management account</p>
           </div>
           
           <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
@@ -111,7 +114,7 @@ import { NotificationService } from '../../../shared/services/notification.servi
       min-height: 100vh;
       position: relative;
       overflow: hidden;
-      background: var(--primary-gradient);
+      background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 50%, #2b6cb0 100%);
     }
     
     .login-background {
@@ -124,6 +127,14 @@ import { NotificationService } from '../../../shared/services/notification.servi
       z-index: 0;
     }
     
+    .background-pattern {
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle at 20% 80%, rgba(212, 168, 75, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.06) 0%, transparent 40%);
+      pointer-events: none;
+    }
+    
     .background-shapes {
       position: relative;
       width: 100%;
@@ -133,124 +144,141 @@ import { NotificationService } from '../../../shared/services/notification.servi
     .shape {
       position: absolute;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      animation: float 20s infinite ease-in-out;
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(8px);
+      animation: float 25s infinite ease-in-out;
     }
     
     .shape-1 {
-      width: 300px;
-      height: 300px;
-      top: -100px;
-      left: -100px;
+      width: 320px;
+      height: 320px;
+      top: -120px;
+      left: -80px;
       animation-delay: 0s;
     }
     
     .shape-2 {
-      width: 200px;
-      height: 200px;
-      bottom: -50px;
-      right: -50px;
-      animation-delay: 5s;
+      width: 180px;
+      height: 180px;
+      bottom: 10%;
+      right: 5%;
+      animation-delay: 4s;
     }
     
     .shape-3 {
-      width: 150px;
-      height: 150px;
-      top: 50%;
-      right: 10%;
-      animation-delay: 10s;
+      width: 120px;
+      height: 120px;
+      top: 40%;
+      right: 15%;
+      animation-delay: 8s;
+    }
+    
+    .shape-4 {
+      width: 200px;
+      height: 200px;
+      bottom: -60px;
+      right: 25%;
+      background: rgba(212, 168, 75, 0.08);
+      animation-delay: 2s;
     }
     
     @keyframes float {
-      0%, 100% {
-        transform: translate(0, 0) rotate(0deg);
-      }
-      33% {
-        transform: translate(30px, -30px) rotate(120deg);
-      }
-      66% {
-        transform: translate(-20px, 20px) rotate(240deg);
-      }
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(25px, -25px) scale(1.02); }
+      66% { transform: translate(-15px, 15px) scale(0.98); }
     }
     
     .login-content {
       position: relative;
       z-index: 1;
       width: 100%;
-      max-width: 450px;
+      max-width: 440px;
       padding: 2rem;
     }
     
     .login-card {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(20px);
-      padding: 3rem;
-      border-radius: var(--radius-2xl);
-      box-shadow: var(--shadow-2xl);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      animation: fadeIn 0.5s ease-out;
+      background: #ffffff;
+      padding: 2.75rem 2.5rem;
+      border-radius: 1.25rem;
+      box-shadow: 0 25px 80px rgba(15, 39, 68, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      animation: cardFadeIn 0.5s ease-out;
+    }
+    
+    @keyframes cardFadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     
     .login-header {
       text-align: center;
-      margin-bottom: 2.5rem;
+      margin-bottom: 2.25rem;
     }
     
     .logo-container {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 80px;
-      height: 80px;
-      background: var(--primary-gradient);
-      border-radius: var(--radius-xl);
-      margin-bottom: 1.5rem;
-      box-shadow: var(--shadow-lg);
+      width: 72px;
+      height: 72px;
+      background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
+      border-radius: 1rem;
+      margin-bottom: 1.25rem;
+      box-shadow: 0 8px 24px rgba(30, 58, 95, 0.35);
     }
     
     .logo-icon {
-      font-size: 2.5rem;
-      color: var(--text-inverse);
+      font-size: 2.25rem;
+      color: #d4a84b;
+    }
+    
+    .brand-name {
+      margin: 0 0 0.25rem 0;
+      font-family: 'Libre Baskerville', Georgia, serif;
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #1e3a5f;
+      letter-spacing: -0.02em;
     }
     
     .login-title {
-      margin: 0 0 0.5rem 0;
-      font-size: 2rem;
+      margin: 0 0 0.35rem 0;
+      font-size: 1.5rem;
       font-weight: 700;
-      color: var(--text-primary);
-      letter-spacing: -0.5px;
+      color: #0f2744;
+      letter-spacing: -0.02em;
     }
     
     .login-subtitle {
       margin: 0;
-      color: var(--text-secondary);
+      color: #6a8cad;
       font-size: 0.9375rem;
+      font-weight: 500;
     }
     
     .login-form {
-      margin-bottom: 2rem;
+      margin-bottom: 1.75rem;
     }
     
     .form-group {
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.375rem;
     }
     
     .form-label {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      margin-bottom: 0.75rem;
+      margin-bottom: 0.5rem;
       font-weight: 600;
-      font-size: 0.875rem;
-      color: var(--text-primary);
+      font-size: 0.8125rem;
+      color: #1e3a5f;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.04em;
     }
     
     .label-icon {
-      color: var(--primary);
+      color: #1e3a5f;
       font-size: 0.875rem;
+      opacity: 0.8;
     }
     
     .input-wrapper {
@@ -262,40 +290,46 @@ import { NotificationService } from '../../../shared/services/notification.servi
     .input-icon {
       position: absolute;
       left: 1rem;
-      color: var(--text-tertiary);
+      color: #6a8cad;
       font-size: 1rem;
       z-index: 1;
+      transition: color 0.2s;
     }
     
     .form-control {
       width: 100%;
-      padding: 0.875rem 1rem 0.875rem 3rem;
-      border: 2px solid var(--border-light);
-      border-radius: var(--radius-lg);
-      font-size: 1rem;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      transition: all var(--transition-fast);
-      font-family: var(--font-sans);
+      padding: 0.75rem 1rem 0.75rem 2.75rem;
+      border: 2px solid #d9e2ec;
+      border-radius: 0.75rem;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      background: #fff;
+      color: #0f2744;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif;
     }
     
     .form-control:focus {
       outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-      transform: translateY(-1px);
+      border-color: #1e3a5f;
+      box-shadow: 0 0 0 4px rgba(30, 58, 95, 0.12);
+    }
+    
+    .input-wrapper:focus-within .input-icon {
+      color: #1e3a5f;
     }
     
     .form-control::placeholder {
-      color: var(--text-tertiary);
+      color: #8aa8c4;
     }
     
     .form-control.is-invalid {
-      border-color: var(--accent-error);
+      border-color: #dc2626;
+      background: rgba(220, 38, 38, 0.02);
     }
     
     .form-control.is-invalid:focus {
-      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+      box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.12);
     }
     
     .invalid-feedback {
@@ -303,8 +337,8 @@ import { NotificationService } from '../../../shared/services/notification.servi
       align-items: center;
       gap: 0.5rem;
       margin-top: 0.5rem;
-      color: var(--accent-error);
-      font-size: 0.875rem;
+      color: #dc2626;
+      font-size: 0.8125rem;
       font-weight: 500;
     }
     
@@ -316,64 +350,50 @@ import { NotificationService } from '../../../shared/services/notification.servi
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      padding: 1rem;
-      border-radius: var(--radius-lg);
-      margin-bottom: 1.5rem;
+      padding: 0.875rem 1rem;
+      border-radius: 0.75rem;
+      margin-bottom: 1.25rem;
       font-size: 0.875rem;
       font-weight: 500;
     }
     
     .alert-danger {
-      background: rgba(239, 68, 68, 0.1);
-      color: var(--accent-error);
-      border: 1px solid rgba(239, 68, 68, 0.2);
+      background: rgba(220, 38, 38, 0.08);
+      color: #b91c1c;
+      border: 1px solid rgba(220, 38, 38, 0.2);
     }
     
     .alert-danger i {
       font-size: 1rem;
+      flex-shrink: 0;
     }
     
     .btn {
       width: 100%;
-      padding: 1rem;
+      padding: 0.875rem 1.25rem;
       border: none;
-      border-radius: var(--radius-lg);
+      border-radius: 0.75rem;
       font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
-      transition: all var(--transition-fast);
-      font-family: var(--font-sans);
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .btn::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 0;
-      height: 0;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.3);
-      transform: translate(-50%, -50%);
-      transition: width 0.6s, height 0.6s;
-    }
-    
-    .btn:hover::before {
-      width: 300px;
-      height: 300px;
+      transition: all 0.2s ease;
+      font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
     }
     
     .btn-primary {
-      background: var(--primary-gradient);
-      color: var(--text-inverse);
-      box-shadow: var(--shadow-md);
+      background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(30, 58, 95, 0.35);
     }
     
     .btn-primary:hover:not(:disabled) {
       transform: translateY(-2px);
-      box-shadow: var(--shadow-lg);
+      box-shadow: 0 6px 20px rgba(30, 58, 95, 0.4);
+      background: linear-gradient(135deg, #0f2744 0%, #1e3a5f 100%);
     }
     
     .btn-primary:active:not(:disabled) {
@@ -381,18 +401,17 @@ import { NotificationService } from '../../../shared/services/notification.servi
     }
     
     .btn-primary:disabled {
-      background: var(--gray-400);
+      background: #b5c9da;
       cursor: not-allowed;
-      opacity: 0.7;
+      opacity: 0.85;
+      box-shadow: none;
     }
     
     .btn-content {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.75rem;
-      position: relative;
-      z-index: 1;
+      gap: 0.5rem;
     }
     
     .btn-content i {
@@ -401,8 +420,8 @@ import { NotificationService } from '../../../shared/services/notification.servi
     
     .login-footer {
       text-align: center;
-      padding-top: 1.5rem;
-      border-top: 1px solid var(--border-light);
+      padding-top: 1.25rem;
+      border-top: 1px solid #eef2f7;
     }
     
     .footer-text {
@@ -411,30 +430,36 @@ import { NotificationService } from '../../../shared/services/notification.servi
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
-      color: var(--text-tertiary);
+      color: #6a8cad;
       font-size: 0.8125rem;
+      font-weight: 500;
     }
     
     .footer-text i {
-      color: var(--accent-success);
+      color: #059669;
+      font-size: 0.875rem;
     }
     
     @media (max-width: 768px) {
       .login-content {
-        padding: 1rem;
+        padding: 1.25rem;
       }
       
       .login-card {
-        padding: 2rem 1.5rem;
+        padding: 2.25rem 1.75rem;
+      }
+      
+      .brand-name {
+        font-size: 1.5rem;
       }
       
       .login-title {
-        font-size: 1.75rem;
+        font-size: 1.375rem;
       }
       
       .logo-container {
-        width: 70px;
-        height: 70px;
+        width: 64px;
+        height: 64px;
       }
       
       .logo-icon {
@@ -444,11 +469,15 @@ import { NotificationService } from '../../../shared/services/notification.servi
     
     @media (max-width: 480px) {
       .login-card {
-        padding: 1.5rem 1rem;
+        padding: 1.75rem 1.25rem;
+      }
+      
+      .brand-name {
+        font-size: 1.375rem;
       }
       
       .login-title {
-        font-size: 1.5rem;
+        font-size: 1.25rem;
       }
     }
   `]

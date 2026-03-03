@@ -127,7 +127,7 @@ import { QuestionBank } from '../../../../core/models/question-bank.model';
       padding: 20mm;
       background: white;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      font-family: 'Times New Roman', serif;
+      font-family: 'Libre Baskerville', Georgia, 'Segoe UI', system-ui, sans-serif;
       line-height: 1.6;
     }
 

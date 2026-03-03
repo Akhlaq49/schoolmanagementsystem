@@ -8,43 +8,40 @@ import { AuthService } from '../../../core/services/auth.service';
   standalone: true,
   imports: [CommonModule, RouterModule, TitleCasePipe],
   template: `
-    <div class="layout-container">
-      <header class="header">
-        <div class="header-content">
-          <div class="header-left">
-            <div class="logo-container">
-              <i class="fa fa-graduation-cap logo-icon"></i>
-              <h1 class="logo-text">EduManage</h1>
+    <div class="min-h-screen flex flex-col bg-academy-50">
+      <header class="bg-academy-gradient text-white py-3.5 px-7 shadow-academy sticky top-0 z-[1000] backdrop-blur-sm">
+        <div class="flex justify-between items-center max-w-full">
+          <div class="flex items-center">
+            <div class="flex items-center gap-3">
+              <i class="fa fa-graduation-cap text-3xl text-gold-400 drop-shadow-sm"></i>
+              <h1 class="font-display font-bold text-2xl text-white tracking-tight m-0">EduManage</h1>
             </div>
           </div>
-          <div class="header-right">
-            <div class="user-info">
-              <div class="user-avatar">
+          <div class="flex items-center">
+            <div class="flex items-center gap-4 py-2 px-4 bg-white/10 rounded-xl backdrop-blur border border-white/20">
+              <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-lg border-2 border-white/30">
                 <i class="fa fa-user"></i>
               </div>
-              <div class="user-details">
-                <span class="user-name">{{ userName }}</span>
-                <div class="user-roles" *ngIf="userRoles.length > 0">
+              <div class="hidden md:flex flex-col gap-1">
+                <span class="font-semibold text-sm text-white">{{ userName }}</span>
+                <div class="flex gap-2 flex-wrap" *ngIf="userRoles.length > 0">
                   <span class="role-badge" *ngFor="let role of userRoles" [class]="'role-' + role">
                     <i [class]="getRoleIcon(role)"></i>
                     {{ getRoleDisplayName(role) }}
                   </span>
                 </div>
               </div>
-              <button (click)="logout()" class="btn-logout" title="Logout">
+              <button (click)="logout()" class="flex items-center gap-2 py-2 px-4 bg-white/20 border border-white/30 text-white rounded-lg text-sm font-medium hover:bg-white/30 transition-all hover:-translate-y-0.5" title="Logout">
                 <i class="fa fa-sign-out"></i>
-                <span class="logout-text">Logout</span>
+                <span class="hidden md:inline">Logout</span>
               </button>
             </div>
           </div>
         </div>
       </header>
       
-      <div class="main-container">
-        <nav class="sidebar" *ngIf="userRoles.length > 0">
-          <div class="sidebar-header">
-            <h3 class="sidebar-title">Navigation</h3>
-          </div>
+      <div class="flex flex-1 overflow-hidden">
+        <nav class="w-72 min-w-[280px] bg-white shadow-academy flex flex-col border-r border-academy-200 overflow-y-auto" *ngIf="userRoles.length > 0">
           <ul class="nav-menu">
             <li *ngFor="let item of menuItems">
               <!-- Group item with children (e.g. Family) -->
@@ -94,8 +91,8 @@ import { AuthService } from '../../../core/services/auth.service';
           </ul>
         </nav>
         
-        <main class="content">
-          <div class="content-wrapper">
+        <main class="flex-1 overflow-y-auto bg-academy-50 relative">
+          <div class="p-7 max-w-[1400px] mx-auto min-h-full">
             <router-outlet></router-outlet>
           </div>
         </main>
@@ -103,488 +100,81 @@ import { AuthService } from '../../../core/services/auth.service';
     </div>
   `,
   styles: [`
-    .layout-container {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      background: var(--bg-secondary);
-    }
-    
-    /* Header Styles */
-    .header {
-      background: var(--primary-gradient);
-      color: var(--text-inverse);
-      padding: 0;
-      box-shadow: var(--shadow-lg);
-      position: sticky;
-      top: 0;
-      z-index: var(--z-sticky);
-      backdrop-filter: blur(10px);
-    }
-    
-    .header-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem 2rem;
-      max-width: 100%;
-    }
-    
-    .header-left {
-      display: flex;
-      align-items: center;
-    }
-    
-    .logo-container {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-    
-    .logo-icon {
-      font-size: 2rem;
-      color: var(--text-inverse);
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-    }
-    
-    .logo-text {
-      margin: 0;
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--text-inverse);
-      letter-spacing: -0.5px;
-    }
-    
-    .header-right {
-      display: flex;
-      align-items: center;
-    }
-    
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      padding: 0.5rem 1rem;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: var(--radius-xl);
-      backdrop-filter: blur(10px);
-    }
-    
-    .user-avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: var(--radius-full);
-      background: rgba(255, 255, 255, 0.2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.25rem;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-    }
-    
-    .user-details {
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-    }
-    
-    .user-name {
-      font-weight: 600;
-      font-size: 0.95rem;
-      color: var(--text-inverse);
-    }
-    
-    .user-roles {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
-    
     .role-badge {
       display: inline-flex;
       align-items: center;
       gap: 0.25rem;
       padding: 0.25rem 0.75rem;
-      border-radius: var(--radius-full);
+      border-radius: 9999px;
       font-size: 0.7rem;
       font-weight: 600;
-      background: rgba(255, 255, 255, 0.25);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      backdrop-filter: blur(5px);
-      transition: all var(--transition-fast);
+      background: rgba(255,255,255,0.25);
+      border: 1px solid rgba(255,255,255,0.3);
+      transition: all 0.2s;
     }
-    
-    .role-badge:hover {
-      background: rgba(255, 255, 255, 0.35);
-      transform: translateY(-1px);
-    }
-    
-    .role-badge i {
-      font-size: 0.7rem;
-    }
-    
-    .role-admin {
-      background: rgba(251, 191, 36, 0.3);
-      border-color: rgba(251, 191, 36, 0.5);
-    }
-    
-    .role-teacher {
-      background: rgba(34, 197, 94, 0.3);
-      border-color: rgba(34, 197, 94, 0.5);
-    }
-    
-    .role-student {
-      background: rgba(59, 130, 246, 0.3);
-      border-color: rgba(59, 130, 246, 0.5);
-    }
-    
-    .role-parent {
-      background: rgba(139, 92, 246, 0.3);
-      border-color: rgba(139, 92, 246, 0.5);
-    }
-    
-    .btn-logout {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 1rem;
-      background: rgba(255, 255, 255, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      color: var(--text-inverse);
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      font-size: 0.875rem;
-      font-weight: 500;
-      transition: all var(--transition-fast);
-      backdrop-filter: blur(5px);
-    }
-    
-    .btn-logout:hover {
-      background: rgba(255, 255, 255, 0.3);
-      transform: translateY(-1px);
-      box-shadow: var(--shadow-md);
-    }
-    
-    .logout-text {
-      display: none;
-    }
-    
-    @media (min-width: 768px) {
-      .logout-text {
-        display: inline;
-      }
-    }
-    
-    /* Main Container */
-    .main-container {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-    }
-    
-    /* Sidebar Styles */
-    .sidebar {
-      width: 280px;
-      min-width: 280px;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      padding: 0;
-      box-shadow: var(--shadow-md);
-      display: flex !important;
-      flex-direction: column;
-      border-right: 1px solid var(--border-light);
-      overflow-y: auto;
-      overflow-x: hidden;
-      visibility: visible;
-      opacity: 1;
-    }
-    
-    .sidebar-header {
-      padding: 1.5rem;
-      border-bottom: 1px solid var(--border-light);
-      background: var(--bg-secondary);
-    }
-    
-    .sidebar-title {
-      margin: 0;
-      font-size: 0.875rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-tertiary);
-    }
-    
-    .nav-menu {
-      list-style: none;
-      padding: 0.5rem;
-      margin: 0;
-      flex: 1;
-    }
-    
-    .nav-menu li {
-      margin-bottom: 0.25rem;
-    }
-    
-    .nav-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-    }
-    
+    .role-admin { background: rgba(212,168,75,0.4); border-color: rgba(212,168,75,0.6); }
+    .role-teacher { background: rgba(5,150,105,0.4); border-color: rgba(5,150,105,0.6); }
+    .role-student { background: rgba(43,108,176,0.4); border-color: rgba(43,108,176,0.6); }
+    .role-parent { background: rgba(139,92,246,0.4); border-color: rgba(139,92,246,0.6); }
+    .nav-menu { list-style: none; padding: 0.75rem 0.5rem; margin: 0; flex: 1; }
+    .nav-menu li { margin-bottom: 0.2rem; }
+    .nav-group { display: flex; flex-direction: column; }
     .nav-group-header {
-      display: flex;
-      align-items: center;
-      width: 100%;
-      padding: 0.875rem 1rem;
-      background: transparent;
-      border: none;
-      color: var(--text-secondary);
-      border-radius: var(--radius-lg);
-      cursor: pointer;
-      transition: all var(--transition-fast);
-      text-align: left;
-      position: relative;
+      display: flex; align-items: center; width: 100%;
+      padding: 0.75rem 1rem; background: transparent; border: none;
+      color: #435d7a; border-radius: 0.625rem; cursor: pointer;
+      transition: all 0.2s; text-align: left; font-size: 0.9375rem; font-weight: 500;
     }
-    
-    .nav-group-header:hover {
-      background: var(--bg-secondary);
-      color: var(--primary);
-      transform: translateX(4px);
-    }
-    
-    .nav-group-caret {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-left: auto;
-      transition: transform var(--transition-fast);
-      font-size: 0.75rem;
-      color: var(--text-tertiary);
-    }
-    
-    .nav-group-caret.expanded {
-      transform: rotate(180deg);
-    }
-    
+    .nav-group-header:hover { background: #eef2f7; color: #1e3a5f; }
+    .nav-group-header:hover .nav-icon { color: #1e3a5f; }
+    .nav-group-caret { display: flex; align-items: center; margin-left: auto; transition: transform 0.2s; font-size: 0.7rem; color: #8aa8c4; }
+    .nav-group-caret.expanded { transform: rotate(180deg); color: #1e3a5f; }
     .nav-submenu {
-      list-style: none;
-      margin: 0;
-      padding: 0 0 0 2.5rem;
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height var(--transition-fast);
+      list-style: none; margin: 0; padding: 0.25rem 0 0.25rem 2.75rem;
+      max-height: 0; overflow: hidden; transition: max-height 0.3s;
+      border-left: 2px solid #eef2f7; margin-left: 1rem;
     }
-    
-    .nav-submenu.expanded {
-      max-height: 500px;
-    }
-    
+    .nav-submenu.expanded { max-height: 500px; }
     .nav-link {
-      display: flex;
-      align-items: center;
-      padding: 0.875rem 1rem;
-      color: var(--text-secondary);
-      text-decoration: none;
-      border-radius: var(--radius-lg);
-      transition: all var(--transition-fast);
-      position: relative;
-      overflow: hidden;
+      display: flex; align-items: center; padding: 0.7rem 1rem;
+      color: #6a8cad; text-decoration: none; border-radius: 0.625rem;
+      transition: all 0.2s; position: relative; font-size: 0.9375rem; font-weight: 500;
     }
-    
     .nav-link::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 3px;
-      background: var(--primary);
-      transform: scaleY(0);
-      transition: transform var(--transition-fast);
+      content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+      width: 3px; height: 0; background: #1e3a5f; border-radius: 0 2px 2px 0; transition: height 0.2s;
     }
-    
-    .nav-link:hover {
-      background: var(--bg-secondary);
-      color: var(--primary);
-      transform: translateX(4px);
-    }
-    
-    .nav-link.active {
-      background: linear-gradient(90deg, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%);
-      color: var(--primary);
-      font-weight: 600;
-    }
-    
-    .nav-link.active::before {
-      transform: scaleY(1);
-    }
-    
+    .nav-link:hover { background: #eef2f7; color: #1e3a5f; }
+    .nav-link:hover .nav-icon { color: #1e3a5f; }
+    .nav-link.active { background: rgba(30,58,95,0.08); color: #1e3a5f; font-weight: 600; }
+    .nav-link.active .nav-icon { color: #1e3a5f; }
+    .nav-link.active::before { height: 24px; }
     .nav-icon {
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-right: 0.75rem;
-      font-size: 1.125rem;
-      transition: transform var(--transition-fast);
+      width: 22px; min-width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+      margin-right: 0.75rem; font-size: 1rem; color: #8aa8c4; transition: color 0.2s;
     }
-    
-    .nav-link:hover .nav-icon {
-      transform: scale(1.1);
-    }
-    
-    .nav-label {
-      flex: 1;
-      font-size: 0.9375rem;
-    }
-    
-    .nav-sublink {
-      padding-left: 0;
-      background: transparent;
-      font-size: 0.9rem;
-    }
-    
-    .nav-indicator {
-      width: 6px;
-      height: 6px;
-      border-radius: var(--radius-full);
-      background: var(--primary);
-      opacity: 0;
-      transition: opacity var(--transition-fast);
-    }
-    
-    .nav-link.active .nav-indicator {
-      opacity: 1;
-    }
-    
-    /* Content Area */
-    .content {
-      flex: 1;
-      overflow-y: auto;
-      background: var(--bg-secondary);
-      position: relative;
-    }
-    
-    .content-wrapper {
-      padding: 2rem;
-      max-width: 1400px;
-      margin: 0 auto;
-      min-height: 100%;
-    }
-    
-    /* Responsive Design */
-    @media (max-width: 1024px) {
-      .sidebar {
-        width: 240px;
-      }
-      
-      .content-wrapper {
-        padding: 1.5rem;
-      }
-    }
-    
+    .nav-group-header .nav-icon { color: #6a8cad; }
+    .nav-label { flex: 1; font-size: 0.9375rem; }
+    .nav-sublink { padding: 0.6rem 1rem 0.6rem 0.75rem; margin-left: -0.5rem; font-size: 0.875rem; color: #6a8cad; }
+    .nav-sublink:hover, .nav-sublink.active { color: #1e3a5f; }
+    .nav-sublink.active { background: rgba(30,58,95,0.06); font-weight: 600; }
+    .nav-indicator { width: 6px; height: 6px; border-radius: 50%; background: #1e3a5f; opacity: 0; transition: opacity 0.2s; }
+    .nav-link.active .nav-indicator { opacity: 1; }
+    .nav-empty .nav-label.text-muted { color: #8aa8c4; }
     @media (max-width: 768px) {
-      .header-content {
-        padding: 1rem;
-      }
-      
-      .logo-text {
-        font-size: 1.25rem;
-      }
-      
-      .user-info {
-        padding: 0.5rem;
-      }
-      
-      .user-details {
-        display: none;
-      }
-      
-      .sidebar {
-        width: 70px;
-      }
-      
-      .sidebar-header {
-        padding: 1rem;
-      }
-      
-      .sidebar-title {
-        display: none;
-      }
-      
-      .nav-label {
-        display: none;
-      }
-      
-      .nav-link {
-        justify-content: center;
-        padding: 1rem;
-      }
-      
-      .nav-icon {
-        margin-right: 0;
-      }
-      
-      .content-wrapper {
-        padding: 1rem;
-      }
+      nav { width: 70px !important; min-width: 70px !important; }
+      .sidebar-header h3 { display: none; }
+      .nav-label { display: none; }
+      .nav-link { justify-content: center; padding: 1rem; }
+      .nav-icon { margin-right: 0; }
     }
-    
-    @media (max-width: 480px) {
-      .header-content {
-        flex-direction: column;
-        gap: 1rem;
-        padding: 1rem;
-      }
-      
-      .user-info {
-        width: 100%;
-        justify-content: space-between;
-      }
-    }
-
     @media print {
-      /* Hide header, sidebar, and navigation when printing */
-      .header,
-      .sidebar,
-      .nav-menu {
-        display: none !important;
-      }
-
-      /* Make content full width when printing */
-      .content {
-        margin-left: 0 !important;
-        width: 100% !important;
-        height: auto !important;
-        overflow: visible !important;
-      }
-
-      .content-wrapper {
-        padding: 0 !important;
-        max-width: 100% !important;
-        height: auto !important;
-        overflow: visible !important;
-      }
-
-      /* Hide main container flex layout */
-      .main-container {
-        display: block !important;
-        height: auto !important;
-        overflow: visible !important;
-      }
-
-      /* Ensure layout container allows content flow */
-      .layout-container {
-        height: auto !important;
-        overflow: visible !important;
-      }
-
-      /* Allow body to flow across pages */
-      body {
-        height: auto !important;
-        overflow: visible !important;
-      }
+      header, nav, .nav-menu { display: none !important; }
+      main { margin-left: 0 !important; width: 100% !important; height: auto !important; overflow: visible !important; }
+      main > div { padding: 0 !important; max-width: 100% !important; }
+      .flex.overflow-hidden { display: block !important; height: auto !important; overflow: visible !important; }
+      .min-h-screen { height: auto !important; overflow: visible !important; }
+      body { height: auto !important; overflow: visible !important; }
     }
   `]
 })
@@ -643,7 +233,18 @@ export class LayoutComponent implements OnInit {
     const allMenuItems: { [key: string]: any[] } = {
       admin: [
         { route: '/admin/dashboard', label: 'Dashboard', icon: 'fa fa-home', exact: true, role: 'admin' },
-        { route: '/admin/students', label: 'Students', icon: 'fa fa-users', role: 'admin' },
+        {
+          label: 'Students',
+          icon: 'fa fa-users',
+          role: 'admin',
+          expanded: false,
+          children: [
+            { route: '/admin/students/add', label: 'Add New Student', role: 'admin' },
+            { route: '/admin/students/active', label: 'Active Students', role: 'admin' },
+            { route: '/admin/students/drop', label: 'Drop Students', role: 'admin' },
+            { route: '/admin/students/promote', label: 'Promote Student', role: 'admin' }
+          ]
+        },
         { route: '/admin/teachers', label: 'Teachers', icon: 'fa fa-chalkboard-teacher', role: 'admin' },
         {
           label: 'Classes',

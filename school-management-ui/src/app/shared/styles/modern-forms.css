@@ -146,6 +146,33 @@
   z-index: 1;
 }
 
+.modern-select-wrapper select,
+.modern-select-wrapper .modern-form-control {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: none !important;
+  padding-right: 2.75rem;
+  border: 2px solid var(--border-light);
+  border-radius: 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.modern-select-wrapper select:hover,
+.modern-select-wrapper .modern-form-control:hover {
+  border-color: var(--border-medium);
+}
+
+.modern-select-wrapper select:focus,
+.modern-select-wrapper .modern-form-control:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.15);
+}
+
 .modern-form-control select {
   appearance: none;
   background-image: none;

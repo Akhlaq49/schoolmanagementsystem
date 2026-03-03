@@ -17,7 +17,28 @@ export const ADMIN_ROUTES: Routes = [
       },
       {
         path: 'students',
+        redirectTo: 'students/active',
+        pathMatch: 'full'
+      },
+      {
+        path: 'students/add',
+        loadComponent: () => import('./students/student-add/student-add.component').then(m => m.StudentAddComponent)
+      },
+      {
+        path: 'students/active',
         loadComponent: () => import('./students/students.component').then(m => m.StudentsComponent)
+      },
+      {
+        path: 'students/view/:id',
+        loadComponent: () => import('./students/student-view/student-view.component').then(m => m.StudentViewComponent)
+      },
+      {
+        path: 'students/drop',
+        loadComponent: () => import('./students/drop-students/drop-students.component').then(m => m.DropStudentsComponent)
+      },
+      {
+        path: 'students/promote',
+        loadComponent: () => import('./students/promote-student/promote-student.component').then(m => m.PromoteStudentComponent)
       },
       {
         path: 'teachers',
