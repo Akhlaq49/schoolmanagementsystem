@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SchoolManagementAPI.Models;
+using SchoolManagementAPI.Models.DTOs;
 using SchoolManagementAPI.Services;
 
 namespace SchoolManagementAPI.Controllers;
@@ -18,9 +19,13 @@ public class StudentsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<User>>> GetAllStudents()
+    public async Task<ActionResult<List<User>>> GetAllStudents([FromQuery] string? status = null)
     {
-        var students = await _studentService.GetAllStudentsAsync();
+        List<User> students = status?.ToLower() == "dropped"
+            ? await _studentService.GetDroppedStudentsAsync()
+            : status?.ToLower() == "active"
+                ? await _studentService.GetActiveStudentsAsync()
+                : await _studentService.GetAllStudentsAsync();
         return Ok(students);
     }
 
@@ -44,17 +49,17 @@ public class StudentsController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = "admin")]
-    public async Task<ActionResult<User>> CreateStudent([FromBody] User student)
+    public async Task<ActionResult<User>> CreateStudent([FromBody] CreateStudentDto dto)
     {
-        var created = await _studentService.CreateStudentAsync(student);
+        var created = await _studentService.CreateStudentFromDtoAsync(dto);
         return CreatedAtAction(nameof(GetStudent), new { id = created.UserId }, created);
     }
 
     [HttpPut("{id}")]
     [Authorize(Roles = "admin")]
-    public async Task<IActionResult> UpdateStudent(int id, [FromBody] User student)
+    public async Task<IActionResult> UpdateStudent(int id, [FromBody] UpdateStudentDto dto)
     {
-        var updated = await _studentService.UpdateStudentAsync(id, student);
+        var updated = await _studentService.UpdateStudentFromDtoAsync(id, dto);
         if (updated == null)
         {
             return NotFound();

@@ -11,6 +11,10 @@ public class Student
     public int StudentId { get; set; }
 
     [Required]
+    [Column("user_id")]
+    public int UserId { get; set; }
+
+    [Required]
     [Column("name")]
     public string Name { get; set; } = string.Empty;
 
@@ -55,7 +59,28 @@ public class Student
     [Column("login_status")]
     public string LoginStatus { get; set; } = "0";
 
+    [Column("status")]
+    public string? Status { get; set; }
+
+    [Column("school_reg_num")]
+    public string? SchoolRegNum { get; set; }
+
+    [Column("b_form_cnic")]
+    public string? BFormCnic { get; set; }
+
+    [Column("religion")]
+    public string? Religion { get; set; }
+
+    [Column("blood_group")]
+    public string? BloodGroup { get; set; }
+
+    [Column("family_id")]
+    public int? FamilyId { get; set; }
+
     // Navigation Properties
+    [ForeignKey("UserId")]
+    public virtual User? User { get; set; }
+
     [ForeignKey("ClassId")]
     public virtual Class? Class { get; set; }
 
@@ -64,5 +89,8 @@ public class Student
 
     [ForeignKey("ParentId")]
     public virtual Parent? Parent { get; set; }
+
+    [ForeignKey("FamilyId")]
+    public virtual Family? Family { get; set; }
 }
 

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SchoolManagementAPI.Data;
 
@@ -11,9 +12,11 @@ using SchoolManagementAPI.Data;
 namespace SchoolManagementAPI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260228111631_AddStudentExtendedFields")]
+    partial class AddStudentExtendedFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -54,7 +57,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasKey("AcademicSessionId");
 
-                    b.ToTable("academic_session", (string)null);
+                    b.ToTable("academic_session");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.AcademicSyllabus", b =>
@@ -98,7 +101,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("academic_syllabus", (string)null);
+                    b.ToTable("academic_syllabus");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.Assignment", b =>
@@ -149,7 +152,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasIndex("SubjectId");
 
-                    b.ToTable("assignment", (string)null);
+                    b.ToTable("assignment");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.Attendance", b =>
@@ -181,7 +184,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasIndex("StudentId");
 
-                    b.ToTable("attendance", (string)null);
+                    b.ToTable("attendance");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.Circular", b =>
@@ -212,7 +215,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasKey("CircularId");
 
-                    b.ToTable("circular", (string)null);
+                    b.ToTable("circular");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.Class", b =>
@@ -243,7 +246,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasKey("ClassId");
 
-                    b.ToTable("class", (string)null);
+                    b.ToTable("class");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.Club", b =>
@@ -270,7 +273,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasKey("ClubId");
 
-                    b.ToTable("club", (string)null);
+                    b.ToTable("club");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.Department", b =>
@@ -289,7 +292,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasKey("DepartmentId");
 
-                    b.ToTable("department", (string)null);
+                    b.ToTable("department");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.Dormitory", b =>
@@ -316,7 +319,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasKey("DormitoryId");
 
-                    b.ToTable("dormitory", (string)null);
+                    b.ToTable("dormitory");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.Exam", b =>
@@ -343,7 +346,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasKey("ExamId");
 
-                    b.ToTable("exam", (string)null);
+                    b.ToTable("exam");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.ExamQuestion", b =>
@@ -386,7 +389,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasKey("ExamQuestionId");
 
-                    b.ToTable("exam_question", (string)null);
+                    b.ToTable("exam_question");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.ExpenseCategory", b =>
@@ -405,7 +408,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasKey("ExpenseCategoryId");
 
-                    b.ToTable("expense_category", (string)null);
+                    b.ToTable("expense_category");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.Family", b =>
@@ -426,17 +429,9 @@ namespace SchoolManagementAPI.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("father_name");
 
-                    b.Property<string>("FatherOccupation")
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("father_occupation");
-
                     b.Property<string>("FatherPhone")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("father_phone");
-
-                    b.Property<string>("GuardianName")
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("guardian_name");
 
                     b.Property<string>("MotherCnic")
                         .HasColumnType("nvarchar(max)")
@@ -457,7 +452,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasKey("FamilyId");
 
-                    b.ToTable("family", (string)null);
+                    b.ToTable("family");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.FeeAddon", b =>
@@ -476,7 +471,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasKey("FeeAddonId");
 
-                    b.ToTable("fee_addon", (string)null);
+                    b.ToTable("fee_addon");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.Invoice", b =>
@@ -526,7 +521,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasIndex("StudentId");
 
-                    b.ToTable("invoice", (string)null);
+                    b.ToTable("invoice");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.Mark", b =>
@@ -578,7 +573,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasIndex("SubjectId");
 
-                    b.ToTable("mark", (string)null);
+                    b.ToTable("mark");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.Noticeboard", b =>
@@ -605,7 +600,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasKey("NoticeId");
 
-                    b.ToTable("noticeboard", (string)null);
+                    b.ToTable("noticeboard");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.Parent", b =>
@@ -650,7 +645,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasKey("ParentId");
 
-                    b.ToTable("parent", (string)null);
+                    b.ToTable("parent");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.Payment", b =>
@@ -714,7 +709,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasIndex("InvoiceId");
 
-                    b.ToTable("payment", (string)null);
+                    b.ToTable("payment");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.QuestionBank", b =>
@@ -806,7 +801,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasIndex("TeacherId");
 
-                    b.ToTable("question_bank", (string)null);
+                    b.ToTable("question_bank");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.Section", b =>
@@ -835,7 +830,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasIndex("ClassId");
 
-                    b.ToTable("section", (string)null);
+                    b.ToTable("section");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.Setting", b =>
@@ -858,7 +853,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasKey("SettingsId");
 
-                    b.ToTable("settings", (string)null);
+                    b.ToTable("settings");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.Student", b =>
@@ -937,48 +932,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasIndex("SectionId");
 
-                    b.ToTable("student", (string)null);
-                });
-
-            modelBuilder.Entity("SchoolManagementAPI.Models.StudentAdmission", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime?>("AdmissionDate")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("admission_date");
-
-                    b.Property<decimal?>("Fee")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("fee");
-
-                    b.Property<decimal?>("FeeDiscount")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("fee_discount");
-
-                    b.Property<string>("FeeType")
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("fee_type");
-
-                    b.Property<decimal?>("TransportCharges")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("transport_charges");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("student_admission", (string)null);
+                    b.ToTable("student");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.StudentPreviousInstitute", b =>
@@ -1019,7 +973,7 @@ namespace SchoolManagementAPI.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("student_previous_institute", (string)null);
+                    b.ToTable("student_previous_institute");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.StudyMaterial", b =>
@@ -1066,7 +1020,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasIndex("SubjectId");
 
-                    b.ToTable("study_material", (string)null);
+                    b.ToTable("study_material");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.Subject", b =>
@@ -1095,7 +1049,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasIndex("ClassId");
 
-                    b.ToTable("subject", (string)null);
+                    b.ToTable("subject");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.Transport", b =>
@@ -1126,7 +1080,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasKey("TransportId");
 
-                    b.ToTable("transport", (string)null);
+                    b.ToTable("transport");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.User", b =>
@@ -1141,6 +1095,10 @@ namespace SchoolManagementAPI.Migrations
                     b.Property<string>("Address")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("address");
+
+                    b.Property<DateTime?>("AdmissionDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("admission_date");
 
                     b.Property<int?>("Age")
                         .HasColumnType("int")
@@ -1179,6 +1137,34 @@ namespace SchoolManagementAPI.Migrations
                         .HasColumnType("int")
                         .HasColumnName("family_id");
 
+                    b.Property<string>("FatherGuardianCnic")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("father_guardian_cnic");
+
+                    b.Property<string>("FatherName")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("father_name");
+
+                    b.Property<string>("FatherOccupation")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("father_occupation");
+
+                    b.Property<decimal?>("Fee")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("fee");
+
+                    b.Property<decimal?>("FeeDiscount")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("fee_discount");
+
+                    b.Property<string>("FeeType")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("fee_type");
+
+                    b.Property<string>("GuardianName")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("guardian_name");
+
                     b.Property<string>("Level")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("level");
@@ -1187,6 +1173,18 @@ namespace SchoolManagementAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("login_status");
+
+                    b.Property<string>("MotherCnic")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("mother_cnic");
+
+                    b.Property<string>("MotherName")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("mother_name");
+
+                    b.Property<string>("MotherPhone")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("mother_phone");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -1234,10 +1232,18 @@ namespace SchoolManagementAPI.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("sex");
 
+                    b.Property<string>("SmsNumber")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("sms_number");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("status");
+
+                    b.Property<decimal?>("TransportCharges")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("transport_charges");
 
                     b.HasKey("UserId");
 
@@ -1251,7 +1257,7 @@ namespace SchoolManagementAPI.Migrations
 
                     b.HasIndex("SectionId");
 
-                    b.ToTable("users", (string)null);
+                    b.ToTable("users");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.UserRoleMapping", b =>
@@ -1276,7 +1282,7 @@ namespace SchoolManagementAPI.Migrations
                     b.HasIndex("UserId", "Role")
                         .IsUnique();
 
-                    b.ToTable("user_role_mappings", (string)null);
+                    b.ToTable("user_role_mappings");
                 });
 
             modelBuilder.Entity("SchoolManagementAPI.Models.Assignment", b =>
@@ -1414,17 +1420,6 @@ namespace SchoolManagementAPI.Migrations
                     b.Navigation("Section");
                 });
 
-            modelBuilder.Entity("SchoolManagementAPI.Models.StudentAdmission", b =>
-                {
-                    b.HasOne("SchoolManagementAPI.Models.User", "User")
-                        .WithOne("Admission")
-                        .HasForeignKey("SchoolManagementAPI.Models.StudentAdmission", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("SchoolManagementAPI.Models.StudentPreviousInstitute", b =>
                 {
                     b.HasOne("SchoolManagementAPI.Models.User", "User")
@@ -1512,8 +1507,6 @@ namespace SchoolManagementAPI.Migrations
 
             modelBuilder.Entity("SchoolManagementAPI.Models.User", b =>
                 {
-                    b.Navigation("Admission");
-
                     b.Navigation("PreviousInstitute");
 
                     b.Navigation("UserRoles");

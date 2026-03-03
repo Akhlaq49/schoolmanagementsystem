@@ -17,6 +17,33 @@ export interface Student {
   class?: Class;
   section?: Section;
   parent?: Parent;
+  familyId?: number;
+  nameUrdu?: string;
+  schoolRegNum?: string;
+  bFormCnic?: string;
+  feeType?: string;
+  fee?: number;
+  admissionDate?: string;
+  feeDiscount?: number;
+  transportCharges?: number;
+  religion?: string;
+  bloodGroup?: string;
+  fatherName?: string;
+  guardianName?: string;
+  fatherGuardianCnic?: string;
+  fatherOccupation?: string;
+  fatherGuardianPhone?: string;
+  smsNumber?: string;
+  motherName?: string;
+  motherPhone?: string;
+  motherCnic?: string;
+  previousInstituteName?: string;
+  passingClass?: string;
+  passingPercentage?: number;
+  passingYear?: number;
+  instituteAddress?: string;
+  photoUrl?: string;
+  status?: string;
 }
 
 export interface Class {

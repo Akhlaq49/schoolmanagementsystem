@@ -49,6 +49,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<Family> Families { get; set; }
     public DbSet<AcademicSession> AcademicSessions { get; set; }
     public DbSet<FeeAddon> FeeAddons { get; set; }
+    public DbSet<StudentPreviousInstitute> StudentPreviousInstitutes { get; set; }
+    public DbSet<StudentAdmission> StudentAdmissions { get; set; }
+    public DbSet<Student> Students { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -77,6 +80,36 @@ public class ApplicationDbContext : DbContext
             .HasOne(u => u.Department)
             .WithMany()
             .HasForeignKey(u => u.DepartmentId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<User>()
+            .HasOne(u => u.Family)
+            .WithMany()
+            .HasForeignKey(u => u.FamilyId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<StudentPreviousInstitute>()
+            .HasOne(spi => spi.User)
+            .WithOne(u => u.PreviousInstitute)
+            .HasForeignKey<StudentPreviousInstitute>(spi => spi.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<StudentAdmission>()
+            .HasOne(sa => sa.User)
+            .WithOne(u => u.Admission)
+            .HasForeignKey<StudentAdmission>(sa => sa.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Student>()
+            .HasOne(s => s.User)
+            .WithOne(u => u.StudentProfile)
+            .HasForeignKey<Student>(s => s.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Student>()
+            .HasOne(s => s.Family)
+            .WithMany()
+            .HasForeignKey(s => s.FamilyId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // Configure UserRoleMapping
