@@ -6,11 +6,12 @@ import { Class } from '../../../core/models/student.model';
 import { NotificationService } from '../../../shared/services/notification.service';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { DropdownComponent, DropdownOption } from '../../../shared/components/dropdown/dropdown.component';
 
 @Component({
   selector: 'app-classes',
   standalone: true,
-  imports: [CommonModule, FormsModule, LoadingComponent, ConfirmDialogComponent],
+  imports: [CommonModule, FormsModule, LoadingComponent, ConfirmDialogComponent, DropdownComponent],
   template: `
     <div class="classes-container">
       <app-loading [show]="loading" [message]="'Loading classes...'"></app-loading>
@@ -93,9 +94,14 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
           <div class="academy-table-toolbar">
             <div class="show-entries">
               <span>Show</span>
-              <select [(ngModel)]="pageSize" (ngModelChange)="pageSizeChange()" class="entries-select">
-                <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }}</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="pageSize"
+                [options]="pageSizeOpts"
+                [searchable]="false"
+                [showPlaceholderOption]="false"
+                size="sm"
+                (changed)="pageSizeChange()">
+              </app-dropdown>
               <span>entries</span>
           </div>
             <div class="academy-table-count">Total: {{ filteredClasses.length }} class(es)</div>
@@ -266,6 +272,10 @@ export class ClassesComponent implements OnInit {
   submitted: boolean = false;
   showDeleteConfirm: boolean = false;
   classToDelete: number | null = null;
+
+  get pageSizeOpts(): DropdownOption[] {
+    return this.pageSizeOptions.map(s => ({ value: s, label: '' + s }));
+  }
 
   get totalPages(): number {
     return Math.max(1, Math.ceil(this.filteredClasses.length / this.pageSize));

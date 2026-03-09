@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ExpenseService } from '../../../core/services/expense.service';
 import { Expense, ExpenseCategory } from '../../../core/models/expense.model';
+import { DropdownComponent, DropdownOption } from '../../../shared/components/dropdown/dropdown.component';
 
 @Component({
   selector: 'app-expenses',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DropdownComponent],
   template: `
     <div class="expenses-container">
       <div class="page-header">
@@ -48,10 +49,12 @@ import { Expense, ExpenseCategory } from '../../../core/models/expense.model';
             </div>
             <div class="form-group">
               <label>Category *</label>
-              <select [(ngModel)]="expenseForm.expenseCategoryId" name="categoryId" required class="form-control">
-                <option value="">Select Category</option>
-                <option *ngFor="let cat of categories" [value]="cat.expenseCategoryId">{{ cat.name }}</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="expenseForm.expenseCategoryId"
+                [options]="categoryOptions"
+                placeholder="Select Category"
+                [searchable]="true">
+              </app-dropdown>
             </div>
           </div>
           <div class="form-row">
@@ -61,11 +64,13 @@ import { Expense, ExpenseCategory } from '../../../core/models/expense.model';
             </div>
             <div class="form-group">
               <label>Payment Method</label>
-              <select [(ngModel)]="expenseForm.paymentMethod" name="method" class="form-control">
-                <option value="cash">Cash</option>
-                <option value="bank">Bank</option>
-                <option value="cheque">Cheque</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="expenseForm.paymentMethod"
+                [options]="paymentMethodOptions"
+                placeholder="Payment Method"
+                [searchable]="false"
+                [showPlaceholderOption]="false">
+              </app-dropdown>
             </div>
           </div>
           <div class="form-group">
@@ -258,6 +263,16 @@ export class ExpensesComponent implements OnInit {
   categoryForm: Partial<ExpenseCategory> = {
     name: ''
   };
+
+  paymentMethodOptions: DropdownOption[] = [
+    { value: 'cash', label: 'Cash' },
+    { value: 'bank', label: 'Bank' },
+    { value: 'cheque', label: 'Cheque' }
+  ];
+
+  get categoryOptions(): DropdownOption[] {
+    return this.categories.map(c => ({ value: c.expenseCategoryId, label: c.name }));
+  }
 
   expenseForm: any = {
     title: '',

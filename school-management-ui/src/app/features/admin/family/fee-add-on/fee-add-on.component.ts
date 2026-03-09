@@ -6,11 +6,12 @@ import { FeeAddonService } from '../../../../core/services/family/fee-addon.serv
 import { FeeAddon } from '../../../../core/models/fee-addon.model';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
+import { DropdownComponent, DropdownOption } from '../../../../shared/components/dropdown/dropdown.component';
 
 @Component({
   selector: 'app-fee-add-on',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LoadingComponent],
+  imports: [CommonModule, FormsModule, RouterModule, LoadingComponent, DropdownComponent],
   template: `
     <div class="fee-addon-container">
       <app-loading [show]="loading" [message]="'Loading fee add-ons...'"></app-loading>
@@ -48,9 +49,14 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
             <div class="academy-table-toolbar">
               <div class="show-entries">
                 <span>Show</span>
-                <select class="entries-select" [ngModel]="pageSize" (ngModelChange)="onPageSizeChange($event)">
-                  <option *ngFor="let opt of pageSizeOptions" [ngValue]="opt">{{ opt }}</option>
-                </select>
+                <app-dropdown
+                  [(ngModel)]="pageSize"
+                  [options]="pageSizeOpts"
+                  [searchable]="false"
+                  [showPlaceholderOption]="false"
+                  size="sm"
+                  (changed)="onPageSizeChange($event)">
+                </app-dropdown>
                 <span>entries</span>
               </div>
               <div class="academy-table-count">
@@ -274,6 +280,10 @@ export class FeeAddOnComponent implements OnInit {
   currentPage = 1;
   showDeleteConfirm = false;
   itemToDelete: FeeAddon | null = null;
+
+  get pageSizeOpts(): DropdownOption[] {
+    return this.pageSizeOptions.map(s => ({ value: s, label: '' + s }));
+  }
 
   get totalPages(): number {
     return Math.max(1, Math.ceil(this.filteredList.length / this.pageSize));

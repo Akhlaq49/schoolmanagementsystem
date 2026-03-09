@@ -14,11 +14,12 @@ import { NotificationService } from '../../../shared/services/notification.servi
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { ExamQuestionPaperComponent } from './exam-question-paper/exam-question-paper.component';
+import { DropdownComponent, DropdownOption } from '../../../shared/components/dropdown/dropdown.component';
 
 @Component({
   selector: 'app-exams',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, LoadingComponent, ConfirmDialogComponent, ExamQuestionPaperComponent],
+  imports: [CommonModule, FormsModule, DatePipe, LoadingComponent, ConfirmDialogComponent, ExamQuestionPaperComponent, DropdownComponent],
   template: `
     <div class="exams-container">
       <app-loading [show]="loading" [message]="'Loading exams...'"></app-loading>
@@ -202,20 +203,27 @@ import { ExamQuestionPaperComponent } from './exam-question-paper/exam-question-
                 <i class="fa fa-book"></i>
                 Class <span class="required-indicator">*</span>
               </label>
-              <select [(ngModel)]="questionPaperForm.classId" name="classId" required class="modern-form-control" (change)="onQuestionPaperClassChange()">
-                <option [ngValue]="undefined">Select Class</option>
-                <option *ngFor="let cls of classes" [ngValue]="cls.classId">{{ cls.name }}</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="questionPaperForm.classId"
+                [options]="classOptions"
+                placeholder="Select Class"
+                [searchable]="true"
+                (changed)="onQuestionPaperClassChange()">
+              </app-dropdown>
             </div>
             <div class="modern-form-group">
               <label>
                 <i class="fa fa-bookmark"></i>
                 Subject <span class="required-indicator">*</span>
               </label>
-              <select [(ngModel)]="questionPaperForm.subjectId" name="subjectId" required class="modern-form-control" (change)="onQuestionPaperSubjectChange()" [disabled]="!questionPaperForm.classId">
-                <option [ngValue]="undefined">Select Subject</option>
-                <option *ngFor="let subject of questionPaperSubjects" [ngValue]="subject.subjectId">{{ subject.name }}</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="questionPaperForm.subjectId"
+                [options]="subjectOptions"
+                placeholder="Select Subject"
+                [searchable]="true"
+                [disabled]="!questionPaperForm.classId"
+                (changed)="onQuestionPaperSubjectChange()">
+              </app-dropdown>
             </div>
           </div>
 
@@ -580,6 +588,14 @@ export class ExamsComponent implements OnInit {
   };
 
   isAdmin: boolean = false;
+
+  get classOptions(): DropdownOption[] {
+    return this.classes.map(c => ({ value: c.classId, label: c.name }));
+  }
+
+  get subjectOptions(): DropdownOption[] {
+    return this.questionPaperSubjects.map(s => ({ value: s.subjectId, label: s.name }));
+  }
 
   constructor(
     private examService: ExamService,

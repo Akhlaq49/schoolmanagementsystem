@@ -5,11 +5,12 @@ import { RouterModule } from '@angular/router';
 import { AcademicSessionService } from '../../../core/services/academic-session.service';
 import { AcademicSession } from '../../../core/models/academic-session.model';
 import { NotificationService } from '../../../shared/services/notification.service';
+import { DropdownComponent, DropdownOption } from '../../../shared/components/dropdown/dropdown.component';
 
 @Component({
   selector: 'app-sessions',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, DropdownComponent],
   template: `
     <div class="sessions-container">
       <!-- New / Edit Session form -->
@@ -111,9 +112,14 @@ import { NotificationService } from '../../../shared/services/notification.servi
         <div class="table-header-row" *ngIf="filteredSessions.length > 0">
           <div class="show-entries">
             <span>Show</span>
-            <select class="entries-select" [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange($event)">
-              <option *ngFor="let opt of pageSizeOptions" [ngValue]="opt">{{ opt }}</option>
-            </select>
+            <app-dropdown
+              [(ngModel)]="pageSize"
+              [options]="pageSizeOpts"
+              [searchable]="false"
+              [showPlaceholderOption]="false"
+              size="sm"
+              (changed)="onPageSizeChange($event)">
+            </app-dropdown>
             <span>entries</span>
           </div>
           <div class="table-count">Total: {{ filteredSessions.length }} session(s)</div>
@@ -290,6 +296,10 @@ export class SessionsComponent implements OnInit {
 
   showDeleteConfirm = false;
   sessionToDelete: AcademicSession | null = null;
+
+  get pageSizeOpts(): DropdownOption[] {
+    return this.pageSizeOptions.map(s => ({ value: s, label: '' + s }));
+  }
 
   constructor(
     private sessionService: AcademicSessionService,

@@ -8,11 +8,12 @@ import { Class } from '../../../core/models/student.model';
 import { NotificationService } from '../../../shared/services/notification.service';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { DropdownComponent, DropdownOption } from '../../../shared/components/dropdown/dropdown.component';
 
 @Component({
   selector: 'app-sections',
   standalone: true,
-  imports: [CommonModule, FormsModule, LoadingComponent, ConfirmDialogComponent],
+  imports: [CommonModule, FormsModule, LoadingComponent, ConfirmDialogComponent, DropdownComponent],
   template: `
     <div class="sections-container">
       <app-loading [show]="loading" [message]="'Loading sections...'"></app-loading>
@@ -47,15 +48,12 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
             </div>
             <div class="academy-form-group">
               <label>Class <span class="required">*</span></label>
-              <select 
-                [(ngModel)]="sectionForm.classId" 
-                name="classId" 
-                required 
-                class="academy-select"
-                [class.is-invalid]="submitted && !sectionForm.classId">
-                <option value="">Select Class</option>
-                <option *ngFor="let cls of classes" [value]="cls.classId">{{ cls.name }}</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="sectionForm.classId"
+                [options]="classOptions"
+                placeholder="Select Class"
+                [searchable]="true">
+              </app-dropdown>
               <div *ngIf="submitted && !sectionForm.classId" class="academy-invalid">Class is required</div>
             </div>
           </div>
@@ -103,9 +101,14 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
           <div class="academy-table-toolbar">
             <div class="show-entries">
               <span>Show</span>
-              <select [(ngModel)]="pageSize" (ngModelChange)="pageSizeChange()" class="entries-select">
-                <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }}</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="pageSize"
+                [options]="pageSizeOpts"
+                [searchable]="false"
+                [showPlaceholderOption]="false"
+                size="sm"
+                (changed)="pageSizeChange()">
+              </app-dropdown>
               <span>entries</span>
             </div>
             <div class="academy-table-count">Total: {{ filteredSections.length }} section(s)</div>
@@ -295,6 +298,14 @@ export class SectionsComponent implements OnInit {
     const start = (this.currentPage - 1) * this.pageSize;
     return this.filteredSections.slice(start, start + this.pageSize);
   }
+  get classOptions(): DropdownOption[] {
+    return this.classes.map(c => ({ value: c.classId, label: c.name }));
+  }
+
+  get pageSizeOpts(): DropdownOption[] {
+    return this.pageSizeOptions.map(s => ({ value: s, label: '' + s }));
+  }
+
   loading: boolean = false;
   saving: boolean = false;
   submitted: boolean = false;

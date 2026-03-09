@@ -6,11 +6,12 @@ import { ClassService } from '../../../core/services/class.service';
 import { ParentInfo, WhatsAppMessageRequest } from '../../../core/models/whatsapp-message.model';
 import { NotificationService } from '../../../shared/services/notification.service';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
+import { DropdownComponent, DropdownOption } from '../../../shared/components/dropdown/dropdown.component';
 
 @Component({
   selector: 'app-whatsapp-notifications',
   standalone: true,
-  imports: [CommonModule, FormsModule, LoadingComponent],
+  imports: [CommonModule, FormsModule, LoadingComponent, DropdownComponent],
   template: `
     <div class="whatsapp-container">
       <app-loading [show]="loading" [message]="'Loading parents...'"></app-loading>
@@ -138,10 +139,13 @@ import { LoadingComponent } from '../../../shared/components/loading/loading.com
               <i class="fa fa-filter"></i>
               Filter Recipients
             </label>
-            <select [(ngModel)]="selectedClassId" name="classId" class="modern-form-control" (change)="onClassChange()">
-              <option [ngValue]="undefined">All Parents</option>
-              <option *ngFor="let cls of classes" [ngValue]="cls.classId">{{ cls.name }}</option>
-            </select>
+            <app-dropdown
+              [(ngModel)]="selectedClassId"
+              [options]="classOptions"
+              placeholder="All Parents"
+              [searchable]="true"
+              (changed)="onClassChange()">
+            </app-dropdown>
           </div>
 
           <div class="modern-form-group">
@@ -490,6 +494,10 @@ export class WhatsAppNotificationsComponent implements OnInit {
     message: '',
     title: ''
   };
+
+  get classOptions(): DropdownOption[] {
+    return this.classes.map(c => ({ value: c.classId, label: c.name }));
+  }
 
   constructor(
     private whatsAppService: WhatsAppService,

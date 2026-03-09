@@ -5,11 +5,12 @@ import { RouterModule } from '@angular/router';
 import { FamilyService } from '../../../../core/services/family/family.service';
 import { Family } from '../../../../core/models/family.model';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
+import { DropdownComponent, DropdownOption } from '../../../../shared/components/dropdown/dropdown.component';
 
 @Component({
   selector: 'app-family-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LoadingComponent],
+  imports: [CommonModule, FormsModule, RouterModule, LoadingComponent, DropdownComponent],
   template: `
     <div class="family-list-container">
       <app-loading [show]="loading" [message]="'Loading families...'"></app-loading>
@@ -45,13 +46,14 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
           <div class="academy-table-toolbar">
             <div class="show-entries">
               <span>Show</span>
-              <select
-                class="entries-select"
-                [ngModel]="pageSize"
-                (ngModelChange)="onPageSizeChange($event)"
-              >
-                <option *ngFor="let opt of pageSizeOptions" [ngValue]="opt">{{ opt }}</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="pageSize"
+                [options]="pageSizeOpts"
+                [searchable]="false"
+                [showPlaceholderOption]="false"
+                size="sm"
+                (changed)="onPageSizeChange($event)">
+              </app-dropdown>
               <span>entries</span>
             </div>
             <div class="academy-table-count">
@@ -250,6 +252,10 @@ export class FamilyListComponent implements OnInit {
   pageSizeOptions = [10, 25, 50, 100];
   sortCol: string | null = null;
   sortAsc = true;
+
+  get pageSizeOpts(): DropdownOption[] {
+    return this.pageSizeOptions.map(s => ({ value: s, label: '' + s }));
+  }
 
   get totalPages(): number {
     return Math.max(1, Math.ceil(this.filteredFamilies.length / this.pageSize));

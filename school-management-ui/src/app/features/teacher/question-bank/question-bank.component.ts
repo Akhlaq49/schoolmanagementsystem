@@ -8,11 +8,12 @@ import { AuthService } from '../../../core/services/auth.service';
 import { QuestionBank } from '../../../core/models/question-bank.model';
 import { Class } from '../../../core/models/student.model';
 import { Subject } from '../../../core/models/subject.model';
+import { DropdownComponent, DropdownOption } from '../../../shared/components/dropdown/dropdown.component';
 
 @Component({
   selector: 'app-question-bank',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DropdownComponent],
   template: `
     <div class="question-bank-container">
       <div class="page-header">
@@ -70,24 +71,32 @@ import { Subject } from '../../../core/models/subject.model';
         <div class="form-row">
           <div class="form-group">
             <label>Class</label>
-            <select [(ngModel)]="filterClassId" (change)="onFilterChange()" class="form-control">
-              <option [ngValue]="undefined">All Classes</option>
-              <option *ngFor="let cls of classes" [ngValue]="cls.classId">{{ cls.name }}</option>
-            </select>
+            <app-dropdown
+              [(ngModel)]="filterClassId"
+              [options]="filterClassOptions"
+              placeholder="All Classes"
+              (changed)="onFilterChange()">
+            </app-dropdown>
           </div>
           <div class="form-group">
             <label>Subject</label>
-            <select [(ngModel)]="filterSubjectId" (change)="onFilterChange()" class="form-control" [disabled]="!filterClassId">
-              <option [ngValue]="undefined">All Subjects</option>
-              <option *ngFor="let subject of filteredSubjects" [ngValue]="subject.subjectId">{{ subject.name }}</option>
-            </select>
+            <app-dropdown
+              [(ngModel)]="filterSubjectId"
+              [options]="filterSubjectOptions"
+              placeholder="All Subjects"
+              [disabled]="!filterClassId"
+              (changed)="onFilterChange()">
+            </app-dropdown>
           </div>
           <div class="form-group">
             <label>Chapter</label>
-            <select [(ngModel)]="filterChapter" (change)="onFilterChange()" class="form-control" [disabled]="!filterClassId || !filterSubjectId">
-              <option [ngValue]="undefined">All Chapters</option>
-              <option *ngFor="let chapter of chapters" [ngValue]="chapter">{{ chapter }}</option>
-            </select>
+            <app-dropdown
+              [(ngModel)]="filterChapter"
+              [options]="filterChapterOptions"
+              placeholder="All Chapters"
+              [disabled]="!filterClassId || !filterSubjectId"
+              (changed)="onFilterChange()">
+            </app-dropdown>
           </div>
         </div>
         <button class="btn btn-secondary" (click)="clearFilters()">Clear Filters</button>
@@ -100,17 +109,26 @@ import { Subject } from '../../../core/models/subject.model';
           <div class="form-row">
             <div class="form-group">
               <label>Class *</label>
-              <select [(ngModel)]="questionForm.classId" name="classId" required class="form-control" (change)="onClassChange()">
-                <option value="">Select Class</option>
-                <option *ngFor="let cls of classes" [value]="cls.classId">{{ cls.name }}</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="questionForm.classId"
+                [ngModelOptions]="{standalone: true}"
+                [options]="formClassOptions"
+                placeholder="Select Class"
+                [placeholderValue]="''"
+                (changed)="onClassChange()">
+              </app-dropdown>
             </div>
             <div class="form-group">
               <label>Subject *</label>
-              <select [(ngModel)]="questionForm.subjectId" name="subjectId" required class="form-control" (change)="onSubjectChange()" [disabled]="!questionForm.classId">
-                <option value="">Select Subject</option>
-                <option *ngFor="let subject of formSubjects" [value]="subject.subjectId">{{ subject.name }}</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="questionForm.subjectId"
+                [ngModelOptions]="{standalone: true}"
+                [options]="formSubjectOptions"
+                placeholder="Select Subject"
+                [placeholderValue]="''"
+                [disabled]="!questionForm.classId"
+                (changed)="onSubjectChange()">
+              </app-dropdown>
             </div>
             <div class="form-group">
               <label>Chapter Name *</label>
@@ -121,20 +139,24 @@ import { Subject } from '../../../core/models/subject.model';
           <div class="form-row">
             <div class="form-group">
               <label>Question Type *</label>
-              <select [(ngModel)]="questionForm.questionType" name="questionType" required class="form-control" (change)="onQuestionTypeChange()">
-                <option value="MultipleChoice">Multiple Choice</option>
-                <option value="TrueFalse">True/False</option>
-                <option value="ShortAnswer">Short Answer</option>
-                <option value="Essay">Essay</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="questionForm.questionType"
+                [ngModelOptions]="{standalone: true}"
+                [options]="questionTypeOptions"
+                [showPlaceholderOption]="false"
+                [searchable]="false"
+                (changed)="onQuestionTypeChange()">
+              </app-dropdown>
             </div>
             <div class="form-group">
               <label>Difficulty Level *</label>
-              <select [(ngModel)]="questionForm.difficultyLevel" name="difficultyLevel" required class="form-control">
-                <option value="Easy">Easy</option>
-                <option value="Medium">Medium</option>
-                <option value="Hard">Hard</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="questionForm.difficultyLevel"
+                [ngModelOptions]="{standalone: true}"
+                [options]="difficultyLevelOptions"
+                [showPlaceholderOption]="false"
+                [searchable]="false">
+              </app-dropdown>
             </div>
             <div class="form-group">
               <label>Marks *</label>
@@ -170,23 +192,27 @@ import { Subject } from '../../../core/models/subject.model';
           </div>
           <div *ngIf="questionForm.questionType === 'MultipleChoice'" class="form-group">
             <label>Correct Answer *</label>
-            <select [(ngModel)]="questionForm.correctAnswer" name="correctAnswer" required class="form-control">
-              <option value="">Select Answer</option>
-              <option value="A">A</option>
-              <option value="B">B</option>
-              <option value="C">C</option>
-              <option value="D">D</option>
-            </select>
+            <app-dropdown
+              [(ngModel)]="questionForm.correctAnswer"
+              [ngModelOptions]="{standalone: true}"
+              [options]="mcqAnswerOptions"
+              placeholder="Select Answer"
+              [placeholderValue]="''"
+              [searchable]="false">
+            </app-dropdown>
           </div>
 
           <!-- True/False Options -->
           <div *ngIf="questionForm.questionType === 'TrueFalse'" class="form-group">
             <label>Correct Answer *</label>
-            <select [(ngModel)]="questionForm.correctAnswer" name="correctAnswer" required class="form-control">
-              <option value="">Select Answer</option>
-              <option value="True">True</option>
-              <option value="False">False</option>
-            </select>
+            <app-dropdown
+              [(ngModel)]="questionForm.correctAnswer"
+              [ngModelOptions]="{standalone: true}"
+              [options]="trueFalseAnswerOptions"
+              placeholder="Select Answer"
+              [placeholderValue]="''"
+              [searchable]="false">
+            </app-dropdown>
           </div>
 
           <!-- Short Answer / Essay -->
@@ -539,6 +565,47 @@ export class QuestionBankComponent implements OnInit {
   filterClassId?: number;
   filterSubjectId?: number;
   filterChapter?: string;
+
+  questionTypeOptions: DropdownOption[] = [
+    { value: 'MultipleChoice', label: 'Multiple Choice' },
+    { value: 'TrueFalse', label: 'True/False' },
+    { value: 'ShortAnswer', label: 'Short Answer' },
+    { value: 'Essay', label: 'Essay' }
+  ];
+  difficultyLevelOptions: DropdownOption[] = [
+    { value: 'Easy', label: 'Easy' },
+    { value: 'Medium', label: 'Medium' },
+    { value: 'Hard', label: 'Hard' }
+  ];
+  mcqAnswerOptions: DropdownOption[] = [
+    { value: 'A', label: 'A' },
+    { value: 'B', label: 'B' },
+    { value: 'C', label: 'C' },
+    { value: 'D', label: 'D' }
+  ];
+  trueFalseAnswerOptions: DropdownOption[] = [
+    { value: 'True', label: 'True' },
+    { value: 'False', label: 'False' }
+  ];
+  get filterClassOptions(): DropdownOption[] {
+    return this.classes.map(cls => ({ value: cls.classId, label: cls.name }));
+  }
+
+  get filterSubjectOptions(): DropdownOption[] {
+    return this.filteredSubjects.map(s => ({ value: s.subjectId, label: s.name }));
+  }
+
+  get filterChapterOptions(): DropdownOption[] {
+    return this.chapters.map(ch => ({ value: ch, label: ch }));
+  }
+
+  get formClassOptions(): DropdownOption[] {
+    return this.classes.map(cls => ({ value: String(cls.classId), label: cls.name }));
+  }
+
+  get formSubjectOptions(): DropdownOption[] {
+    return this.formSubjects.map(s => ({ value: String(s.subjectId), label: s.name }));
+  }
   
   selectedFile: File | null = null;
   uploading: boolean = false;

@@ -13,6 +13,7 @@ import { AcademicSession } from '../../../../core/models/academic-session.model'
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { DropdownComponent, DropdownOption } from '../../../../shared/components/dropdown/dropdown.component';
 
 const MONTH_NAMES = [
   '', 'January', 'February', 'March', 'April', 'May', 'June',
@@ -22,7 +23,7 @@ const MONTH_NAMES = [
 @Component({
   selector: 'app-fee-challans',
   standalone: true,
-  imports: [CommonModule, FormsModule, LoadingComponent, ConfirmDialogComponent],
+  imports: [CommonModule, FormsModule, LoadingComponent, ConfirmDialogComponent, DropdownComponent],
   template: `
     <div class="challans-container">
       <app-loading [show]="loading" [message]="'Loading challans...'"></app-loading>
@@ -95,28 +96,32 @@ const MONTH_NAMES = [
                  [(ngModel)]="searchTerm" (input)="applyFilters()">
         </div>
         <div class="filter-group">
-          <select class="modern-form-control filter-select"
-                  [(ngModel)]="filterMonth" (change)="onFilterChange()">
-            <option [ngValue]="0">All Months</option>
-            <option *ngFor="let m of months" [ngValue]="m.value">{{ m.label }}</option>
-          </select>
+          <app-dropdown
+            [(ngModel)]="filterMonth"
+            [options]="monthOptions"
+            placeholder="All Months"
+            [placeholderValue]="0"
+            (changed)="onFilterChange()">
+          </app-dropdown>
         </div>
         <div class="filter-group">
-          <select class="modern-form-control filter-select"
-                  [(ngModel)]="filterYear" (change)="onFilterChange()">
-            <option *ngFor="let y of years" [ngValue]="y">{{ y }}</option>
-          </select>
+          <app-dropdown
+            [(ngModel)]="filterYear"
+            [options]="yearOptions"
+            [showPlaceholderOption]="false"
+            [searchable]="false"
+            (changed)="onFilterChange()">
+          </app-dropdown>
         </div>
         <div class="filter-group">
-          <select class="modern-form-control filter-select"
-                  [(ngModel)]="filterStatus" (change)="applyFilters()">
-            <option value="">All Status</option>
-            <option value="unpaid">Unpaid</option>
-            <option value="partial">Partial</option>
-            <option value="paid">Paid</option>
-            <option value="overdue">Overdue</option>
-            <option value="waived">Waived</option>
-          </select>
+          <app-dropdown
+            [(ngModel)]="filterStatus"
+            [options]="statusOptions"
+            placeholder="All Status"
+            [placeholderValue]="''"
+            [searchable]="false"
+            (changed)="applyFilters()">
+          </app-dropdown>
         </div>
       </div>
 
@@ -129,11 +134,14 @@ const MONTH_NAMES = [
           <div class="academy-table-toolbar">
             <div class="show-entries">
               Show
-              <select class="entries-select" [(ngModel)]="pageSize" (change)="applyFilters()">
-                <option [ngValue]="10">10</option>
-                <option [ngValue]="25">25</option>
-                <option [ngValue]="50">50</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="pageSize"
+                [options]="pageSizeOptions"
+                [showPlaceholderOption]="false"
+                [searchable]="false"
+                size="sm"
+                (changed)="applyFilters()">
+              </app-dropdown>
               entries
             </div>
             <span class="academy-table-count">
@@ -252,26 +260,31 @@ const MONTH_NAMES = [
             <div class="academy-form-row">
               <div class="academy-form-group">
                 <label>Month <span class="required">*</span></label>
-                <select class="academy-input" [(ngModel)]="genForm.month">
-                  <option *ngFor="let m of months" [ngValue]="m.value">{{ m.label }}</option>
-                </select>
+                <app-dropdown
+                  [(ngModel)]="genForm.month"
+                  [options]="monthOptions"
+                  [showPlaceholderOption]="false">
+                </app-dropdown>
               </div>
               <div class="academy-form-group">
                 <label>Year <span class="required">*</span></label>
-                <select class="academy-input" [(ngModel)]="genForm.year">
-                  <option *ngFor="let y of years" [ngValue]="y">{{ y }}</option>
-                </select>
+                <app-dropdown
+                  [(ngModel)]="genForm.year"
+                  [options]="yearOptions"
+                  [showPlaceholderOption]="false"
+                  [searchable]="false">
+                </app-dropdown>
               </div>
             </div>
             <div class="academy-form-row">
               <div class="academy-form-group">
                 <label>Academic Session <span class="required">*</span></label>
-                <select class="academy-input" [(ngModel)]="genForm.academicSessionId">
-                  <option [ngValue]="0" disabled>Select session</option>
-                  <option *ngFor="let s of sessions" [ngValue]="s.academicSessionId">
-                    {{ s.name }}{{ s.isCurrent ? ' (Current)' : '' }}
-                  </option>
-                </select>
+                <app-dropdown
+                  [(ngModel)]="genForm.academicSessionId"
+                  [options]="sessionOptions"
+                  placeholder="Select session"
+                  [placeholderValue]="0">
+                </app-dropdown>
               </div>
               <div class="academy-form-group">
                 <label>Due Day Override</label>
@@ -332,13 +345,13 @@ const MONTH_NAMES = [
               </div>
               <div class="academy-form-group">
                 <label>Payment Method <span class="required">*</span></label>
-                <select class="academy-input" [(ngModel)]="payForm.paymentMethod">
-                  <option value="">Select method</option>
-                  <option value="cash">Cash</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="cheque">Cheque</option>
-                  <option value="online">Online</option>
-                </select>
+                <app-dropdown
+                  [(ngModel)]="payForm.paymentMethod"
+                  [options]="paymentMethodOptions"
+                  placeholder="Select method"
+                  [placeholderValue]="''"
+                  [searchable]="false">
+                </app-dropdown>
               </div>
             </div>
             <div class="academy-form-row">
@@ -854,6 +867,40 @@ export class FeeChallansComponent implements OnInit {
   // Month / Year options
   months = Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: MONTH_NAMES[i + 1] }));
   years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
+
+  statusOptions: DropdownOption[] = [
+    { value: 'unpaid', label: 'Unpaid' },
+    { value: 'partial', label: 'Partial' },
+    { value: 'paid', label: 'Paid' },
+    { value: 'overdue', label: 'Overdue' },
+    { value: 'waived', label: 'Waived' }
+  ];
+  pageSizeOptions: DropdownOption[] = [
+    { value: 10, label: '10' },
+    { value: 25, label: '25' },
+    { value: 50, label: '50' }
+  ];
+  paymentMethodOptions: DropdownOption[] = [
+    { value: 'cash', label: 'Cash' },
+    { value: 'bank_transfer', label: 'Bank Transfer' },
+    { value: 'cheque', label: 'Cheque' },
+    { value: 'online', label: 'Online' }
+  ];
+
+  get monthOptions(): DropdownOption[] {
+    return this.months.map(m => ({ value: m.value, label: m.label }));
+  }
+
+  get yearOptions(): DropdownOption[] {
+    return this.years.map(y => ({ value: y, label: String(y) }));
+  }
+
+  get sessionOptions(): DropdownOption[] {
+    return this.sessions.map(s => ({
+      value: s.academicSessionId,
+      label: s.name + (s.isCurrent ? ' (Current)' : '')
+    }));
+  }
 
   // Generate Modal
   showGenerateModal = false;

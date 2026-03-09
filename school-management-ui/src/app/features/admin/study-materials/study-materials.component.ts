@@ -5,11 +5,12 @@ import { StudyMaterialService } from '../../../core/services/study-material.serv
 import { ClassService } from '../../../core/services/class.service';
 import { SubjectService } from '../../../core/services/subject.service';
 import { StudyMaterial } from '../../../core/models/study-material.model';
+import { DropdownComponent, DropdownOption } from '../../../shared/components/dropdown/dropdown.component';
 
 @Component({
   selector: 'app-study-materials',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DropdownComponent],
   template: `
     <div class="study-materials-container">
       <div class="page-header">
@@ -29,17 +30,22 @@ import { StudyMaterial } from '../../../core/models/study-material.model';
           <div class="form-row">
             <div class="form-group">
               <label>Class</label>
-              <select [(ngModel)]="materialForm.classId" name="classId" (change)="loadSubjects()" class="form-control">
-                <option value="">Select Class</option>
-                <option *ngFor="let cls of classes" [value]="cls.classId">{{ cls.name }}</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="materialForm.classId"
+                [options]="classOptions"
+                placeholder="Select Class"
+                [searchable]="true"
+                (changed)="loadSubjects()">
+              </app-dropdown>
             </div>
             <div class="form-group">
               <label>Subject</label>
-              <select [(ngModel)]="materialForm.subjectId" name="subjectId" class="form-control">
-                <option value="">Select Subject</option>
-                <option *ngFor="let subject of subjects" [value]="subject.subjectId">{{ subject.name }}</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="materialForm.subjectId"
+                [options]="subjectOptions"
+                placeholder="Select Subject"
+                [searchable]="true">
+              </app-dropdown>
             </div>
           </div>
           <div class="form-group">
@@ -202,6 +208,14 @@ export class StudyMaterialsComponent implements OnInit {
     subjectId: undefined,
     timestamp: new Date()
   };
+
+  get classOptions(): DropdownOption[] {
+    return this.classes.map(c => ({ value: c.classId, label: c.name }));
+  }
+
+  get subjectOptions(): DropdownOption[] {
+    return this.subjects.map(s => ({ value: s.subjectId, label: s.name }));
+  }
 
   constructor(
     private studyMaterialService: StudyMaterialService,

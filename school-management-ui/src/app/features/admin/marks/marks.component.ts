@@ -7,11 +7,12 @@ import { StudentService } from '../../../core/services/student.service';
 import { ClassService } from '../../../core/services/class.service';
 import { SubjectService } from '../../../core/services/subject.service';
 import { Mark } from '../../../core/models/mark.model';
+import { DropdownComponent, DropdownOption } from '../../../shared/components/dropdown/dropdown.component';
 
 @Component({
   selector: 'app-marks',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DropdownComponent],
   template: `
     <div class="marks-container">
       <h2>Marks Management</h2>
@@ -22,24 +23,31 @@ import { Mark } from '../../../core/models/mark.model';
           <div class="form-row">
             <div class="form-group">
               <label>Exam *</label>
-              <select [(ngModel)]="selectedExamId" name="examId" required class="form-control">
-                <option value="">Select Exam</option>
-                <option *ngFor="let exam of exams" [value]="exam.examId">{{ exam.name }}</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="selectedExamId"
+                [options]="examOptions"
+                placeholder="Select Exam"
+                [searchable]="true">
+              </app-dropdown>
             </div>
             <div class="form-group">
               <label>Class *</label>
-              <select [(ngModel)]="selectedClassId" name="classId" required (change)="loadStudents()" class="form-control">
-                <option value="">Select Class</option>
-                <option *ngFor="let cls of classes" [value]="cls.classId">{{ cls.name }}</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="selectedClassId"
+                [options]="classOptions"
+                placeholder="Select Class"
+                [searchable]="true"
+                (changed)="loadStudents()">
+              </app-dropdown>
             </div>
             <div class="form-group">
               <label>Student *</label>
-              <select [(ngModel)]="selectedStudentId" name="studentId" required class="form-control">
-                <option value="">Select Student</option>
-                <option *ngFor="let student of students" [value]="student.studentId">{{ student.name }}</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="selectedStudentId"
+                [options]="studentOptions"
+                placeholder="Select Student"
+                [searchable]="true">
+              </app-dropdown>
             </div>
           </div>
           <button type="submit" class="btn btn-primary">Load Marks</button>
@@ -162,6 +170,18 @@ export class MarksComponent implements OnInit {
   selectedExamId: number | null = null;
   selectedClassId: number | null = null;
   selectedStudentId: number | null = null;
+
+  get examOptions(): DropdownOption[] {
+    return this.exams.map(e => ({ value: e.examId, label: e.name }));
+  }
+
+  get classOptions(): DropdownOption[] {
+    return this.classes.map(c => ({ value: c.classId, label: c.name }));
+  }
+
+  get studentOptions(): DropdownOption[] {
+    return this.students.map(s => ({ value: s.studentId, label: s.name }));
+  }
 
   constructor(
     private markService: MarkService,

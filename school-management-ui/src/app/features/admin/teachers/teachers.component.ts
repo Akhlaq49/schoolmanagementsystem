@@ -7,11 +7,12 @@ import { Teacher, Department } from '../../../core/models/teacher.model';
 import { NotificationService } from '../../../shared/services/notification.service';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { DropdownComponent, DropdownOption } from '../../../shared/components/dropdown/dropdown.component';
 
 @Component({
   selector: 'app-teachers',
   standalone: true,
-  imports: [CommonModule, FormsModule, LoadingComponent, ConfirmDialogComponent],
+  imports: [CommonModule, FormsModule, LoadingComponent, ConfirmDialogComponent, DropdownComponent],
   template: `
     <div class="teachers-container">
       <app-loading [show]="loading" [message]="'Loading teachers...'"></app-loading>
@@ -91,15 +92,12 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
                 <i class="fa fa-building"></i>
                 Department
               </label>
-              <div class="modern-select-wrapper">
-                <select 
-                  [(ngModel)]="teacherForm.departmentId" 
-                  name="departmentId" 
-                  class="modern-form-control">
-                  <option value="">Select Department</option>
-                  <option *ngFor="let dept of departments" [value]="dept.departmentId">{{ dept.name }}</option>
-                </select>
-              </div>
+              <app-dropdown
+                [(ngModel)]="teacherForm.departmentId"
+                [options]="departmentOptions"
+                placeholder="Select Department"
+                [searchable]="false">
+              </app-dropdown>
             </div>
           </div>
           <div class="modern-form-group">
@@ -364,6 +362,10 @@ export class TeachersComponent implements OnInit {
     departmentId: undefined,
     password: ''
   };
+
+  get departmentOptions(): DropdownOption[] {
+    return this.departments.map(d => ({ value: d.departmentId, label: d.name }));
+  }
 
   constructor(
     private teacherService: TeacherService,

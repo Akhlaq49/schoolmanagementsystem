@@ -15,11 +15,12 @@ import { AcademicSession } from '../../../core/models/academic-session.model';
 import { NotificationService } from '../../../shared/services/notification.service';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { DropdownComponent, DropdownOption } from '../../../shared/components/dropdown/dropdown.component';
 
 @Component({
   selector: 'app-students',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LoadingComponent, ConfirmDialogComponent],
+  imports: [CommonModule, FormsModule, RouterModule, LoadingComponent, ConfirmDialogComponent, DropdownComponent],
   template: `
     <div class="students-container">
       <app-loading [show]="loading" [message]="'Loading students...'"></app-loading>
@@ -90,10 +91,15 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
             <div class="form-row">
               <div class="form-group">
                 <label>Family</label>
-                <select [(ngModel)]="studentForm.familyId" name="familyId" class="form-control" (change)="onFamilySelect()">
-                  <option [ngValue]="undefined">-- Select Family --</option>
-                  <option *ngFor="let f of families" [ngValue]="f.familyId">{{ f.fatherName }} ({{ f.fatherPhone || 'No phone' }})</option>
-                </select>
+                <app-dropdown
+                  [(ngModel)]="studentForm.familyId"
+                  [options]="familyOptions"
+                  placeholder="-- Select Family --"
+                  [searchable]="true"
+                  [showPlaceholderOption]="true"
+                  [placeholderValue]="undefined"
+                  (changed)="onFamilySelect()">
+                </app-dropdown>
               </div>
             </div>
           </div>
@@ -109,19 +115,19 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
               <div class="form-group"><label>B-Form / CNIC</label><input type="text" [(ngModel)]="studentForm.bFormCnic" name="bFormCnic" class="form-control"></div>
             </div>
             <div class="form-row">
-              <div class="form-group"><label>Class *</label><select [(ngModel)]="studentForm.classId" name="classId" required class="form-control" (change)="onClassChange()" [class.is-invalid]="submitted && !studentForm.classId"><option [ngValue]="undefined">-- Select Class --</option><option *ngFor="let cls of classes" [ngValue]="cls.classId">{{ cls.name }}</option></select></div>
-              <div class="form-group"><label>Section</label><select [(ngModel)]="studentForm.sectionId" name="sectionId" class="form-control"><option [ngValue]="undefined">-- Select Section --</option><option *ngFor="let sec of sectionsByClass" [ngValue]="sec.sectionId">{{ sec.name }}</option></select></div>
-              <div class="form-group"><label>Session</label><select [(ngModel)]="studentForm.session" name="session" class="form-control"><option value="">-- Select Session --</option><option *ngFor="let s of sessions" [ngValue]="s.name">{{ s.name }}</option></select></div>
-              <div class="form-group"><label>Fee Type</label><select [(ngModel)]="studentForm.feeType" name="feeType" class="form-control"><option value="Paid">Paid</option><option value="Unpaid">Unpaid</option></select></div>
+              <div class="form-group"><label>Class *</label><app-dropdown [(ngModel)]="studentForm.classId" [options]="classOptions" placeholder="-- Select Class --" [searchable]="true" [showPlaceholderOption]="true" [placeholderValue]="undefined" (changed)="onClassChange()" [class.is-invalid]="submitted && !studentForm.classId"></app-dropdown></div>
+              <div class="form-group"><label>Section</label><app-dropdown [(ngModel)]="studentForm.sectionId" [options]="sectionOptions" placeholder="-- Select Section --" [searchable]="true" [showPlaceholderOption]="true" [placeholderValue]="undefined"></app-dropdown></div>
+              <div class="form-group"><label>Session</label><app-dropdown [(ngModel)]="studentForm.session" [options]="sessionOptions" placeholder="-- Select Session --" [searchable]="true" [showPlaceholderOption]="true" [placeholderValue]="''"></app-dropdown></div>
+              <div class="form-group"><label>Fee Type</label><app-dropdown [(ngModel)]="studentForm.feeType" [options]="feeTypeOptions" [searchable]="false" [showPlaceholderOption]="false"></app-dropdown></div>
             </div>
             <div class="form-row">
               <div class="form-group">
                 <label>Date Of Birth</label>
                 <input type="text" [(ngModel)]="displayBirthday" name="birthday" class="form-control" placeholder="dd/mm/yyyy" maxlength="10" (ngModelChange)="onDateInputChange($event, 'birthday')" (blur)="parseAndFormatDate('birthday')">
               </div>
-              <div class="form-group"><label>Gender</label><select [(ngModel)]="studentForm.sex" name="sex" class="form-control"><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
-              <div class="form-group"><label>Religion</label><select [(ngModel)]="studentForm.religion" name="religion" class="form-control"><option value="">-- Select Religion --</option><option value="Islam">Islam</option><option value="Christianity">Christianity</option><option value="Hinduism">Hinduism</option><option value="Other">Other</option></select></div>
-              <div class="form-group"><label>Blood Group</label><select [(ngModel)]="studentForm.bloodGroup" name="bloodGroup" class="form-control"><option value="">-- Select Blood Group --</option><option value="A+">A+</option><option value="A-">A-</option><option value="B+">B+</option><option value="B-">B-</option><option value="AB+">AB+</option><option value="AB-">AB-</option><option value="O+">O+</option><option value="O-">O-</option></select></div>
+              <div class="form-group"><label>Gender</label><app-dropdown [(ngModel)]="studentForm.sex" [options]="genderOptions" [searchable]="false" [showPlaceholderOption]="false"></app-dropdown></div>
+              <div class="form-group"><label>Religion</label><app-dropdown [(ngModel)]="studentForm.religion" [options]="religionOptions" placeholder="-- Select Religion --" [searchable]="false" [showPlaceholderOption]="true" [placeholderValue]="''"></app-dropdown></div>
+              <div class="form-group"><label>Blood Group</label><app-dropdown [(ngModel)]="studentForm.bloodGroup" [options]="bloodGroupOptions" placeholder="-- Select Blood Group --" [searchable]="true" [showPlaceholderOption]="true" [placeholderValue]="''"></app-dropdown></div>
             </div>
           </div>
 
@@ -214,9 +220,7 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
           <div class="table-toolbar">
             <div class="show-entries">
               <span>Show</span>
-              <select [(ngModel)]="pageSize" (ngModelChange)="pageSizeChange()" class="entries-select">
-                <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }}</option>
-              </select>
+              <app-dropdown [(ngModel)]="pageSize" [options]="pageSizeOptionsList" [searchable]="false" [showPlaceholderOption]="false" size="sm" (changed)="pageSizeChange()"></app-dropdown>
               <span>entries</span>
             </div>
             <div class="modern-table-count">
@@ -1099,6 +1103,52 @@ export class StudentsComponent implements OnInit {
   currentPage = 1;
   sortColumn: 'roll' | 'name' | 'fatherName' | 'phone' | 'sex' | 'feeType' | 'class' | 'section' = 'name';
   sortDirection: 'asc' | 'desc' = 'asc';
+
+  genderOptions: DropdownOption[] = [
+    { value: 'Male', label: 'Male' },
+    { value: 'Female', label: 'Female' },
+    { value: 'Other', label: 'Other' }
+  ];
+  feeTypeOptions: DropdownOption[] = [
+    { value: 'Paid', label: 'Paid' },
+    { value: 'Unpaid', label: 'Unpaid' }
+  ];
+  religionOptions: DropdownOption[] = [
+    { value: 'Islam', label: 'Islam' },
+    { value: 'Christianity', label: 'Christianity' },
+    { value: 'Hinduism', label: 'Hinduism' },
+    { value: 'Other', label: 'Other' }
+  ];
+  bloodGroupOptions: DropdownOption[] = [
+    { value: 'A+', label: 'A+' },
+    { value: 'A-', label: 'A-' },
+    { value: 'B+', label: 'B+' },
+    { value: 'B-', label: 'B-' },
+    { value: 'AB+', label: 'AB+' },
+    { value: 'AB-', label: 'AB-' },
+    { value: 'O+', label: 'O+' },
+    { value: 'O-', label: 'O-' }
+  ];
+
+  get familyOptions(): DropdownOption[] {
+    return this.families.map(f => ({ value: f.familyId, label: f.fatherName + ' (' + (f.fatherPhone || 'No phone') + ')' }));
+  }
+
+  get classOptions(): DropdownOption[] {
+    return this.classes.map(cls => ({ value: cls.classId, label: cls.name }));
+  }
+
+  get sectionOptions(): DropdownOption[] {
+    return this.sectionsByClass.map(sec => ({ value: sec.sectionId, label: sec.name }));
+  }
+
+  get sessionOptions(): DropdownOption[] {
+    return this.sessions.map(s => ({ value: s.name, label: s.name }));
+  }
+
+  get pageSizeOptionsList(): DropdownOption[] {
+    return this.pageSizeOptions.map(size => ({ value: size, label: String(size) }));
+  }
 
   get totalPages(): number {
     return Math.max(1, Math.ceil(this.filteredStudents.length / this.pageSize));

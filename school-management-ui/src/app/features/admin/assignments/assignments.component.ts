@@ -5,11 +5,12 @@ import { AssignmentService } from '../../../core/services/assignment.service';
 import { ClassService } from '../../../core/services/class.service';
 import { SubjectService } from '../../../core/services/subject.service';
 import { Assignment } from '../../../core/models/assignment.model';
+import { DropdownComponent, DropdownOption } from '../../../shared/components/dropdown/dropdown.component';
 
 @Component({
   selector: 'app-assignments',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DropdownComponent],
   template: `
     <div class="assignments-container">
       <div class="page-header">
@@ -29,17 +30,21 @@ import { Assignment } from '../../../core/models/assignment.model';
           <div class="form-row">
             <div class="form-group">
               <label>Class *</label>
-              <select [(ngModel)]="assignmentForm.classId" name="classId" required class="form-control">
-                <option value="">Select Class</option>
-                <option *ngFor="let cls of classes" [value]="cls.classId">{{ cls.name }}</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="assignmentForm.classId"
+                [options]="classOptions"
+                placeholder="Select Class"
+                [searchable]="true">
+              </app-dropdown>
             </div>
             <div class="form-group">
               <label>Subject *</label>
-              <select [(ngModel)]="assignmentForm.subjectId" name="subjectId" required class="form-control">
-                <option value="">Select Subject</option>
-                <option *ngFor="let subject of subjects" [value]="subject.subjectId">{{ subject.name }}</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="assignmentForm.subjectId"
+                [options]="subjectOptions"
+                placeholder="Select Subject"
+                [searchable]="true">
+              </app-dropdown>
             </div>
           </div>
           <div class="form-group">
@@ -203,6 +208,14 @@ export class AssignmentsComponent implements OnInit {
     teacherId: 1,
     timestamp: new Date()
   };
+
+  get classOptions(): DropdownOption[] {
+    return this.classes.map(c => ({ value: c.classId, label: c.name }));
+  }
+
+  get subjectOptions(): DropdownOption[] {
+    return this.subjects.map(s => ({ value: s.subjectId, label: s.name }));
+  }
 
   constructor(
     private assignmentService: AssignmentService,

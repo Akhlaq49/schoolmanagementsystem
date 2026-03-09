@@ -14,11 +14,12 @@ import { FeeAddon } from '../../../../core/models/fee-addon.model';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { DropdownComponent, DropdownOption } from '../../../../shared/components/dropdown/dropdown.component';
 
 @Component({
   selector: 'app-fee-structures',
   standalone: true,
-  imports: [CommonModule, FormsModule, LoadingComponent, ConfirmDialogComponent],
+  imports: [CommonModule, FormsModule, LoadingComponent, ConfirmDialogComponent, DropdownComponent],
   template: `
     <div class="fee-structures-container">
       <app-loading [show]="loading" [message]="'Loading fee structures...'"></app-loading>
@@ -50,13 +51,13 @@ import { ConfirmDialogComponent } from '../../../../shared/components/confirm-di
             </div>
             <div class="academy-form-group">
               <label>Academic Session <span class="required">*</span></label>
-              <select class="academy-input" [(ngModel)]="form.academicSessionId" name="sessionId"
-                [class.is-invalid]="submitted && !form.academicSessionId">
-                <option [ngValue]="null" disabled>Select Session</option>
-                <option *ngFor="let s of sessions" [ngValue]="s.academicSessionId">
-                  {{ s.name }}{{ s.isCurrent ? ' (Current)' : '' }}
-                </option>
-              </select>
+              <app-dropdown
+                [options]="sessionOptions"
+                [(ngModel)]="form.academicSessionId"
+                [ngModelOptions]="{standalone: true}"
+                placeholder="Select Session"
+                [showPlaceholderOption]="false">
+              </app-dropdown>
               <div *ngIf="submitted && !form.academicSessionId" class="academy-invalid">Session is required</div>
             </div>
           </div>
@@ -64,12 +65,14 @@ import { ConfirmDialogComponent } from '../../../../shared/components/confirm-di
           <div class="academy-form-row">
             <div class="academy-form-group">
               <label>Class <span class="required">*</span></label>
-              <select class="academy-input" [(ngModel)]="form.classId" name="classId"
-                (ngModelChange)="onClassChange($event)"
-                [class.is-invalid]="submitted && !form.classId">
-                <option [ngValue]="null" disabled>Select Class</option>
-                <option *ngFor="let c of classes" [ngValue]="c.classId">{{ c.name }}</option>
-              </select>
+              <app-dropdown
+                [options]="classOptions"
+                [(ngModel)]="form.classId"
+                [ngModelOptions]="{standalone: true}"
+                placeholder="Select Class"
+                [showPlaceholderOption]="false"
+                (changed)="onClassChange($event)">
+              </app-dropdown>
               <div *ngIf="submitted && !form.classId" class="academy-invalid">Class is required</div>
             </div>
             <div class="academy-form-group">
@@ -132,10 +135,14 @@ import { ConfirmDialogComponent } from '../../../../shared/components/confirm-di
                 <tbody>
                   <tr *ngFor="let addon of form.addons; let i = index">
                     <td>
-                      <select class="academy-input addon-select" [(ngModel)]="addon.feeAddonId" [name]="'addonId_' + i">
-                        <option [ngValue]="null" disabled>Select Add-on</option>
-                        <option *ngFor="let a of feeAddons" [ngValue]="a.feeAddonId">{{ a.name }}</option>
-                      </select>
+                      <app-dropdown class="addon-select"
+                        [options]="feeAddonOptions"
+                        [(ngModel)]="addon.feeAddonId"
+                        [ngModelOptions]="{standalone: true}"
+                        placeholder="Select Add-on"
+                        [showPlaceholderOption]="false"
+                        [searchable]="false">
+                      </app-dropdown>
                     </td>
                     <td>
                       <input type="number" class="academy-input addon-amount" [(ngModel)]="addon.amount"
@@ -175,17 +182,22 @@ import { ConfirmDialogComponent } from '../../../../shared/components/confirm-di
             class="modern-form-control search-input">
         </div>
         <div class="filter-group">
-          <select class="modern-form-control filter-select" [(ngModel)]="filterSessionId" (change)="applyFilters()">
-            <option [ngValue]="null">All Sessions</option>
-            <option *ngFor="let s of sessions" [ngValue]="s.academicSessionId">{{ s.name }}</option>
-          </select>
+          <app-dropdown
+            [options]="filterSessionOptions"
+            [(ngModel)]="filterSessionId"
+            placeholder="All Sessions"
+            [searchable]="false"
+            (changed)="applyFilters()">
+          </app-dropdown>
         </div>
         <div class="filter-group">
-          <select class="modern-form-control filter-select" [(ngModel)]="filterStatus" (change)="applyFilters()">
-            <option value="">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
+          <app-dropdown
+            [options]="filterStatusOptions"
+            [(ngModel)]="filterStatus"
+            placeholder="All Statuses"
+            [searchable]="false"
+            (changed)="applyFilters()">
+          </app-dropdown>
         </div>
       </div>
 
@@ -196,9 +208,14 @@ import { ConfirmDialogComponent } from '../../../../shared/components/confirm-di
           <div class="academy-table-toolbar">
             <div class="show-entries">
               <span>Show</span>
-              <select class="entries-select" [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange()">
-                <option *ngFor="let opt of pageSizeOptions" [ngValue]="opt">{{ opt }}</option>
-              </select>
+              <app-dropdown class="entries-dd"
+                [options]="pageSizeDropdownOptions"
+                [(ngModel)]="pageSize"
+                [searchable]="false"
+                [showPlaceholderOption]="false"
+                size="sm"
+                (changed)="onPageSizeChange()">
+              </app-dropdown>
               <span>entries</span>
             </div>
             <div class="academy-table-count">
@@ -445,10 +462,7 @@ import { ConfirmDialogComponent } from '../../../../shared/components/confirm-di
     .academy-table-title i { color: #2c5282; }
     .academy-table-toolbar { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
     .show-entries { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: #6a8cad; }
-    .entries-select {
-      padding: 0.35rem 0.6rem; border-radius: 8px; border: 1px solid #e2e8f0;
-      font-size: 0.9rem; background: white; min-width: 60px; cursor: pointer;
-    }
+    .entries-dd { min-width: 72px; }
     .academy-table-count {
       display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: #6a8cad;
     }
@@ -568,6 +582,22 @@ export class FeeStructuresComponent implements OnInit {
 
   form: Partial<FeeStructure> & { addons: Partial<FeeStructureAddon>[] } = this.emptyForm();
 
+  // Dropdown options
+  sessionOptions: DropdownOption[] = [];
+  classOptions: DropdownOption[] = [];
+  feeAddonOptions: DropdownOption[] = [];
+  filterSessionOptions: DropdownOption[] = [];
+  filterStatusOptions: DropdownOption[] = [
+    { value: 'active', label: 'Active' },
+    { value: 'inactive', label: 'Inactive' }
+  ];
+  pageSizeDropdownOptions: DropdownOption[] = [
+    { value: 10, label: '10' },
+    { value: 25, label: '25' },
+    { value: 50, label: '50' },
+    { value: 100, label: '100' }
+  ];
+
   constructor(
     private feeService: FeeService,
     private classService: ClassService,
@@ -594,6 +624,7 @@ export class FeeStructuresComponent implements OnInit {
         this.classes = result.classes;
         this.sessions = result.sessions;
         this.feeAddons = result.feeAddons;
+        this.buildDropdownOptions();
         this.applyFilters();
         this.loading = false;
       },
@@ -602,6 +633,25 @@ export class FeeStructuresComponent implements OnInit {
         this.loading = false;
       }
     });
+  }
+
+  buildDropdownOptions() {
+    this.sessionOptions = this.sessions.map(s => ({
+      value: s.academicSessionId,
+      label: s.name + (s.isCurrent ? ' (Current)' : '')
+    }));
+    this.classOptions = this.classes.map(c => ({
+      value: c.classId,
+      label: c.name
+    }));
+    this.feeAddonOptions = this.feeAddons.map(a => ({
+      value: a.feeAddonId,
+      label: a.name
+    }));
+    this.filterSessionOptions = this.sessions.map(s => ({
+      value: s.academicSessionId,
+      label: s.name
+    }));
   }
 
   // ─── Filtering & Pagination ──────────────────────────────

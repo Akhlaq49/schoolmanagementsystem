@@ -5,11 +5,12 @@ import { AttendanceService } from '../../../core/services/attendance.service';
 import { StudentService } from '../../../core/services/student.service';
 import { ClassService } from '../../../core/services/class.service';
 import { SectionService } from '../../../core/services/section.service';
+import { DropdownComponent, DropdownOption } from '../../../shared/components/dropdown/dropdown.component';
 
 @Component({
   selector: 'app-attendance',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DropdownComponent],
   template: `
     <div class="attendance-container">
       <h2>Attendance Management</h2>
@@ -24,17 +25,22 @@ import { SectionService } from '../../../core/services/section.service';
             </div>
             <div class="form-group">
               <label>Class</label>
-              <select [(ngModel)]="selectedClassId" name="classId" (change)="loadSections()" class="form-control">
-                <option value="">Select Class</option>
-                <option *ngFor="let cls of classes" [value]="cls.classId">{{ cls.name }}</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="selectedClassId"
+                [options]="classOptions"
+                placeholder="Select Class"
+                [searchable]="true"
+                (changed)="loadSections()">
+              </app-dropdown>
             </div>
             <div class="form-group">
               <label>Section</label>
-              <select [(ngModel)]="selectedSectionId" name="sectionId" class="form-control">
-                <option value="">Select Section</option>
-                <option *ngFor="let section of sections" [value]="section.sectionId">{{ section.name }}</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="selectedSectionId"
+                [options]="sectionOptions"
+                placeholder="Select Section"
+                [searchable]="false">
+              </app-dropdown>
             </div>
           </div>
           <button type="submit" class="btn btn-primary">Load Attendance</button>
@@ -59,13 +65,14 @@ import { SectionService } from '../../../core/services/section.service';
                 <td>{{ student.name }}</td>
                 <td>{{ student.roll || '-' }}</td>
                 <td>
-                  <select [(ngModel)]="attendanceStatus[student.studentId]" name="status_{{student.studentId}}" class="form-control">
-                    <option [value]="1">Present</option>
-                    <option [value]="2">Absent</option>
-                    <option [value]="3">Holiday</option>
-                    <option [value]="4">Half Day</option>
-                    <option [value]="5">Late</option>
-                  </select>
+                  <app-dropdown
+                    [(ngModel)]="attendanceStatus[student.studentId]"
+                    [options]="statusOptions"
+                    placeholder="Select Status"
+                    [searchable]="false"
+                    [showPlaceholderOption]="false"
+                    size="sm">
+                  </app-dropdown>
                 </td>
               </tr>
             </tbody>
@@ -140,6 +147,22 @@ export class AttendanceComponent implements OnInit {
   selectedClassId: number | null = null;
   selectedSectionId: number | null = null;
   attendanceStatus: { [key: number]: number } = {};
+
+  statusOptions: DropdownOption[] = [
+    { value: 1, label: 'Present' },
+    { value: 2, label: 'Absent' },
+    { value: 3, label: 'Holiday' },
+    { value: 4, label: 'Half Day' },
+    { value: 5, label: 'Late' }
+  ];
+
+  get classOptions(): DropdownOption[] {
+    return this.classes.map(c => ({ value: c.classId, label: c.name }));
+  }
+
+  get sectionOptions(): DropdownOption[] {
+    return this.sections.map(s => ({ value: s.sectionId, label: s.name }));
+  }
 
   constructor(
     private attendanceService: AttendanceService,

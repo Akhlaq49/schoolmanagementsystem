@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { InvoiceService } from '../../../core/services/invoice.service';
 import { StudentService } from '../../../core/services/student.service';
 import { Invoice, Payment } from '../../../core/models/invoice.model';
+import { DropdownComponent, DropdownOption } from '../../../shared/components/dropdown/dropdown.component';
 
 @Component({
   selector: 'app-invoices',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DropdownComponent],
   template: `
     <div class="invoices-container">
       <div class="page-header">
@@ -24,10 +25,12 @@ import { Invoice, Payment } from '../../../core/models/invoice.model';
           <div class="form-row">
             <div class="form-group">
               <label>Student *</label>
-              <select [(ngModel)]="invoiceForm.studentId" name="studentId" required class="form-control">
-                <option value="">Select Student</option>
-                <option *ngFor="let student of students" [value]="student.studentId">{{ student.name }}</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="invoiceForm.studentId"
+                [options]="studentOptions"
+                placeholder="Select Student"
+                [searchable]="true">
+              </app-dropdown>
             </div>
             <div class="form-group">
               <label>Title *</label>
@@ -112,11 +115,13 @@ import { Invoice, Payment } from '../../../core/models/invoice.model';
             </div>
             <div class="form-group">
               <label>Payment Method</label>
-              <select [(ngModel)]="paymentForm.paymentMethod" name="paymentMethod" class="form-control">
-                <option value="cash">Cash</option>
-                <option value="bank">Bank Transfer</option>
-                <option value="online">Online Payment</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="paymentForm.paymentMethod"
+                [options]="paymentMethodOptions"
+                placeholder="Payment Method"
+                [searchable]="false"
+                [showPlaceholderOption]="false">
+              </app-dropdown>
             </div>
             <div class="form-actions">
               <button type="submit" class="btn btn-primary">Record Payment</button>
@@ -270,6 +275,16 @@ export class InvoicesComponent implements OnInit {
   showPaymentModal: boolean = false;
   selectedInvoice: Invoice | null = null;
   editingInvoice: Invoice | null = null;
+
+  paymentMethodOptions: DropdownOption[] = [
+    { value: 'cash', label: 'Cash' },
+    { value: 'bank', label: 'Bank Transfer' },
+    { value: 'online', label: 'Online Payment' }
+  ];
+
+  get studentOptions(): DropdownOption[] {
+    return this.students.map(s => ({ value: s.studentId, label: s.name }));
+  }
   
   invoiceForm: Partial<Invoice> = {
     studentId: undefined,

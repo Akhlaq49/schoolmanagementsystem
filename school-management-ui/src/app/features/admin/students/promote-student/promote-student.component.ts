@@ -9,11 +9,12 @@ import { Student } from '../../../../core/models/student.model';
 import { Class } from '../../../../core/models/student.model';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
+import { DropdownComponent, DropdownOption } from '../../../../shared/components/dropdown/dropdown.component';
 
 @Component({
   selector: 'app-promote-student',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LoadingComponent],
+  imports: [CommonModule, FormsModule, RouterModule, LoadingComponent, DropdownComponent],
   template: `
     <div class="page-container">
       <div class="page-header-card">
@@ -60,9 +61,14 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
         <div class="table-header-row" *ngIf="filteredStudents.length > 0">
           <div class="show-entries">
             <span>Show</span>
-            <select [(ngModel)]="pageSize" (ngModelChange)="pageSizeChange()" class="entries-select">
-              <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }}</option>
-            </select>
+            <app-dropdown
+              [(ngModel)]="pageSize"
+              [options]="pageSizeOpts"
+              [searchable]="false"
+              [showPlaceholderOption]="false"
+              size="sm"
+              (changed)="pageSizeChange()">
+            </app-dropdown>
             <span>entries</span>
           </div>
           <div class="table-count">
@@ -119,14 +125,14 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
                   <span *ngIf="!s.section?.name" class="text-muted">-</span>
                 </td>
                 <td>
-                  <select
+                  <app-dropdown
                     [(ngModel)]="promoteToClassMap[s.studentId]"
-                    (ngModelChange)="onPromoteClassSelect(s, $event)"
-                    class="form-control promote-select"
-                    [disabled]="promotingStudentId === s.studentId">
-                    <option [ngValue]="null">-- Select Class --</option>
-                    <option *ngFor="let cls of classesForPromote(s)" [ngValue]="cls.classId">{{ cls.name }}</option>
-                  </select>
+                    [options]="promoteClassOptions(s)"
+                    placeholder="-- Select Class --"
+                    [searchable]="true"
+                    [disabled]="promotingStudentId === s.studentId"
+                    (changed)="onPromoteClassSelect(s, $event)">
+                  </app-dropdown>
                   <span *ngIf="promotingStudentId === s.studentId" class="promoting-indicator">
                     <i class="fa fa-spinner fa-spin"></i>
                   </span>
@@ -379,6 +385,14 @@ export class PromoteStudentComponent implements OnInit {
   pageSizeOptions = [10, 25, 50, 100];
   pageSize = 10;
   currentPage = 1;
+
+  get pageSizeOpts(): DropdownOption[] {
+    return this.pageSizeOptions.map(s => ({ value: s, label: '' + s }));
+  }
+
+  promoteClassOptions(student: Student): DropdownOption[] {
+    return this.classesForPromote(student).map(c => ({ value: c.classId, label: c.name }));
+  }
 
   get totalPages(): number {
     return Math.max(1, Math.ceil(this.filteredStudents.length / this.pageSize));

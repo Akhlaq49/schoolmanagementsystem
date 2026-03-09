@@ -5,11 +5,12 @@ import { SubjectService } from '../../../core/services/subject.service';
 import { ClassService } from '../../../core/services/class.service';
 import { Subject } from '../../../core/models/subject.model';
 import { Class } from '../../../core/models/student.model';
+import { DropdownComponent, DropdownOption } from '../../../shared/components/dropdown/dropdown.component';
 
 @Component({
   selector: 'app-subjects',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DropdownComponent],
   template: `
     <div class="subjects-container">
       <div class="page-header-card">
@@ -82,9 +83,14 @@ import { Class } from '../../../core/models/student.model';
           <div class="academy-table-toolbar">
             <div class="show-entries">
               <span>Show</span>
-              <select [(ngModel)]="pageSize" (ngModelChange)="pageSizeChange()" class="entries-select">
-                <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }}</option>
-              </select>
+              <app-dropdown
+                [(ngModel)]="pageSize"
+                [options]="pageSizeOpts"
+                [searchable]="false"
+                [showPlaceholderOption]="false"
+                size="sm"
+                (changed)="pageSizeChange()">
+              </app-dropdown>
               <span>entries</span>
             </div>
             <div class="academy-table-count">Total: {{ filteredGroupedSubjects.length }} subject(s)</div>
@@ -249,6 +255,10 @@ export class SubjectsComponent implements OnInit {
   currentPage = 1;
   showAddForm: boolean = false;
   editingSubjectName: string | null = null;
+
+  get pageSizeOpts(): DropdownOption[] {
+    return this.pageSizeOptions.map(s => ({ value: s, label: '' + s }));
+  }
 
   get totalPages(): number {
     return Math.max(1, Math.ceil(this.filteredGroupedSubjects.length / this.pageSize));
