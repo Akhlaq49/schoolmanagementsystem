@@ -1,9 +1,27 @@
-import { Class } from './student.model';
-import { AcademicSession } from './academic-session.model';
-import { FeeAddon } from './fee-addon.model';
-
 export interface FeeStructure {
   feeStructureId?: number;
+  name: string;
+  classId: number;
+  className?: string;
+  academicSessionId: number;
+  academicSessionName?: string;
+  monthlyAmount: number;
+  dueDayOfMonth: number;
+  lateFinePerDay: number;
+  description?: string;
+  isActive: boolean;
+  createdAt?: string;
+  addons: FeeStructureAddon[];
+}
+
+export interface FeeStructureAddon {
+  feeStructureAddonId?: number;
+  feeAddonId: number;
+  feeAddonName?: string;
+  amount: number;
+}
+
+export interface CreateFeeStructure {
   name: string;
   classId: number;
   academicSessionId: number;
@@ -12,18 +30,17 @@ export interface FeeStructure {
   lateFinePerDay: number;
   description?: string;
   isActive: boolean;
-  createdAt?: Date;
-
-  class?: Class;
-  academicSession?: AcademicSession;
-  addons?: FeeStructureAddon[];
+  addons: { feeAddonId: number; amount: number }[];
 }
 
-export interface FeeStructureAddon {
-  feeStructureAddonId?: number;
-  feeStructureId?: number;
-  feeAddonId: number;
-  amount: number;
-
-  feeAddon?: FeeAddon;
+export interface UpdateFeeStructure {
+  name: string;
+  classId: number;
+  academicSessionId: number;
+  monthlyAmount: number;
+  dueDayOfMonth: number;
+  lateFinePerDay: number;
+  description?: string;
+  isActive: boolean;
+  addons: { feeAddonId: number; amount: number }[];
 }

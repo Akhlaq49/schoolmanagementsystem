@@ -9,207 +9,188 @@ import { Subscription } from 'rxjs';
   standalone: true,
   imports: [CommonModule],
   animations: [
-    trigger('slideIn', [
+    trigger('notifAnim', [
       transition(':enter', [
-        style({ transform: 'translateX(120%)', opacity: 0 }),
-        animate('0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)', style({ transform: 'translateX(0)', opacity: 1 }))
+        style({ transform: 'translateX(100%) scale(0.95)', opacity: 0 }),
+        animate('350ms cubic-bezier(0.34, 1.56, 0.64, 1)', style({ transform: 'translateX(0) scale(1)', opacity: 1 }))
+      ]),
+      transition(':leave', [
+        animate('250ms ease-in', style({ transform: 'translateX(100%) scale(0.95)', opacity: 0 }))
       ])
     ])
   ],
   template: `
-    <div class="notification-container">
-      <div 
-        *ngFor="let notification of notifications" 
-        class="notification notification-{{ notification.type }}"
-        [@slideIn]>
-        <div class="notification-content">
-          <div class="notification-icon">
-            <i [class]="getIcon(notification.type)"></i>
+    <div class="notif-container">
+      <div
+        *ngFor="let n of notifications; trackBy: trackById"
+        class="notif notif-{{ n.type }}"
+        [@notifAnim]>
+
+        <div class="notif-accent"></div>
+
+        <div class="notif-body">
+          <div class="notif-icon-wrap">
+            <i [class]="getIcon(n.type)"></i>
           </div>
-          <div class="notification-text">
-            <p class="notification-message">{{ notification.message }}</p>
+          <div class="notif-content">
+            <span class="notif-title">{{ getTitle(n.type) }}</span>
+            <p class="notif-message">{{ n.message }}</p>
           </div>
         </div>
-        <button class="notification-close" (click)="remove(notification.id)" aria-label="Close">
+
+        <button class="notif-close" (click)="remove(n.id)" aria-label="Close">
           <i class="fa fa-times"></i>
         </button>
-        <div class="notification-progress" *ngIf="notification.duration && notification.duration > 0">
-          <div class="progress-bar" [style.animation-duration]="notification.duration + 'ms'"></div>
+
+        <div class="notif-timer" *ngIf="n.duration && n.duration > 0">
+          <div class="timer-bar" [style.animation-duration]="n.duration + 'ms'"></div>
         </div>
       </div>
     </div>
   `,
   styles: [`
-    .notification-container {
+    .notif-container {
       position: fixed;
-      top: 90px;
-      right: 20px;
-      z-index: var(--z-tooltip);
+      top: 24px;
+      right: 24px;
+      z-index: 99999;
       display: flex;
       flex-direction: column;
       gap: 0.75rem;
       max-width: 420px;
       width: 100%;
+      pointer-events: none;
     }
-    
-    .notification {
+
+    .notif {
       position: relative;
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
-      padding: 1.25rem 1.5rem;
-      border-radius: var(--radius-xl);
-      box-shadow: var(--shadow-xl);
-      animation: slideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-      min-width: 320px;
-      max-width: 100%;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem 1.25rem 1rem 0;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 8px 30px rgba(15, 39, 68, 0.12), 0 2px 8px rgba(15, 39, 68, 0.08);
       overflow: hidden;
+      pointer-events: auto;
+      border: 1px solid #e2e8f0;
     }
-    
-    @keyframes slideIn {
-      from {
-        transform: translateX(120%);
-        opacity: 0;
-      }
-      to {
-        transform: translateX(0);
-        opacity: 1;
-      }
+
+    .notif-accent {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 4px;
+      border-radius: 12px 0 0 12px;
     }
-    
-    .notification-content {
+
+    .notif-body {
       display: flex;
       align-items: flex-start;
-      gap: 1rem;
+      gap: 0.875rem;
       flex: 1;
+      padding-left: 1.25rem;
     }
-    
-    .notification-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: var(--radius-lg);
+
+    .notif-icon-wrap {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.25rem;
+      font-size: 1rem;
       flex-shrink: 0;
+      margin-top: 1px;
     }
-    
-    .notification-text {
-      flex: 1;
+
+    .notif-content { flex: 1; }
+
+    .notif-title {
+      display: block;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      margin-bottom: 0.2rem;
     }
-    
-    .notification-message {
+
+    .notif-message {
       margin: 0;
-      font-size: 0.9375rem;
+      font-size: 0.9rem;
       font-weight: 500;
-      line-height: 1.5;
+      line-height: 1.45;
+      color: #435d7a;
     }
-    
-    .notification-success {
-      background: linear-gradient(135deg, rgba(16, 185, 129, 0.95) 0%, rgba(5, 150, 105, 0.95) 100%);
-      color: var(--text-inverse);
-    }
-    
-    .notification-success .notification-icon {
-      background: rgba(255, 255, 255, 0.2);
-      color: var(--text-inverse);
-    }
-    
-    .notification-error {
-      background: linear-gradient(135deg, rgba(239, 68, 68, 0.95) 0%, rgba(220, 38, 38, 0.95) 100%);
-      color: var(--text-inverse);
-    }
-    
-    .notification-error .notification-icon {
-      background: rgba(255, 255, 255, 0.2);
-      color: var(--text-inverse);
-    }
-    
-    .notification-warning {
-      background: linear-gradient(135deg, rgba(245, 158, 11, 0.95) 0%, rgba(217, 119, 6, 0.95) 100%);
-      color: var(--text-inverse);
-    }
-    
-    .notification-warning .notification-icon {
-      background: rgba(255, 255, 255, 0.2);
-      color: var(--text-inverse);
-    }
-    
-    .notification-info {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.95) 0%, rgba(37, 99, 235, 0.95) 100%);
-      color: var(--text-inverse);
-    }
-    
-    .notification-info .notification-icon {
-      background: rgba(255, 255, 255, 0.2);
-      color: var(--text-inverse);
-    }
-    
-    .notification-close {
-      background: rgba(255, 255, 255, 0.2);
+
+    /* ─── Success ─────────────────────────────── */
+    .notif-success .notif-accent { background: #059669; }
+    .notif-success .notif-icon-wrap { background: #d1fae5; color: #059669; }
+    .notif-success .notif-title { color: #065f46; }
+
+    /* ─── Error ──────────────────────────────── */
+    .notif-error .notif-accent { background: #dc2626; }
+    .notif-error .notif-icon-wrap { background: #fee2e2; color: #dc2626; }
+    .notif-error .notif-title { color: #991b1b; }
+
+    /* ─── Warning ────────────────────────────── */
+    .notif-warning .notif-accent { background: #d97706; }
+    .notif-warning .notif-icon-wrap { background: #fef3c7; color: #d97706; }
+    .notif-warning .notif-title { color: #92400e; }
+
+    /* ─── Info ───────────────────────────────── */
+    .notif-info .notif-accent { background: #1e3a5f; }
+    .notif-info .notif-icon-wrap { background: rgba(30, 58, 95, 0.1); color: #1e3a5f; }
+    .notif-info .notif-title { color: #0f2744; }
+
+    /* ─── Close Button ───────────────────────── */
+    .notif-close {
+      background: transparent;
       border: none;
       cursor: pointer;
-      padding: 0.5rem;
-      margin-left: 0.75rem;
-      border-radius: var(--radius-md);
-      color: var(--text-inverse);
-      transition: all var(--transition-fast);
-      width: 32px;
-      height: 32px;
+      padding: 0.35rem;
+      margin-left: 0.5rem;
+      margin-top: 0.15rem;
+      border-radius: 8px;
+      color: #8aa8c4;
+      transition: all 0.2s;
+      width: 28px;
+      height: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
     }
-    
-    .notification-close:hover {
-      background: rgba(255, 255, 255, 0.3);
-      transform: rotate(90deg);
-    }
-    
-    .notification-close i {
-      font-size: 0.875rem;
-    }
-    
-    .notification-progress {
+    .notif-close:hover { background: #f1f5f9; color: #435d7a; transform: rotate(90deg); }
+    .notif-close i { font-size: 0.8rem; }
+
+    /* ─── Timer Bar ──────────────────────────── */
+    .notif-timer {
       position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
+      bottom: 0; left: 0; right: 0;
       height: 3px;
-      background: rgba(255, 255, 255, 0.2);
+      background: #eef2f7;
       overflow: hidden;
     }
-    
-    .progress-bar {
+    .timer-bar {
       height: 100%;
-      background: rgba(255, 255, 255, 0.8);
-      animation: progress linear forwards;
+      border-radius: 0 3px 3px 0;
+      animation: timerShrink linear forwards;
       transform-origin: left;
     }
-    
-    @keyframes progress {
-      from {
-        transform: scaleX(1);
-      }
-      to {
-        transform: scaleX(0);
-      }
+    .notif-success .timer-bar { background: #059669; }
+    .notif-error .timer-bar { background: #dc2626; }
+    .notif-warning .timer-bar { background: #d97706; }
+    .notif-info .timer-bar { background: #1e3a5f; }
+
+    @keyframes timerShrink {
+      from { transform: scaleX(1); }
+      to { transform: scaleX(0); }
     }
-    
+
+    /* ─── Responsive ─────────────────────────── */
     @media (max-width: 768px) {
-      .notification-container {
-        right: 10px;
-        left: 10px;
-        max-width: none;
-      }
-      
-      .notification {
-        min-width: auto;
-      }
+      .notif-container { right: 12px; left: 12px; max-width: none; top: 12px; }
+      .notif { min-width: auto; }
     }
   `]
 })
@@ -223,9 +204,7 @@ export class NotificationComponent implements OnInit, OnDestroy {
     this.subscription = this.notificationService.getNotifications().subscribe(notification => {
       this.notifications.push(notification);
       if (notification.duration && notification.duration > 0) {
-        setTimeout(() => {
-          this.remove(notification.id);
-        }, notification.duration);
+        setTimeout(() => this.remove(notification.id), notification.duration);
       }
     });
   }
@@ -238,13 +217,27 @@ export class NotificationComponent implements OnInit, OnDestroy {
     this.notifications = this.notifications.filter(n => n.id !== id);
   }
 
+  trackById(_: number, n: Notification): number {
+    return n.id;
+  }
+
   getIcon(type: string): string {
-    const icons: { [key: string]: string } = {
+    const icons: Record<string, string> = {
       success: 'fa fa-check-circle',
       error: 'fa fa-exclamation-circle',
       warning: 'fa fa-exclamation-triangle',
       info: 'fa fa-info-circle'
     };
     return icons[type] || 'fa fa-info-circle';
+  }
+
+  getTitle(type: string): string {
+    const titles: Record<string, string> = {
+      success: 'Success',
+      error: 'Error',
+      warning: 'Warning',
+      info: 'Info'
+    };
+    return titles[type] || 'Notice';
   }
 }

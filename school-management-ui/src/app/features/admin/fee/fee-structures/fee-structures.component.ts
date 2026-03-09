@@ -1,11 +1,13 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { FeeService } from '../../../../core/services/fee.service';
 import { ClassService } from '../../../../core/services/class.service';
 import { AcademicSessionService } from '../../../../core/services/academic-session.service';
 import { FeeAddonService } from '../../../../core/services/family/fee-addon.service';
-import { FeeStructure, FeeStructureAddon } from '../../../../core/models/fee.model';
+import { FeeStructure, FeeStructureAddon, CreateFeeStructure, UpdateFeeStructure } from '../../../../core/models/fee.model';
 import { Class } from '../../../../core/models/student.model';
 import { AcademicSession } from '../../../../core/models/academic-session.model';
 import { FeeAddon } from '../../../../core/models/fee-addon.model';
@@ -52,8 +54,7 @@ import { ConfirmDialogComponent } from '../../../../shared/components/confirm-di
                 [class.is-invalid]="submitted && !form.academicSessionId">
                 <option [ngValue]="null" disabled>Select Session</option>
                 <option *ngFor="let s of sessions" [ngValue]="s.academicSessionId">
-                  {{ s.name }}
-                  <span *ngIf="s.isCurrent"> (Current)</span>
+                  {{ s.name }}{{ s.isCurrent ? ' (Current)' : '' }}
                 </option>
               </select>
               <div *ngIf="submitted && !form.academicSessionId" class="academy-invalid">Session is required</div>
@@ -64,6 +65,7 @@ import { ConfirmDialogComponent } from '../../../../shared/components/confirm-di
             <div class="academy-form-group">
               <label>Class <span class="required">*</span></label>
               <select class="academy-input" [(ngModel)]="form.classId" name="classId"
+                (ngModelChange)="onClassChange($event)"
                 [class.is-invalid]="submitted && !form.classId">
                 <option [ngValue]="null" disabled>Select Class</option>
                 <option *ngFor="let c of classes" [ngValue]="c.classId">{{ c.name }}</option>
@@ -229,15 +231,15 @@ import { ConfirmDialogComponent } from '../../../../shared/components/confirm-di
                   <div class="sub-text" *ngIf="fs.description">{{ fs.description }}</div>
                 </td>
                 <td>
-                  <span class="class-badge">{{ fs.class?.name || getClassName(fs.classId) }}</span>
+                  <span class="class-badge">{{ fs.className || getClassName(fs.classId) }}</span>
                 </td>
-                <td>{{ fs.academicSession?.name || getSessionName(fs.academicSessionId) }}</td>
+                <td>{{ fs.academicSessionName || getSessionName(fs.academicSessionId) }}</td>
                 <td class="amount-cell">PKR {{ fs.monthlyAmount | number:'1.0-0' }}</td>
                 <td>
                   <ng-container *ngIf="fs.addons && fs.addons.length > 0; else noAddons">
                     <div class="addon-pills">
                       <span class="addon-pill" *ngFor="let a of fs.addons">
-                        {{ a.feeAddon?.name || getAddonName(a.feeAddonId) }}
+                        {{ a.feeAddonName || getAddonName(a.feeAddonId) }}
                         <strong>{{ a.amount | number:'1.0-0' }}</strong>
                       </span>
                     </div>
@@ -580,24 +582,25 @@ export class FeeStructuresComponent implements OnInit {
 
   loadAll() {
     this.loading = true;
-    let loaded = 0;
-    const done = () => { loaded++; if (loaded >= 4) { this.loading = false; } };
 
-    this.feeService.getFeeStructures().subscribe({
-      next: data => { this.structures = data; this.applyFilters(); done(); },
-      error: () => { this.structures = []; this.applyFilters(); done(); }
-    });
-    this.classService.getAllClasses().subscribe({
-      next: data => { this.classes = data; done(); },
-      error: () => { this.classes = []; done(); }
-    });
-    this.sessionService.getAll().subscribe({
-      next: data => { this.sessions = data; done(); },
-      error: () => { this.sessions = []; done(); }
-    });
-    this.feeAddonService.getAll().subscribe({
-      next: data => { this.feeAddons = data; done(); },
-      error: () => { this.feeAddons = []; done(); }
+    forkJoin({
+      structures: this.feeService.getFeeStructures().pipe(catchError(() => of([] as FeeStructure[]))),
+      classes: this.classService.getAllClasses().pipe(catchError(() => of([] as Class[]))),
+      sessions: this.sessionService.getAll().pipe(catchError(() => of([] as AcademicSession[]))),
+      feeAddons: this.feeAddonService.getAll().pipe(catchError(() => of([] as FeeAddon[])))
+    }).subscribe({
+      next: (result) => {
+        this.structures = result.structures;
+        this.classes = result.classes;
+        this.sessions = result.sessions;
+        this.feeAddons = result.feeAddons;
+        this.applyFilters();
+        this.loading = false;
+      },
+      error: () => {
+        this.notify.error('Failed to load data');
+        this.loading = false;
+      }
     });
   }
 
@@ -608,8 +611,8 @@ export class FeeStructuresComponent implements OnInit {
     this.filteredList = this.structures.filter(fs => {
       if (term) {
         const nameMatch = (fs.name || '').toLowerCase().includes(term);
-        const classMatch = (fs.class?.name || this.getClassName(fs.classId)).toLowerCase().includes(term);
-        const sessionMatch = (fs.academicSession?.name || this.getSessionName(fs.academicSessionId)).toLowerCase().includes(term);
+        const classMatch = (fs.className || this.getClassName(fs.classId)).toLowerCase().includes(term);
+        const sessionMatch = (fs.academicSessionName || this.getSessionName(fs.academicSessionId)).toLowerCase().includes(term);
         if (!nameMatch && !classMatch && !sessionMatch) return false;
       }
       if (this.filterSessionId && fs.academicSessionId !== this.filterSessionId) return false;
@@ -694,13 +697,25 @@ export class FeeStructuresComponent implements OnInit {
     }
 
     this.saving = true;
-    const payload = { ...this.form } as FeeStructure;
-    payload.addons = (this.form.addons || [])
-      .filter(a => a.feeAddonId && a.amount && a.amount > 0) as FeeStructureAddon[];
+    const addons = (this.form.addons || [])
+      .filter(a => a.feeAddonId && a.amount && a.amount > 0)
+      .map(a => ({ feeAddonId: a.feeAddonId!, amount: a.amount! }));
+
+    const dto = {
+      name: this.form.name!,
+      classId: this.form.classId!,
+      academicSessionId: this.form.academicSessionId!,
+      monthlyAmount: this.form.monthlyAmount!,
+      dueDayOfMonth: this.form.dueDayOfMonth!,
+      lateFinePerDay: this.form.lateFinePerDay || 0,
+      description: this.form.description || undefined,
+      isActive: this.form.isActive!,
+      addons
+    };
 
     const obs = this.editing
-      ? this.feeService.updateFeeStructure(this.editing.feeStructureId!, payload)
-      : this.feeService.createFeeStructure(payload);
+      ? this.feeService.updateFeeStructure(this.editing.feeStructureId!, dto as UpdateFeeStructure)
+      : this.feeService.createFeeStructure(dto as CreateFeeStructure);
 
     obs.subscribe({
       next: () => {
@@ -749,6 +764,13 @@ export class FeeStructuresComponent implements OnInit {
 
   removeAddonRow(index: number) {
     this.form.addons.splice(index, 1);
+  }
+
+  onClassChange(classId: number) {
+    const selected = this.classes.find(c => c.classId === classId);
+    if (selected?.fee != null) {
+      this.form.monthlyAmount = selected.fee;
+    }
   }
 
   // ─── Helpers ─────────────────────────────────────────────
