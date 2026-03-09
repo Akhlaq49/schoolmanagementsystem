@@ -17,23 +17,33 @@ import { AuthService } from '../../../core/services/auth.service';
               <h1 class="font-display font-bold text-2xl text-white tracking-tight m-0">EduManage</h1>
             </div>
           </div>
-          <div class="flex items-center">
-            <div class="flex items-center gap-4 py-2 px-4 bg-white/10 rounded-xl backdrop-blur border border-white/20">
-              <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-lg border-2 border-white/30">
-                <i class="fa fa-user"></i>
+          <div class="user-area" (click)="toggleUserDropdown()" (document:click)="onDocumentClick($event)">
+            <div class="user-trigger" #userTrigger>
+              <div class="user-avatar">
+                {{ getInitials() }}
               </div>
-              <div class="hidden md:flex flex-col gap-1">
-                <span class="font-semibold text-sm text-white">{{ userName }}</span>
-                <div class="flex gap-2 flex-wrap" *ngIf="userRoles.length > 0">
-                  <span class="role-badge" *ngFor="let role of userRoles" [class]="'role-' + role">
-                    <i [class]="getRoleIcon(role)"></i>
-                    {{ getRoleDisplayName(role) }}
-                  </span>
+              <span class="user-name">{{ userName }}</span>
+              <i class="fa fa-chevron-down user-caret" [class.open]="showUserDropdown"></i>
+            </div>
+            <div class="user-dropdown" *ngIf="showUserDropdown" (click)="$event.stopPropagation()">
+              <div class="dropdown-header">
+                <div class="dropdown-avatar">{{ getInitials() }}</div>
+                <div class="dropdown-info">
+                  <span class="dropdown-name">{{ userName }}</span>
+                  <div class="dropdown-roles">
+                    <span class="role-pill" *ngFor="let role of userRoles" [class]="'pill-' + role">
+                      <i [class]="getRoleIcon(role)"></i> {{ getRoleDisplayName(role) }}
+                    </span>
+                  </div>
                 </div>
               </div>
-              <button (click)="logout()" class="flex items-center gap-2 py-2 px-4 bg-white/20 border border-white/30 text-white rounded-lg text-sm font-medium hover:bg-white/30 transition-all hover:-translate-y-0.5" title="Logout">
-                <i class="fa fa-sign-out"></i>
-                <span class="hidden md:inline">Logout</span>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item" [routerLink]="getProfileRoute()" (click)="showUserDropdown = false">
+                <i class="fa fa-user-circle"></i> My Profile
+              </a>
+              <div class="dropdown-divider"></div>
+              <button class="dropdown-item dropdown-logout" (click)="logout()">
+                <i class="fa fa-sign-out"></i> Logout
               </button>
             </div>
           </div>
@@ -100,22 +110,78 @@ import { AuthService } from '../../../core/services/auth.service';
     </div>
   `,
   styles: [`
-    .role-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      padding: 0.25rem 0.75rem;
-      border-radius: 9999px;
-      font-size: 0.7rem;
-      font-weight: 600;
-      background: rgba(255,255,255,0.25);
-      border: 1px solid rgba(255,255,255,0.3);
-      transition: all 0.2s;
+    /* ─── User Area ─────────────────────────────── */
+    .user-area { position: relative; }
+    .user-trigger {
+      display: flex; align-items: center; gap: 0.65rem; cursor: pointer;
+      padding: 0.4rem 0.75rem 0.4rem 0.4rem; border-radius: 10px;
+      transition: background 0.2s; user-select: none;
     }
-    .role-admin { background: rgba(212,168,75,0.4); border-color: rgba(212,168,75,0.6); }
-    .role-teacher { background: rgba(5,150,105,0.4); border-color: rgba(5,150,105,0.6); }
-    .role-student { background: rgba(43,108,176,0.4); border-color: rgba(43,108,176,0.6); }
-    .role-parent { background: rgba(139,92,246,0.4); border-color: rgba(139,92,246,0.6); }
+    .user-trigger:hover { background: rgba(255,255,255,0.12); }
+    .user-avatar {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.1) 100%);
+      border: 1.5px solid rgba(255,255,255,0.35);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8125rem; font-weight: 700; color: #fff; letter-spacing: 0.03em;
+    }
+    .user-name { font-size: 0.875rem; font-weight: 600; color: #fff; }
+    .user-caret { font-size: 0.6rem; color: rgba(255,255,255,0.6); transition: transform 0.25s; }
+    .user-caret.open { transform: rotate(180deg); }
+
+    /* ─── Dropdown ────────────────────────────── */
+    .user-dropdown {
+      position: absolute; top: calc(100% + 8px); right: 0;
+      width: 260px; background: #fff; border-radius: 14px;
+      box-shadow: 0 12px 40px rgba(15,39,68,0.18), 0 2px 8px rgba(15,39,68,0.08);
+      border: 1px solid #e2e8f0; z-index: 2000;
+      animation: dropIn 0.2s ease-out;
+      overflow: hidden;
+    }
+    @keyframes dropIn {
+      from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .dropdown-header { padding: 1rem 1.15rem; display: flex; align-items: center; gap: 0.75rem; }
+    .dropdown-avatar {
+      width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
+      background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.875rem; font-weight: 700; color: #fff; letter-spacing: 0.03em;
+    }
+    .dropdown-info { flex: 1; min-width: 0; }
+    .dropdown-name {
+      display: block; font-size: 0.9rem; font-weight: 700; color: #0f2744;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .dropdown-roles { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.3rem; }
+    .role-pill {
+      display: inline-flex; align-items: center; gap: 0.25rem;
+      padding: 0.15rem 0.55rem; border-radius: 6px;
+      font-size: 0.675rem; font-weight: 600; letter-spacing: 0.02em;
+    }
+    .pill-admin { background: #fef3c7; color: #92400e; }
+    .pill-teacher { background: #d1fae5; color: #065f46; }
+    .pill-student { background: #dbeafe; color: #1e40af; }
+    .pill-parent { background: #ede9fe; color: #5b21b6; }
+
+    .dropdown-divider { height: 1px; background: #eef2f7; margin: 0; }
+
+    .dropdown-item {
+      display: flex; align-items: center; gap: 0.65rem; width: 100%;
+      padding: 0.7rem 1.15rem; font-size: 0.875rem; font-weight: 500;
+      color: #435d7a; background: transparent; border: none;
+      cursor: pointer; transition: all 0.15s; text-decoration: none;
+    }
+    .dropdown-item:hover { background: #f7f9fc; color: #1e3a5f; }
+    .dropdown-item i { width: 18px; text-align: center; font-size: 0.9rem; }
+    .dropdown-logout { color: #dc2626; }
+    .dropdown-logout:hover { background: #fef2f2; color: #b91c1c; }
+
+    @media (max-width: 768px) {
+      .user-name { display: none; }
+      .user-dropdown { right: -12px; width: 240px; }
+    }
     .nav-menu { list-style: none; padding: 0.75rem 0.5rem; margin: 0; flex: 1; }
     .nav-menu li { margin-bottom: 0.2rem; }
     .nav-group { display: flex; flex-direction: column; }
@@ -182,6 +248,7 @@ export class LayoutComponent implements OnInit {
   userName: string | null = null;
   userRoles: string[] = [];
   menuItems: any[] = [];
+  showUserDropdown = false;
 
   constructor(
     private authService: AuthService,
@@ -213,6 +280,27 @@ export class LayoutComponent implements OnInit {
     this.authService.logout().subscribe(() => {
       this.router.navigate(['/login']);
     });
+  }
+
+  toggleUserDropdown() {
+    this.showUserDropdown = !this.showUserDropdown;
+  }
+
+  onDocumentClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.user-area')) {
+      this.showUserDropdown = false;
+    }
+  }
+
+  getInitials(): string {
+    if (!this.userName) return '?';
+    return this.userName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  }
+
+  getProfileRoute(): string {
+    const primary = this.userRoles[0]?.toLowerCase() || 'admin';
+    return `/${primary}/profile`;
   }
 
   getRoleDisplayName(role: string): string {
