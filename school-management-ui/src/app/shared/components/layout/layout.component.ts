@@ -275,7 +275,16 @@ export class LayoutComponent implements OnInit {
         { route: '/admin/marks', label: 'Marks', icon: 'fa fa-star', role: 'admin' },
         { route: '/admin/assignments', label: 'Assignments', icon: 'fa fa-tasks', role: 'admin' },
         { route: '/admin/study-materials', label: 'Study Materials', icon: 'fa fa-file', role: 'admin' },
-        { route: '/admin/invoices', label: 'Invoices', icon: 'fa fa-money', role: 'admin' },
+        {
+          label: 'Fee Management',
+          icon: 'fa fa-money',
+          role: 'admin',
+          expanded: false,
+          children: [
+            { route: '/admin/fee/structures', label: 'Fee Structures', role: 'admin' },
+            { route: '/admin/invoices', label: 'Invoices', role: 'admin' }
+          ]
+        },
         { route: '/admin/expenses', label: 'Expenses', icon: 'fa fa-credit-card', role: 'admin' },
         { route: '/admin/noticeboards', label: 'Notices', icon: 'fa fa-bullhorn', role: 'admin' },
         { route: '/admin/clubs', label: 'Clubs', icon: 'fa fa-users', role: 'admin' },
