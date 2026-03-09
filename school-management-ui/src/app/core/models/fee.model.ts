@@ -44,3 +44,70 @@ export interface UpdateFeeStructure {
   isActive: boolean;
   addons: { feeAddonId: number; amount: number }[];
 }
+
+// ─── Fee Challans ──────────────────────────────────────
+
+export interface FeeChallan {
+  feeChallanId: number;
+  challanNumber: string;
+  studentId: number;
+  studentName?: string;
+  className?: string;
+  sectionName?: string;
+  feeStructureId?: number;
+  feeStructureName?: string;
+  month: number;
+  year: number;
+  dueDate: string;
+  baseAmount: number;
+  addonsAmount: number;
+  discountAmount: number;
+  lateFine: number;
+  totalAmount: number;
+  paidAmount: number;
+  balance: number;
+  status: string;
+  isProRated: boolean;
+  remarks?: string;
+  createdAt: string;
+  payments?: FeePayment[];
+}
+
+export interface FeePayment {
+  feePaymentId: number;
+  feeChallanId: number;
+  amount: number;
+  paymentMethod: string;
+  transactionReference?: string;
+  receivedBy?: string;
+  remarks?: string;
+  paidAt: string;
+}
+
+export interface ChallanGenerateRequest {
+  month: number;
+  year: number;
+  classId?: number;
+  academicSessionId: number;
+  dueDayOverride?: number;
+  applyLateFine: boolean;
+}
+
+export interface RecordPaymentRequest {
+  amount: number;
+  paymentMethod: string;
+  transactionReference?: string;
+  receivedBy?: string;
+  remarks?: string;
+}
+
+export interface ChallanSummary {
+  totalChallans: number;
+  paidCount: number;
+  unpaidCount: number;
+  partialCount: number;
+  overdueCount: number;
+  totalAmount: number;
+  collectedAmount: number;
+  pendingAmount: number;
+}

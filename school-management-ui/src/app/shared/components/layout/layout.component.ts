@@ -1,6 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule, TitleCasePipe } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, NavigationEnd } from '@angular/router';
+import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -101,7 +102,7 @@ import { AuthService } from '../../../core/services/auth.service';
           </ul>
         </nav>
         
-        <main class="flex-1 overflow-y-auto bg-academy-50 relative">
+        <main class="flex-1 overflow-y-auto bg-academy-50 relative" #mainContent>
           <div class="p-7 max-w-[1400px] mx-auto min-h-full">
             <router-outlet></router-outlet>
           </div>
@@ -244,11 +245,14 @@ import { AuthService } from '../../../core/services/auth.service';
     }
   `]
 })
-export class LayoutComponent implements OnInit {
+export class LayoutComponent implements OnInit, OnDestroy {
   userName: string | null = null;
   userRoles: string[] = [];
   menuItems: any[] = [];
   showUserDropdown = false;
+
+  @ViewChild('mainContent', { static: false }) mainContent!: ElementRef<HTMLElement>;
+  private routerSub?: Subscription;
 
   constructor(
     private authService: AuthService,
@@ -258,22 +262,26 @@ export class LayoutComponent implements OnInit {
   ngOnInit() {
     this.userName = this.authService.getUserName();
     this.userRoles = this.authService.getUserRoles();
-    
-    // Get menu items based on all user roles
     this.menuItems = this.getMenuItemsForRoles(this.userRoles);
-    
-    // Debug: Log menu items to console
-    console.log('User Roles:', this.userRoles);
-    console.log('Menu Items:', this.menuItems);
-    
-    // If no menu items, try to reload after a short delay
+
     if (this.menuItems.length === 0 && this.userRoles.length > 0) {
       setTimeout(() => {
         this.userRoles = this.authService.getUserRoles();
         this.menuItems = this.getMenuItemsForRoles(this.userRoles);
-        console.log('Retried - Menu Items:', this.menuItems);
       }, 100);
     }
+
+    this.routerSub = this.router.events
+      .pipe(filter(e => e instanceof NavigationEnd))
+      .subscribe(() => {
+        if (this.mainContent?.nativeElement) {
+          this.mainContent.nativeElement.scrollTo({ top: 0 });
+        }
+      });
+  }
+
+  ngOnDestroy() {
+    this.routerSub?.unsubscribe();
   }
 
   logout() {
@@ -370,6 +378,7 @@ export class LayoutComponent implements OnInit {
           expanded: false,
           children: [
             { route: '/admin/fee/structures', label: 'Fee Structures', role: 'admin' },
+            { route: '/admin/fee/challans', label: 'Challans', role: 'admin' },
             { route: '/admin/invoices', label: 'Invoices', role: 'admin' }
           ]
         },

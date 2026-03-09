@@ -1,14 +1,19 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { FeeStructure, CreateFeeStructure, UpdateFeeStructure } from '../models/fee.model';
+import {
+  FeeStructure, CreateFeeStructure, UpdateFeeStructure,
+  FeeChallan, ChallanSummary, ChallanGenerateRequest, RecordPaymentRequest
+} from '../models/fee.model';
 
 @Injectable({ providedIn: 'root' })
 export class FeeService {
   private base = `${environment.apiUrl}/api/fee`;
 
   constructor(private http: HttpClient) {}
+
+  // ─── Fee Structures ──────────────────────────────────
 
   getFeeStructures(): Observable<FeeStructure[]> {
     return this.http.get<FeeStructure[]>(`${this.base}/structures`);
@@ -28,5 +33,38 @@ export class FeeService {
 
   deleteFeeStructure(id: number): Observable<void> {
     return this.http.delete<void>(`${this.base}/structures/${id}`);
+  }
+
+  // ─── Fee Challans ────────────────────────────────────
+
+  getChallans(month?: number, year?: number, status?: string): Observable<FeeChallan[]> {
+    let params = new HttpParams();
+    if (month) params = params.set('month', month);
+    if (year) params = params.set('year', year);
+    if (status) params = params.set('status', status);
+    return this.http.get<FeeChallan[]>(`${this.base}/challans`, { params });
+  }
+
+  getChallanById(id: number): Observable<FeeChallan> {
+    return this.http.get<FeeChallan>(`${this.base}/challans/${id}`);
+  }
+
+  getChallanSummary(month?: number, year?: number): Observable<ChallanSummary> {
+    let params = new HttpParams();
+    if (month) params = params.set('month', month);
+    if (year) params = params.set('year', year);
+    return this.http.get<ChallanSummary>(`${this.base}/challans/summary`, { params });
+  }
+
+  generateChallans(req: ChallanGenerateRequest): Observable<{ count: number }> {
+    return this.http.post<{ count: number }>(`${this.base}/challans/generate`, req);
+  }
+
+  recordPayment(challanId: number, req: RecordPaymentRequest): Observable<FeeChallan> {
+    return this.http.post<FeeChallan>(`${this.base}/challans/${challanId}/pay`, req);
+  }
+
+  waiveChallan(challanId: number, reason: string): Observable<FeeChallan> {
+    return this.http.post<FeeChallan>(`${this.base}/challans/${challanId}/waive`, { reason });
   }
 }
