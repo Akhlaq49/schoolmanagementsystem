@@ -1,5 +1,5 @@
+using SchoolManagementAPI.DTOs;
 using SchoolManagementAPI.Models;
-using SchoolManagementAPI.Models.DTOs;
 
 namespace SchoolManagementAPI.Services;
 

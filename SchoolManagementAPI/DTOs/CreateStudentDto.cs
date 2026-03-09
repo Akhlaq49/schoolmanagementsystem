@@ -1,4 +1,4 @@
-namespace SchoolManagementAPI.Models.DTOs;
+namespace SchoolManagementAPI.DTOs;
 
 public class CreateStudentDto
 {

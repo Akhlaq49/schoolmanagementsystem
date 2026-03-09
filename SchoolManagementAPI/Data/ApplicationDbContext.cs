@@ -49,6 +49,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<Family> Families { get; set; }
     public DbSet<AcademicSession> AcademicSessions { get; set; }
     public DbSet<FeeAddon> FeeAddons { get; set; }
+    public DbSet<FeeStructure> FeeStructures { get; set; }
+    public DbSet<FeeStructureAddon> FeeStructureAddons { get; set; }
     public DbSet<StudentPreviousInstitute> StudentPreviousInstitutes { get; set; }
     public DbSet<StudentAdmission> StudentAdmissions { get; set; }
     public DbSet<Student> Students { get; set; }
@@ -156,6 +158,31 @@ public class ApplicationDbContext : DbContext
             .HasOne(q => q.Teacher)
             .WithMany()
             .HasForeignKey(q => q.TeacherId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Fee Structure
+        modelBuilder.Entity<FeeStructure>()
+            .HasOne(fs => fs.Class)
+            .WithMany()
+            .HasForeignKey(fs => fs.ClassId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<FeeStructure>()
+            .HasOne(fs => fs.AcademicSession)
+            .WithMany()
+            .HasForeignKey(fs => fs.AcademicSessionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<FeeStructureAddon>()
+            .HasOne(fsa => fsa.FeeStructure)
+            .WithMany(fs => fs.Addons)
+            .HasForeignKey(fsa => fsa.FeeStructureId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<FeeStructureAddon>()
+            .HasOne(fsa => fsa.FeeAddon)
+            .WithMany()
+            .HasForeignKey(fsa => fsa.FeeAddonId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

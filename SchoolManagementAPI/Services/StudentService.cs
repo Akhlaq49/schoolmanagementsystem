@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using SchoolManagementAPI.Data;
 using SchoolManagementAPI.Models;
-using SchoolManagementAPI.Models.DTOs;
 using BCrypt.Net;
+using SchoolManagementAPI.DTOs;
 
 namespace SchoolManagementAPI.Services;
 
