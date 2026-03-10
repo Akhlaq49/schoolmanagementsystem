@@ -85,6 +85,41 @@ public class StudentService : IStudentService
             .Select(MergeStudentProfileIntoUser).ToList();
     }
 
+    public async Task<List<User>> SearchStudentsAsync(string term, string? status)
+    {
+        term = term.Trim().ToLower();
+        if (string.IsNullOrWhiteSpace(term))
+        {
+            return new List<User>();
+        }
+
+        var query = _context.Users
+            .Include(u => u.UserRoles)
+            .Include(u => u.StudentProfile!)
+                .ThenInclude(s => s!.Class)
+            .Include(u => u.StudentProfile!)
+                .ThenInclude(s => s!.Section)
+            .Include(u => u.Admission)
+            .Where(u => u.UserRoles.Any(ur => ur.Role == UserRole.Student));
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            status = status.ToLower();
+            query = query.Where(u =>
+                (u.StudentProfile!.Status ?? u.Status ?? "Active").ToLower() == status);
+        }
+
+        var list = await query.ToListAsync();
+
+        return list
+            .Where(u =>
+                (!string.IsNullOrEmpty(u.Name) && u.Name.ToLower().Contains(term)) ||
+                (!string.IsNullOrEmpty(u.Roll) && u.Roll.ToLower().Contains(term)) ||
+                (!string.IsNullOrEmpty(u.Class?.Name) && u.Class.Name.ToLower().Contains(term)))
+            .Select(MergeStudentProfileIntoUser)
+            .ToList();
+    }
+
     private static User MergeStudentProfileIntoUser(User user)
     {
         var s = user.StudentProfile;

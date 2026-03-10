@@ -8,6 +8,7 @@ public interface IStudentService
     Task<List<User>> GetAllStudentsAsync();
     Task<List<User>> GetActiveStudentsAsync();
     Task<List<User>> GetDroppedStudentsAsync();
+    Task<List<User>> SearchStudentsAsync(string term, string? status);
     Task<User> CreateStudentFromDtoAsync(CreateStudentDto dto);
     Task<User?> GetStudentByIdAsync(int id);
     Task<User> CreateStudentAsync(User student);

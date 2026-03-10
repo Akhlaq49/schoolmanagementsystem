@@ -55,6 +55,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<StudentAdmission> StudentAdmissions { get; set; }
     public DbSet<Student> Students { get; set; }
 
+    // Fee Challans & Payments
+    public DbSet<FeeChallan> FeeChallans { get; set; }
+    public DbSet<FeePayment> FeePayments { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -184,5 +188,24 @@ public class ApplicationDbContext : DbContext
             .WithMany()
             .HasForeignKey(fsa => fsa.FeeAddonId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Fee Challan
+        modelBuilder.Entity<FeeChallan>()
+            .HasOne(c => c.Student)
+            .WithMany()
+            .HasForeignKey(c => c.StudentId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<FeeChallan>()
+            .HasOne(c => c.FeeStructure)
+            .WithMany()
+            .HasForeignKey(c => c.FeeStructureId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<FeePayment>()
+            .HasOne(p => p.FeeChallan)
+            .WithMany(c => c.Payments)
+            .HasForeignKey(p => p.FeeChallanId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

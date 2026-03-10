@@ -29,6 +29,20 @@ public class StudentsController : ControllerBase
         return Ok(students);
     }
 
+    [HttpGet("search")]
+    public async Task<ActionResult<List<User>>> SearchStudents(
+        [FromQuery] string term,
+        [FromQuery] string? status = "active")
+    {
+        if (string.IsNullOrWhiteSpace(term))
+        {
+            return Ok(new List<User>());
+        }
+
+        var students = await _studentService.SearchStudentsAsync(term, status);
+        return Ok(students);
+    }
+
     [HttpGet("{id}")]
     public async Task<ActionResult<User>> GetStudent(int id)
     {
