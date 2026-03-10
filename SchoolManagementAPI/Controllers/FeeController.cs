@@ -121,6 +121,16 @@ public class FeeController : ControllerBase
         return Ok(list);
     }
 
+    [HttpGet("defaulters")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<List<FeeChallanResponseDto>>> GetDefaulters(
+        [FromQuery] int? classId,
+        [FromQuery] string? status)
+    {
+        var list = await _challanService.GetDefaultersAsync(classId, status);
+        return Ok(list);
+    }
+
     [HttpPost("challans/generate")]
     [Authorize(Roles = "admin")]
     public async Task<ActionResult> GenerateChallans([FromBody] ChallanGenerateRequestDto dto)

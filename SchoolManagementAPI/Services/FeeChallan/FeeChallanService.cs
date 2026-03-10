@@ -93,6 +93,41 @@ public class FeeChallanService : IFeeChallanService
         return list.Select(MapToResponse).ToList();
     }
 
+    public async Task<List<FeeChallanResponseDto>> GetDefaultersAsync(int? classId, string? status)
+    {
+        var query = _context.FeeChallans
+            .AsNoTracking()
+            .Include(c => c.Student).ThenInclude(s => s.Class)
+            .Include(c => c.Student).ThenInclude(s => s.Section)
+            .Include(c => c.FeeStructure)
+            .Include(c => c.Payments)
+            .AsQueryable();
+
+        // base defaulter set: unpaid / overdue / partial
+        query = query.Where(c =>
+            c.Status == "Unpaid" ||
+            c.Status == "Overdue" ||
+            c.Status == "Partial");
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            query = query.Where(c => c.Status == status);
+        }
+
+        if (classId.HasValue && classId.Value > 0)
+        {
+            query = query.Where(c => c.Student.ClassId == classId.Value);
+        }
+
+        var list = await query
+            .OrderByDescending(c => c.Year)
+            .ThenByDescending(c => c.Month)
+            .ThenByDescending(c => c.FeeChallanId)
+            .ToListAsync();
+
+        return list.Select(MapToResponse).ToList();
+    }
+
     public async Task<int> GenerateChallansAsync(ChallanGenerateRequestDto dto)
     {
         var studentsQuery = _context.Students

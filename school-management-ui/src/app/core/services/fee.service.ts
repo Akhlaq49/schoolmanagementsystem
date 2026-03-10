@@ -62,6 +62,13 @@ export class FeeService {
     return this.http.get<FeeChallan[]>(`${this.base}/student/${studentId}/challans`, { params });
   }
 
+  getDefaulters(classId?: number, status?: string): Observable<FeeChallan[]> {
+    let params = new HttpParams();
+    if (classId) params = params.set('classId', classId);
+    if (status) params = params.set('status', status);
+    return this.http.get<FeeChallan[]>(`${this.base}/defaulters`, { params });
+  }
+
   generateChallans(req: ChallanGenerateRequest): Observable<{ count: number }> {
     return this.http.post<{ count: number }>(`${this.base}/challans/generate`, req);
   }

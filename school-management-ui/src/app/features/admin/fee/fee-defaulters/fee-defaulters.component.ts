@@ -27,10 +27,6 @@ import { NotificationService } from '../../../../shared/services/notification.se
             <p class="page-subtitle">Monitor overdue challans, take action, and send reminders</p>
           </div>
           <div class="header-actions">
-            <label class="toggle-label">
-              <input type="checkbox" [(ngModel)]="groupByFamily">
-              <span>Group by family (UI only)</span>
-            </label>
             <button class="btn btn-outline" (click)="exportCsv()" [disabled]="defaulters.length === 0">
               <i class="fa fa-download"></i> Export CSV
             </button>
@@ -523,19 +519,15 @@ export class FeeDefaultersComponent implements OnInit {
         this.classService.getAllClasses().subscribe({
           next: classes => {
             this.classes = classes;
-            this.feeService.getChallans().subscribe({
+            this.feeService.getDefaulters().subscribe({
               next: challans => {
-                // defaulters = unpaid/overdue/partial
-                this.defaulters = challans.filter(c => {
-                  const s = (c.status || '').toLowerCase();
-                  return s === 'unpaid' || s === 'overdue' || s === 'partial';
-                });
+                this.defaulters = challans;
                 this.loading = false;
                 this.applyFilters();
               },
               error: () => {
                 this.loading = false;
-                this.notify.error('Failed to load challans');
+                this.notify.error('Failed to load defaulters');
               }
             });
           },
