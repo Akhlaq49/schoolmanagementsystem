@@ -120,7 +120,7 @@ const MONTH_NAMES = [
             placeholder="All Status"
             [placeholderValue]="''"
             [searchable]="false"
-            (changed)="applyFilters()">
+            (changed)="onFilterChange()">
           </app-dropdown>
         </div>
       </div>
@@ -185,14 +185,14 @@ const MONTH_NAMES = [
                 <td class="amount-paid">{{ c.paidAmount | number:'1.2-2' }}</td>
                 <td class="amount-balance">{{ c.balance | number:'1.2-2' }}</td>
                 <td>
-                  <span class="status-badge" [ngClass]="'badge-' + c.status">
+                  <span class="status-badge" [ngClass]="'badge-' + (c.status || '').toLowerCase()">
                     {{ c.status | titlecase }}
                   </span>
                 </td>
                 <td>
                   <div class="modern-table-actions">
                     <button class="modern-btn-icon modern-btn-pay"
-                            *ngIf="c.status !== 'paid' && c.status !== 'waived'"
+                            *ngIf="canPayOrWaive(c)"
                             title="Record Payment"
                             (click)="openPaymentModal(c)">
                       <i class="fa fa-money"></i>
@@ -208,7 +208,7 @@ const MONTH_NAMES = [
                       <i class="fa fa-print"></i>
                     </button>
                     <button class="modern-btn-icon modern-btn-waive"
-                            *ngIf="c.status !== 'paid' && c.status !== 'waived'"
+                            *ngIf="canPayOrWaive(c)"
                             title="Waive"
                             (click)="waive(c)">
                       <i class="fa fa-ban"></i>
@@ -401,7 +401,7 @@ const MONTH_NAMES = [
                 <span class="detail-student-name">{{ detailChallan.studentName }}</span>
                 <span class="sub-text">{{ detailChallan.className }}{{ detailChallan.sectionName ? ' - ' + detailChallan.sectionName : '' }}</span>
               </div>
-              <span class="status-badge" [ngClass]="'badge-' + detailChallan.status" style="margin-left:auto">
+              <span class="status-badge" [ngClass]="'badge-' + (detailChallan.status || '').toLowerCase()" style="margin-left:auto">
                 {{ detailChallan.status | titlecase }}
               </span>
             </div>
@@ -494,9 +494,38 @@ const MONTH_NAMES = [
         </div>
       </div>
 
+      <!-- ═══════════════════════════════════════════════════════
+           MODAL: Waive Challan (reason input)
+           ═══════════════════════════════════════════════════════ -->
+      <div class="modal-backdrop" *ngIf="showWaiveModal" (click)="showWaiveModal = false">
+        <div class="modal-card modal-md" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h3><i class="fa fa-ban"></i> Waive Challan</h3>
+            <button class="modal-close" (click)="showWaiveModal = false"><i class="fa fa-times"></i></button>
+          </div>
+          <div class="modal-body" *ngIf="waiveChallan">
+            <p class="waive-prompt">Are you sure you want to waive challan <strong>{{ waiveChallan.challanNumber }}</strong> for <strong>{{ waiveChallan.studentName }}</strong>?</p>
+            <div class="academy-form-group" style="margin-top: 1.25rem">
+              <label>Reason for waiving <span class="required">*</span></label>
+              <textarea class="academy-input" rows="3" [(ngModel)]="waiveReason"
+                        placeholder="e.g. Scholarship granted, Financial hardship..."></textarea>
+              <span class="waive-error" *ngIf="waiveError">{{ waiveError }}</span>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" (click)="showWaiveModal = false">Cancel</button>
+            <button class="btn btn-primary" (click)="submitWaive()" [disabled]="waiving">
+              <i class="fa" [ngClass]="waiving ? 'fa-spinner fa-spin' : 'fa-ban'"></i>
+              {{ waiving ? 'Waiving...' : 'Waive Challan' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Confirm Dialog -->
       <app-confirm-dialog
         *ngIf="confirmVisible"
+        [show]="true"
         [title]="confirmTitle"
         [message]="confirmMessage"
         (confirmed)="onConfirmed()"
@@ -748,6 +777,8 @@ const MONTH_NAMES = [
     }
     .academy-input:focus { outline: none; border-color: #1e3a5f; box-shadow: 0 0 0 4px rgba(30,58,95,0.12); }
     .form-hint { margin-top: 0.35rem; font-size: 0.78rem; color: #8aa8c4; }
+    .waive-prompt { margin: 0; font-size: 0.9375rem; color: #435d7a; line-height: 1.6; }
+    .waive-error { display: block; margin-top: 0.5rem; font-size: 0.8125rem; color: #dc2626; }
     .toggle-label {
       display: flex; align-items: center; gap: 0.6rem; cursor: pointer;
       font-size: 0.9375rem; font-weight: 500; color: #435d7a;
@@ -869,11 +900,11 @@ export class FeeChallansComponent implements OnInit {
   years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
 
   statusOptions: DropdownOption[] = [
-    { value: 'unpaid', label: 'Unpaid' },
-    { value: 'partial', label: 'Partial' },
-    { value: 'paid', label: 'Paid' },
-    { value: 'overdue', label: 'Overdue' },
-    { value: 'waived', label: 'Waived' }
+    { value: 'Unpaid', label: 'Unpaid' },
+    { value: 'Partial', label: 'Partial' },
+    { value: 'Paid', label: 'Paid' },
+    { value: 'Overdue', label: 'Overdue' },
+    { value: 'Waived', label: 'Waived' }
   ];
   pageSizeOptions: DropdownOption[] = [
     { value: 10, label: '10' },
@@ -922,6 +953,13 @@ export class FeeChallansComponent implements OnInit {
   showDetailModal = false;
   detailChallan: FeeChallan | null = null;
 
+  // Waive Modal
+  showWaiveModal = false;
+  waiveChallan: FeeChallan | null = null;
+  waiveReason = '';
+  waiveError = '';
+  waiving = false;
+
   // Confirm
   confirmVisible = false;
   confirmTitle = '';
@@ -938,13 +976,14 @@ export class FeeChallansComponent implements OnInit {
     this.loadData();
   }
 
-  loadData() {
-    this.loading = true;
+  loadData(skipFullLoading = false) {
+    if (!skipFullLoading) this.loading = true;
     const m = this.filterMonth || undefined;
     const y = this.filterYear || undefined;
+    const s = (this.filterStatus || '').trim() || undefined;
 
     forkJoin({
-      challans: this.feeService.getChallans(m, y).pipe(catchError(() => of([] as FeeChallan[]))),
+      challans: this.feeService.getChallans(m, y, s).pipe(catchError(() => of([] as FeeChallan[]))),
       summary: this.feeService.getChallanSummary(m, y).pipe(catchError(() => of(this.summary))),
       sessions: this.sessionService.getAll().pipe(catchError(() => of([] as AcademicSession[])))
     }).subscribe({
@@ -969,14 +1008,15 @@ export class FeeChallansComponent implements OnInit {
   }
 
   onFilterChange() {
-    this.loadData();
+    this.loadData(true);
   }
 
   applyFilters() {
     let list = [...this.challans];
 
     if (this.filterStatus) {
-      list = list.filter(c => c.status === this.filterStatus);
+      const statusLower = (this.filterStatus || '').toLowerCase();
+      list = list.filter(c => (c.status || '').toLowerCase() === statusLower);
     }
     if (this.searchTerm.trim()) {
       const term = this.searchTerm.toLowerCase();
@@ -1020,6 +1060,11 @@ export class FeeChallansComponent implements OnInit {
   getStudentInitials(c: FeeChallan): string {
     if (!c.studentName) return '?';
     return c.studentName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  }
+
+  canPayOrWaive(c: FeeChallan): boolean {
+    const s = (c.status || '').toLowerCase();
+    return s !== 'paid' && s !== 'waived';
   }
 
   // ─── Generate ──────────────────────────────────────────
@@ -1144,20 +1189,34 @@ export class FeeChallansComponent implements OnInit {
   // ─── Waive ─────────────────────────────────────────────
 
   waive(c: FeeChallan) {
-    this.confirmTitle = 'Waive Challan';
-    this.confirmMessage = `Are you sure you want to waive challan ${c.challanNumber} for ${c.studentName}?`;
-    this.pendingAction = () => {
-      const reason = prompt('Please enter the reason for waiving:');
-      if (reason === null) return;
-      this.feeService.waiveChallan(c.feeChallanId, reason).subscribe({
-        next: () => {
-          this.notify.success('Challan waived successfully');
-          this.loadData();
-        },
-        error: (err) => this.notify.error(err?.error?.message || 'Failed to waive challan')
-      });
-    };
-    this.confirmVisible = true;
+    this.waiveChallan = c;
+    this.waiveReason = '';
+    this.waiveError = '';
+    this.showWaiveModal = true;
+  }
+
+  submitWaive() {
+    if (!this.waiveChallan) return;
+    const reason = (this.waiveReason || '').trim();
+    if (!reason) {
+      this.waiveError = 'Please enter a reason for waiving';
+      return;
+    }
+    this.waiveError = '';
+    this.waiving = true;
+    this.feeService.waiveChallan(this.waiveChallan.feeChallanId, reason).subscribe({
+      next: () => {
+        this.notify.success('Challan waived successfully');
+        this.showWaiveModal = false;
+        this.waiveChallan = null;
+        this.waiving = false;
+        this.loadData();
+      },
+      error: (err) => {
+        this.notify.error(err?.error?.message || 'Failed to waive challan');
+        this.waiving = false;
+      }
+    });
   }
 
   onConfirmed() {

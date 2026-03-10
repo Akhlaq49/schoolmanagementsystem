@@ -67,6 +67,14 @@ export class StudentService {
     );
   }
 
+  searchActiveStudents(term: string): Observable<Student[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/search`, {
+      params: { term, status: 'active' }
+    }).pipe(
+      map(list => list.map(s => this.mapApiStudentToModel(s)))
+    );
+  }
+
   getStudentsByClass(classId: number): Observable<Student[]> {
     return this.http.get<any[]>(`${this.apiUrl}/class/${classId}`).pipe(
       map(list => list.map(s => this.mapApiStudentToModel(s)))

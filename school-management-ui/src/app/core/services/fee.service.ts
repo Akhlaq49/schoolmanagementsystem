@@ -56,6 +56,12 @@ export class FeeService {
     return this.http.get<ChallanSummary>(`${this.base}/challans/summary`, { params });
   }
 
+  getStudentChallans(studentId: number, status?: string): Observable<FeeChallan[]> {
+    let params = new HttpParams();
+    if (status) params = params.set('status', status);
+    return this.http.get<FeeChallan[]>(`${this.base}/student/${studentId}/challans`, { params });
+  }
+
   generateChallans(req: ChallanGenerateRequest): Observable<{ count: number }> {
     return this.http.post<{ count: number }>(`${this.base}/challans/generate`, req);
   }

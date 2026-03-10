@@ -113,6 +113,14 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./sessions/sessions.component').then(m => m.SessionsComponent)
       },
       {
+        path: 'fee/student',
+        loadComponent: () => import('./fee/student-fee/student-fee.component').then(m => m.StudentFeeComponent)
+      },
+      {
+        path: 'fee/student/:id',
+        loadComponent: () => import('./fee/student-fee/student-fee.component').then(m => m.StudentFeeComponent)
+      },
+      {
         path: 'dormitories',
         loadComponent: () => import('./dormitories/dormitories.component').then(m => m.DormitoriesComponent)
       },
