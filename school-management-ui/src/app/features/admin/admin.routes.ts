@@ -121,6 +121,10 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./fee/student-fee/student-fee.component').then(m => m.StudentFeeComponent)
       },
       {
+        path: 'fee/defaulters',
+        loadComponent: () => import('./fee/fee-defaulters/fee-defaulters.component').then(m => m.FeeDefaultersComponent)
+      },
+      {
         path: 'dormitories',
         loadComponent: () => import('./dormitories/dormitories.component').then(m => m.DormitoriesComponent)
       },
