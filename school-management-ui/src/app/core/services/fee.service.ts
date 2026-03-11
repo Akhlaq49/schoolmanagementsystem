@@ -5,7 +5,8 @@ import { environment } from '../../../environments/environment';
 import {
   FeeStructure, CreateFeeStructure, UpdateFeeStructure,
   FeeChallan, ChallanSummary, ChallanGenerateRequest, RecordPaymentRequest,
-  FeeDiscount, CreateFeeDiscount, UpdateFeeDiscount, FeeDiscountAssignment
+  FeeDiscount, CreateFeeDiscount, UpdateFeeDiscount, FeeDiscountAssignment,
+  CollectionPayment, CollectionSummary
 } from '../models/fee.model';
 
 @Injectable({ providedIn: 'root' })
@@ -80,6 +81,22 @@ export class FeeService {
 
   waiveChallan(challanId: number, reason: string): Observable<FeeChallan> {
     return this.http.post<FeeChallan>(`${this.base}/challans/${challanId}/waive`, { reason });
+  }
+
+  // ─── Collection Register ───────────────────────────────
+
+  getCollectionPayments(start?: string, end?: string): Observable<CollectionPayment[]> {
+    let params = new HttpParams();
+    if (start) params = params.set('start', start);
+    if (end) params = params.set('end', end);
+    return this.http.get<CollectionPayment[]>(`${this.base}/collection/payments`, { params });
+  }
+
+  getCollectionSummary(start?: string, end?: string): Observable<CollectionSummary> {
+    let params = new HttpParams();
+    if (start) params = params.set('start', start);
+    if (end) params = params.set('end', end);
+    return this.http.get<CollectionSummary>(`${this.base}/collection/summary`, { params });
   }
 
   // ─── Fee Discounts ────────────────────────────────────

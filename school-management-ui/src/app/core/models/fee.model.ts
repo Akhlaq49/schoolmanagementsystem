@@ -112,6 +112,33 @@ export interface ChallanSummary {
   pendingAmount: number;
 }
 
+// ─── Collection Register ─────────────────────────────────
+
+export interface CollectionPayment {
+  feePaymentId: number;
+  feeChallanId: number;
+  challanNumber: string;
+  studentId: number;
+  studentName: string;
+  amount: number;
+  paymentMethod: string;
+  transactionReference?: string;
+  receivedBy?: string;
+  remarks?: string;
+  paidAt: string;
+}
+
+export interface CollectionSummary {
+  cashTotal: number;
+  cashCount: number;
+  bankTotal: number;
+  bankCount: number;
+  onlineTotal: number;
+  onlineCount: number;
+  grandTotal: number;
+  totalCount: number;
+}
+
 // ─── Fee Discounts ──────────────────────────────────────
 
 export interface FeeDiscount {
