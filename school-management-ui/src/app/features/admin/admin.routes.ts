@@ -89,6 +89,10 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./fee/fee-discounts/fee-discounts.component').then(m => m.FeeDiscountsComponent)
       },
       {
+        path: 'fee/collection',
+        loadComponent: () => import('./fee/fee-collection/fee-collection.component').then(m => m.FeeCollectionComponent)
+      },
+      {
         path: 'invoices',
         loadComponent: () => import('./invoices/invoices.component').then(m => m.InvoicesComponent)
       },
