@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FeeService } from '../../../../core/services/fee.service';
-import { FeeChallan, FeePayment } from '../../../../core/models/fee.model';
+import { CollectionPayment } from '../../../../core/models/fee.model';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
 
@@ -466,7 +466,6 @@ export class FeeCollectionComponent implements OnInit {
 
   ngOnInit(): void {
     this.setToday();
-    this.loadData();
   }
 
   setToday(): void {
@@ -483,16 +482,50 @@ export class FeeCollectionComponent implements OnInit {
     this.applyDateFilter();
   }
 
-  loadData(): void {
+  applyDateFilter(): void {
+    if (!this.startDate && !this.endDate) {
+      this.filteredPayments = [];
+      this.updateSummaryFromBackend(0, 0, 0, 0, 0, 0, 0, 0);
+      this.paginate();
+      return;
+    }
+
+    this.loadFromBackend();
+  }
+
+  private loadFromBackend(): void {
     this.loading = true;
-    this.feeService.getChallans().subscribe({
-      next: (challans) => {
-        this.allPayments = this.extractPayments(challans);
-        this.applyDateFilter();
+
+    const start = this.startDate || undefined;
+    const end = this.endDate || undefined;
+
+    this.feeService.getCollectionPayments(start, end).subscribe({
+      next: (payments) => {
+        this.allPayments = this.mapPayments(payments);
+        this.filteredPayments = [...this.allPayments];
+        this.paginate();
       },
       error: () => {
-        this.notify.error('Failed to load collection data.');
+        this.notify.error('Failed to load collection payments.');
         this.loading = false;
+      }
+    });
+
+    this.feeService.getCollectionSummary(start, end).subscribe({
+      next: (summary) => {
+        this.updateSummaryFromBackend(
+          summary.cashTotal,
+          summary.cashCount,
+          summary.bankTotal,
+          summary.bankCount,
+          summary.onlineTotal,
+          summary.onlineCount,
+          summary.grandTotal,
+          summary.totalCount
+        );
+      },
+      error: () => {
+        // Do not block UI if summary fails
       },
       complete: () => {
         this.loading = false;
@@ -500,78 +533,39 @@ export class FeeCollectionComponent implements OnInit {
     });
   }
 
-  extractPayments(challans: FeeChallan[]): PaymentRecord[] {
-    const payments: PaymentRecord[] = [];
-    challans.forEach(challan => {
-      if (challan.payments && challan.payments.length > 0) {
-        challan.payments.forEach((payment, index) => {
-          payments.push({
-            receiptNumber: `RCP-${payment.feePaymentId.toString().padStart(6, '0')}`,
-            studentName: challan.studentName || 'Unknown',
-            challanNumber: challan.challanNumber,
-            amount: payment.amount,
-            paymentMethod: payment.paymentMethod || 'Cash',
-            receivedBy: payment.receivedBy || 'N/A',
-            paidAt: payment.paidAt,
-            challanId: challan.feeChallanId,
-            paymentId: payment.feePaymentId
-          });
-        });
-      }
-    });
-    // Sort by date (newest first)
-    return payments.sort((a, b) => new Date(b.paidAt).getTime() - new Date(a.paidAt).getTime());
+  private mapPayments(apiPayments: CollectionPayment[]): PaymentRecord[] {
+    return apiPayments
+      .map(p => ({
+        receiptNumber: `RCP-${p.feePaymentId.toString().padStart(6, '0')}`,
+        studentName: p.studentName || 'Unknown',
+        challanNumber: p.challanNumber,
+        amount: p.amount,
+        paymentMethod: p.paymentMethod || 'Cash',
+        receivedBy: p.receivedBy || 'N/A',
+        paidAt: p.paidAt,
+        challanId: p.feeChallanId,
+        paymentId: p.feePaymentId
+      }))
+      .sort((a, b) => new Date(b.paidAt).getTime() - new Date(a.paidAt).getTime());
   }
 
-  applyDateFilter(): void {
-    if (!this.startDate && !this.endDate) {
-      this.filteredPayments = [];
-      this.updateSummary();
-      this.paginate();
-      return;
-    }
-
-    const start = this.startDate ? new Date(this.startDate) : null;
-    const end = this.endDate ? new Date(this.endDate) : null;
-
-    if (start) start.setHours(0, 0, 0, 0);
-    if (end) end.setHours(23, 59, 59, 999);
-
-    this.filteredPayments = this.allPayments.filter(payment => {
-      const paymentDate = new Date(payment.paidAt);
-      if (start && paymentDate < start) return false;
-      if (end && paymentDate > end) return false;
-      return true;
-    });
-
-    this.updateSummary();
-    this.paginate();
-  }
-
-  updateSummary(): void {
-    this.cashTotal = 0;
-    this.cashCount = 0;
-    this.bankTotal = 0;
-    this.bankCount = 0;
-    this.onlineTotal = 0;
-    this.onlineCount = 0;
-    this.totalAmount = 0;
-
-    this.filteredPayments.forEach(payment => {
-      const method = payment.paymentMethod.toLowerCase();
-      this.totalAmount += payment.amount;
-
-      if (method === 'cash') {
-        this.cashTotal += payment.amount;
-        this.cashCount++;
-      } else if (method === 'bank' || method === 'bank transfer' || method === 'transfer') {
-        this.bankTotal += payment.amount;
-        this.bankCount++;
-      } else if (method === 'online' || method === 'card' || method === 'credit card' || method === 'debit card') {
-        this.onlineTotal += payment.amount;
-        this.onlineCount++;
-      }
-    });
+  private updateSummaryFromBackend(
+    cashTotal: number,
+    cashCount: number,
+    bankTotal: number,
+    bankCount: number,
+    onlineTotal: number,
+    onlineCount: number,
+    grandTotal: number,
+    totalCount: number
+  ): void {
+    this.cashTotal = cashTotal;
+    this.cashCount = cashCount;
+    this.bankTotal = bankTotal;
+    this.bankCount = bankCount;
+    this.onlineTotal = onlineTotal;
+    this.onlineCount = onlineCount;
+    this.totalAmount = grandTotal;
   }
 
   paginate(): void {
