@@ -78,3 +78,35 @@ public class ChallanSummaryDto
     public decimal CollectedAmount { get; set; }
     public decimal PendingAmount { get; set; }
 }
+
+// ─── Collection Register DTOs ───────────────────────────
+
+public class CollectionPaymentDto
+{
+    public int FeePaymentId { get; set; }
+    public int FeeChallanId { get; set; }
+    public string ChallanNumber { get; set; } = string.Empty;
+    public int StudentId { get; set; }
+    public string StudentName { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string PaymentMethod { get; set; } = string.Empty;
+    public string? TransactionReference { get; set; }
+    public string? ReceivedBy { get; set; }
+    public string? Remarks { get; set; }
+    public DateTime PaidAt { get; set; }
+}
+
+public class CollectionSummaryDto
+{
+    public decimal CashTotal { get; set; }
+    public int CashCount { get; set; }
+
+    public decimal BankTotal { get; set; }
+    public int BankCount { get; set; }
+
+    public decimal OnlineTotal { get; set; }
+    public int OnlineCount { get; set; }
+
+    public decimal GrandTotal { get; set; }
+    public int TotalCount { get; set; }
+}

@@ -114,6 +114,26 @@ public class FeeController : ControllerBase
         return Ok(summary);
     }
 
+    // ─── Collection Register (Payments) ──────────────────
+
+    [HttpGet("collection/payments")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<List<CollectionPaymentDto>>> GetCollectionPayments(
+        [FromQuery] DateTime? start, [FromQuery] DateTime? end)
+    {
+        var list = await _challanService.GetCollectionPaymentsAsync(start, end);
+        return Ok(list);
+    }
+
+    [HttpGet("collection/summary")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<CollectionSummaryDto>> GetCollectionSummary(
+        [FromQuery] DateTime? start, [FromQuery] DateTime? end)
+    {
+        var summary = await _challanService.GetCollectionSummaryAsync(start, end);
+        return Ok(summary);
+    }
+
     [HttpGet("student/{studentId}/challans")]
     [Authorize(Roles = "admin")]
     public async Task<ActionResult<List<FeeChallanResponseDto>>> GetStudentChallans(

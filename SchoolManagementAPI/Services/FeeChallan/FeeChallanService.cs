@@ -68,6 +68,94 @@ public class FeeChallanService : IFeeChallanService
         };
     }
 
+    public async Task<List<CollectionPaymentDto>> GetCollectionPaymentsAsync(DateTime? start, DateTime? end)
+    {
+        var query = _context.FeePayments
+            .AsNoTracking()
+            .Include(p => p.FeeChallan)
+                .ThenInclude(c => c.Student)
+            .AsQueryable();
+
+        if (start.HasValue)
+        {
+            var s = start.Value.Date;
+            query = query.Where(p => p.PaidAt >= s);
+        }
+
+        if (end.HasValue)
+        {
+            var e = end.Value.Date.AddDays(1).AddTicks(-1);
+            query = query.Where(p => p.PaidAt <= e);
+        }
+
+        var list = await query
+            .OrderByDescending(p => p.PaidAt)
+            .ToListAsync();
+
+        return list.Select(p => new CollectionPaymentDto
+        {
+            FeePaymentId = p.FeePaymentId,
+            FeeChallanId = p.FeeChallanId,
+            ChallanNumber = p.FeeChallan.ChallanNumber,
+            StudentId = p.FeeChallan.StudentId,
+            StudentName = p.FeeChallan.Student?.Name ?? string.Empty,
+            Amount = p.Amount,
+            PaymentMethod = p.PaymentMethod,
+            TransactionReference = p.TransactionReference,
+            ReceivedBy = p.ReceivedBy,
+            Remarks = p.Remarks,
+            PaidAt = p.PaidAt
+        }).ToList();
+    }
+
+    public async Task<CollectionSummaryDto> GetCollectionSummaryAsync(DateTime? start, DateTime? end)
+    {
+        var payments = await GetCollectionPaymentsAsync(start, end);
+
+        decimal cashTotal = 0;
+        int cashCount = 0;
+        decimal bankTotal = 0;
+        int bankCount = 0;
+        decimal onlineTotal = 0;
+        int onlineCount = 0;
+        decimal grandTotal = 0;
+        int totalCount = payments.Count;
+
+        foreach (var p in payments)
+        {
+            grandTotal += p.Amount;
+            var method = p.PaymentMethod?.ToLowerInvariant() ?? "cash";
+
+            if (method == "cash")
+            {
+                cashTotal += p.Amount;
+                cashCount++;
+            }
+            else if (method == "bank" || method == "bank transfer" || method == "transfer")
+            {
+                bankTotal += p.Amount;
+                bankCount++;
+            }
+            else if (method == "online" || method == "card" || method == "credit card" || method == "debit card")
+            {
+                onlineTotal += p.Amount;
+                onlineCount++;
+            }
+        }
+
+        return new CollectionSummaryDto
+        {
+            CashTotal = cashTotal,
+            CashCount = cashCount,
+            BankTotal = bankTotal,
+            BankCount = bankCount,
+            OnlineTotal = onlineTotal,
+            OnlineCount = onlineCount,
+            GrandTotal = grandTotal,
+            TotalCount = totalCount
+        };
+    }
+
     public async Task<List<FeeChallanResponseDto>> GetByStudentAsync(int studentId, string? status)
     {
         var query = _context.FeeChallans
