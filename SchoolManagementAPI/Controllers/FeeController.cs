@@ -12,11 +12,13 @@ public class FeeController : ControllerBase
 {
     private readonly IFeeStructureService _structureService;
     private readonly IFeeChallanService _challanService;
+    private readonly IFeeDiscountService _discountService;
 
-    public FeeController(IFeeStructureService structureService, IFeeChallanService challanService)
+    public FeeController(IFeeStructureService structureService, IFeeChallanService challanService, IFeeDiscountService discountService)
     {
         _structureService = structureService;
         _challanService = challanService;
+        _discountService = discountService;
     }
 
     [HttpGet("structures")]
@@ -167,5 +169,94 @@ public class FeeController : ControllerBase
         var result = await _challanService.WaiveChallanAsync(id, dto.Reason);
         if (result == null) return NotFound();
         return Ok(result);
+    }
+
+    // ─── Fee Discounts ────────────────────────────────────
+
+    [HttpGet("discounts")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<List<FeeDiscountResponseDto>>> GetDiscounts(
+        [FromQuery] string? scope, [FromQuery] string? status)
+    {
+        var list = await _discountService.GetAllAsync(scope, status);
+        return Ok(list);
+    }
+
+    [HttpGet("discounts/{id}")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<FeeDiscountResponseDto>> GetDiscountById(int id)
+    {
+        var item = await _discountService.GetByIdAsync(id);
+        if (item == null) return NotFound();
+        return Ok(item);
+    }
+
+    [HttpPost("discounts")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<FeeDiscountResponseDto>> CreateDiscount([FromBody] CreateFeeDiscountDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Name))
+            return BadRequest(new { message = "Name is required." });
+        if (dto.Value < 0)
+            return BadRequest(new { message = "Value must be non-negative." });
+        var created = await _discountService.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetDiscountById), new { id = created.FeeDiscountId }, created);
+    }
+
+    [HttpPut("discounts/{id}")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<FeeDiscountResponseDto>> UpdateDiscount(int id, [FromBody] UpdateFeeDiscountDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Name))
+            return BadRequest(new { message = "Name is required." });
+        if (dto.Value < 0)
+            return BadRequest(new { message = "Value must be non-negative." });
+        var updated = await _discountService.UpdateAsync(id, dto);
+        if (updated == null) return NotFound();
+        return Ok(updated);
+    }
+
+    [HttpDelete("discounts/{id}")]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> DeleteDiscount(int id)
+    {
+        var ok = await _discountService.DeleteAsync(id);
+        if (!ok) return NotFound();
+        return NoContent();
+    }
+
+    [HttpGet("discounts/{id}/assignments")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<List<FeeDiscountAssignmentResponseDto>>> GetDiscountAssignments(int id)
+    {
+        var list = await _discountService.GetAssignmentsAsync(id);
+        return Ok(list);
+    }
+
+    [HttpPost("discounts/{id}/assign/student/{studentId}")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<FeeDiscountAssignmentResponseDto>> AssignDiscountToStudent(int id, int studentId)
+    {
+        var result = await _discountService.AssignToStudentAsync(id, studentId);
+        if (result == null) return BadRequest(new { message = "Discount not found, invalid scope, or already assigned." });
+        return Ok(result);
+    }
+
+    [HttpPost("discounts/{id}/assign/family/{familyId}")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<FeeDiscountAssignmentResponseDto>> AssignDiscountToFamily(int id, int familyId)
+    {
+        var result = await _discountService.AssignToFamilyAsync(id, familyId);
+        if (result == null) return BadRequest(new { message = "Discount not found, invalid scope, or already assigned." });
+        return Ok(result);
+    }
+
+    [HttpDelete("discounts/assignments/{assignmentId}")]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> UnassignDiscount(int assignmentId)
+    {
+        var ok = await _discountService.UnassignAsync(assignmentId);
+        if (!ok) return NotFound();
+        return NoContent();
     }
 }

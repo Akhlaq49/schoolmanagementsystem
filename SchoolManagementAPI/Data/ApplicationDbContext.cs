@@ -58,6 +58,8 @@ public class ApplicationDbContext : DbContext
     // Fee Challans & Payments
     public DbSet<FeeChallan> FeeChallans { get; set; }
     public DbSet<FeePayment> FeePayments { get; set; }
+    public DbSet<FeeDiscount> FeeDiscounts { get; set; }
+    public DbSet<FeeDiscountAssignment> FeeDiscountAssignments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -206,6 +208,24 @@ public class ApplicationDbContext : DbContext
             .HasOne(p => p.FeeChallan)
             .WithMany(c => c.Payments)
             .HasForeignKey(p => p.FeeChallanId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<FeeDiscountAssignment>()
+            .HasOne(a => a.FeeDiscount)
+            .WithMany(d => d.Assignments)
+            .HasForeignKey(a => a.FeeDiscountId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<FeeDiscountAssignment>()
+            .HasOne(a => a.Student)
+            .WithMany()
+            .HasForeignKey(a => a.StudentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<FeeDiscountAssignment>()
+            .HasOne(a => a.Family)
+            .WithMany()
+            .HasForeignKey(a => a.FamilyId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

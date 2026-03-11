@@ -148,6 +148,7 @@ builder.Services.AddScoped<IFamilyService, FamilyService>();
 builder.Services.AddScoped<IFeeAddonService, FeeAddonService>();
 builder.Services.AddScoped<IFeeStructureService, FeeStructureService>();
 builder.Services.AddScoped<IFeeChallanService, FeeChallanService>();
+builder.Services.AddScoped<IFeeDiscountService, FeeDiscountService>();
 builder.Services.AddScoped<IAcademicSessionService, AcademicSessionService>();
 
 // WhatsApp Service (Twilio)
