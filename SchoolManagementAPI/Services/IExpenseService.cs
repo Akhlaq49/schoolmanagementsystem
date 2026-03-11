@@ -15,5 +15,6 @@ public interface IExpenseService
     Task<Payment> CreateExpenseAsync(Payment expense);
     Task<Payment?> UpdateExpenseAsync(int id, Payment expense);
     Task<bool> DeleteExpenseAsync(int id);
+    Task<IncomeExpenseReportDto> GetIncomeExpenseReportAsync(DateTime start, DateTime end);
 }
 

@@ -11,6 +11,10 @@ public interface IFeeChallanService
     Task<CollectionSummaryDto> GetCollectionSummaryAsync(DateTime? start, DateTime? end);
     Task<List<FeeChallanResponseDto>> GetByStudentAsync(int studentId, string? status);
     Task<List<FeeChallanResponseDto>> GetDefaultersAsync(int? classId, string? status);
+    Task<MonthlySummaryReportDto> GetMonthlySummaryReportAsync(int? month, int? year, int? classId);
+    Task<List<ClassSummaryReportRowDto>> GetClassSummaryReportAsync(int? academicSessionId);
+    Task<AgingReportDto> GetAgingReportAsync(DateTime? asOfDate, int? classId);
+    Task<DiscountReportDto> GetDiscountReportAsync(DateTime? start, DateTime? end, int? discountId);
     Task<int> GenerateChallansAsync(ChallanGenerateRequestDto dto);
     Task<FeeChallanResponseDto?> RecordPaymentAsync(int challanId, RecordPaymentRequestDto dto);
     Task<FeeChallanResponseDto?> WaiveChallanAsync(int challanId, string reason);

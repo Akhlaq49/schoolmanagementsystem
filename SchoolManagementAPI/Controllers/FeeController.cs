@@ -13,12 +13,18 @@ public class FeeController : ControllerBase
     private readonly IFeeStructureService _structureService;
     private readonly IFeeChallanService _challanService;
     private readonly IFeeDiscountService _discountService;
+    private readonly IExpenseService _expenseService;
 
-    public FeeController(IFeeStructureService structureService, IFeeChallanService challanService, IFeeDiscountService discountService)
+    public FeeController(
+        IFeeStructureService structureService,
+        IFeeChallanService challanService,
+        IFeeDiscountService discountService,
+        IExpenseService expenseService)
     {
         _structureService = structureService;
         _challanService = challanService;
         _discountService = discountService;
+        _expenseService = expenseService;
     }
 
     [HttpGet("structures")]
@@ -132,6 +138,61 @@ public class FeeController : ControllerBase
     {
         var summary = await _challanService.GetCollectionSummaryAsync(start, end);
         return Ok(summary);
+    }
+
+    // ─── Fee Reports ──────────────────────────────────────
+
+    [HttpGet("reports/monthly-summary")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<MonthlySummaryReportDto>> GetMonthlySummaryReport(
+        [FromQuery] int? month,
+        [FromQuery] int? year,
+        [FromQuery] int? classId)
+    {
+        var report = await _challanService.GetMonthlySummaryReportAsync(month, year, classId);
+        return Ok(report);
+    }
+
+    [HttpGet("reports/class-summary")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<List<ClassSummaryReportRowDto>>> GetClassSummaryReport(
+        [FromQuery] int? academicSessionId)
+    {
+        var rows = await _challanService.GetClassSummaryReportAsync(academicSessionId);
+        return Ok(rows);
+    }
+
+    [HttpGet("reports/aging")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<AgingReportDto>> GetAgingReport(
+        [FromQuery] DateTime? asOfDate,
+        [FromQuery] int? classId)
+    {
+        var report = await _challanService.GetAgingReportAsync(asOfDate, classId);
+        return Ok(report);
+    }
+
+    [HttpGet("reports/discounts")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<DiscountReportDto>> GetDiscountReport(
+        [FromQuery] DateTime? start,
+        [FromQuery] DateTime? end,
+        [FromQuery] int? discountId)
+    {
+        var report = await _challanService.GetDiscountReportAsync(start, end, discountId);
+        return Ok(report);
+    }
+
+    [HttpGet("reports/income-expense")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<IncomeExpenseReportDto>> GetIncomeExpenseReport(
+        [FromQuery] DateTime? start,
+        [FromQuery] DateTime? end)
+    {
+        var s = start ?? DateTime.UtcNow.Date.AddDays(-30);
+        var e = end ?? DateTime.UtcNow.Date;
+        var report = await _expenseService.GetIncomeExpenseReportAsync(s, e);
+        return Ok(report);
     }
 
     [HttpGet("student/{studentId}/challans")]

@@ -68,6 +68,210 @@ public class FeeChallanService : IFeeChallanService
         };
     }
 
+    public async Task<MonthlySummaryReportDto> GetMonthlySummaryReportAsync(int? month, int? year, int? classId)
+    {
+        var query = _context.FeeChallans
+            .AsNoTracking()
+            .Include(c => c.Student).ThenInclude(s => s.Class)
+            .AsQueryable();
+
+        if (month.HasValue && month.Value > 0)
+            query = query.Where(c => c.Month == month.Value);
+
+        if (year.HasValue && year.Value > 0)
+            query = query.Where(c => c.Year == year.Value);
+
+        if (classId.HasValue && classId.Value > 0)
+            query = query.Where(c => c.Student.ClassId == classId.Value);
+
+        var challans = await query.ToListAsync();
+
+        var groups = challans
+            .GroupBy(c => new { c.Student.ClassId, ClassName = c.Student.Class != null ? c.Student.Class.Name : "Unknown" })
+            .OrderBy(g => g.Key.ClassName);
+
+        var rows = new List<MonthlyClassSummaryRowDto>();
+        decimal totalBilled = 0;
+        decimal totalCollected = 0;
+        decimal totalOutstanding = 0;
+
+        foreach (var g in groups)
+        {
+            var billed = g.Sum(c => c.TotalAmount);
+            var collected = g.Sum(c => c.PaidAmount);
+            var outstanding = g.Sum(c => c.Balance);
+            var rate = billed > 0 ? Math.Round(collected * 100m / billed, 2) : 0;
+
+            rows.Add(new MonthlyClassSummaryRowDto
+            {
+                ClassId = g.Key.ClassId ?? 0,
+                ClassName = g.Key.ClassName ?? "Unknown",
+                Billed = billed,
+                Collected = collected,
+                Outstanding = outstanding,
+                CollectionRate = rate
+            });
+
+            totalBilled += billed;
+            totalCollected += collected;
+            totalOutstanding += outstanding;
+        }
+
+        var summaryRate = totalBilled > 0 ? Math.Round(totalCollected * 100m / totalBilled, 2) : 0;
+
+        return new MonthlySummaryReportDto
+        {
+            Month = month ?? 0,
+            Year = year ?? DateTime.UtcNow.Year,
+            TotalBilled = totalBilled,
+            TotalCollected = totalCollected,
+            TotalOutstanding = totalOutstanding,
+            CollectionRate = summaryRate,
+            Rows = rows
+        };
+    }
+
+    public async Task<List<ClassSummaryReportRowDto>> GetClassSummaryReportAsync(int? academicSessionId)
+    {
+        var query = _context.FeeChallans
+            .AsNoTracking()
+            .Include(c => c.Student).ThenInclude(s => s.Class)
+            .AsQueryable();
+
+        // If academicSessionId is provided and your model has it, filter here when field exists
+
+        var challans = await query.ToListAsync();
+
+        var groups = challans
+            .GroupBy(c => new { c.Student.ClassId, ClassName = c.Student.Class != null ? c.Student.Class.Name : "Unknown" })
+            .OrderBy(g => g.Key.ClassName);
+
+        var rows = new List<ClassSummaryReportRowDto>();
+
+        foreach (var g in groups)
+        {
+            var billed = g.Sum(c => c.TotalAmount);
+            var collected = g.Sum(c => c.PaidAmount);
+            var outstanding = g.Sum(c => c.Balance);
+            var rate = billed > 0 ? Math.Round(collected * 100m / billed, 2) : 0;
+
+            rows.Add(new ClassSummaryReportRowDto
+            {
+                ClassId = g.Key.ClassId ?? 0,
+                ClassName = g.Key.ClassName ?? "Unknown",
+                Billed = billed,
+                Collected = collected,
+                Outstanding = outstanding,
+                CollectionRate = rate
+            });
+        }
+
+        return rows;
+    }
+
+    public async Task<AgingReportDto> GetAgingReportAsync(DateTime? asOfDate, int? classId)
+    {
+        var date = (asOfDate ?? DateTime.UtcNow).Date;
+
+        var query = _context.FeeChallans
+            .AsNoTracking()
+            .Include(c => c.Student).ThenInclude(s => s.Class)
+            .Where(c => c.Balance > 0 && c.DueDate <= date);
+
+        if (classId.HasValue && classId.Value > 0)
+            query = query.Where(c => c.Student.ClassId == classId.Value);
+
+        var challans = await query.ToListAsync();
+
+        var buckets = new Dictionary<string, AgingBucketDto>
+        {
+            ["1-30"] = new AgingBucketDto { Label = "1 – 30 days" },
+            ["31-60"] = new AgingBucketDto { Label = "31 – 60 days" },
+            ["61-90"] = new AgingBucketDto { Label = "61 – 90 days" },
+            ["90+"] = new AgingBucketDto { Label = "90+ days" }
+        };
+
+        var details = new List<AgingDetailRowDto>();
+
+        foreach (var c in challans)
+        {
+            var days = (date - c.DueDate.Date).Days;
+            if (days <= 0) continue;
+
+            string key;
+            string label;
+            if (days <= 30) { key = "1-30"; label = "1 – 30 days"; }
+            else if (days <= 60) { key = "31-60"; label = "31 – 60 days"; }
+            else if (days <= 90) { key = "61-90"; label = "61 – 90 days"; }
+            else { key = "90+"; label = "90+ days"; }
+
+            if (!buckets.TryGetValue(key, out var bucket))
+            {
+                bucket = new AgingBucketDto { Label = label };
+                buckets[key] = bucket;
+            }
+
+            bucket.Amount += c.Balance;
+            bucket.Count += 1;
+
+            details.Add(new AgingDetailRowDto
+            {
+                StudentName = c.Student?.Name ?? string.Empty,
+                ClassName = c.Student?.Class?.Name ?? string.Empty,
+                ChallanNumber = c.ChallanNumber,
+                DueDate = c.DueDate,
+                DaysOverdue = days,
+                Outstanding = c.Balance,
+                Bucket = bucket.Label
+            });
+        }
+
+        return new AgingReportDto
+        {
+            AsOfDate = date,
+            Buckets = buckets.Values.ToList(),
+            Details = details
+        };
+    }
+
+    public async Task<DiscountReportDto> GetDiscountReportAsync(DateTime? start, DateTime? end, int? discountId)
+    {
+        var s = start?.Date ?? DateTime.MinValue.Date;
+        var e = end?.Date.AddDays(1).AddTicks(-1) ?? DateTime.MaxValue.Date.AddDays(1).AddTicks(-1);
+
+        var query = _context.FeeChallans
+            .AsNoTracking()
+            .Include(c => c.Student).ThenInclude(s2 => s2.Class)
+            .Where(c => c.DiscountAmount > 0 && c.CreatedAt >= s && c.CreatedAt <= e);
+
+        // If you later track which discount type applied per challan, filter by discountId there
+
+        var challans = await query.ToListAsync();
+
+        var rows = challans.Select(c => new DiscountReportRowDto
+        {
+            DiscountName = "Fee Discount", // placeholder; real mapping requires per-challan discount link
+            Scope = "Student/Family",
+            TargetName = c.Student?.Name ?? string.Empty,
+            ChallanNumber = c.ChallanNumber,
+            Amount = c.DiscountAmount,
+            AppliedAt = c.CreatedAt
+        }).ToList();
+
+        var totalAmount = rows.Sum(r => r.Amount);
+        var targetCount = rows
+            .Select(r => r.TargetName)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Count();
+
+        return new DiscountReportDto
+        {
+            TotalAmount = totalAmount,
+            TargetCount = targetCount,
+            Rows = rows
+        };
+    }
+
     public async Task<List<CollectionPaymentDto>> GetCollectionPaymentsAsync(DateTime? start, DateTime? end)
     {
         var query = _context.FeePayments

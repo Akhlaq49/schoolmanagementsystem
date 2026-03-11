@@ -100,5 +100,53 @@ public class ExpenseService : IExpenseService
         await _context.SaveChangesAsync();
         return true;
     }
+
+    public async Task<IncomeExpenseReportDto> GetIncomeExpenseReportAsync(DateTime start, DateTime end)
+    {
+        var s = start.Date;
+        var e = end.Date.AddDays(1).AddTicks(-1);
+
+        // Income from fee payments
+        var incomePayments = await _context.FeePayments
+            .AsNoTracking()
+            .Where(p => p.PaidAt >= s && p.PaidAt <= e)
+            .ToListAsync();
+
+        var incomeTotal = incomePayments.Sum(p => p.Amount);
+
+        // Expenses from payment table (PaymentType == expense)
+        var expensePayments = await _context.Payments
+            .AsNoTracking()
+            .Where(p => p.PaymentType == "expense" && p.Timestamp >= s && p.Timestamp <= e)
+            .Include(p => p.ExpenseCategory)
+            .ToListAsync();
+
+        var expenseTotal = expensePayments.Sum(p => p.Amount);
+
+        var rows = new List<IncomeExpenseRowDto>
+        {
+            new IncomeExpenseRowDto { Type = "Income", Category = "Fee Collection", Amount = incomeTotal }
+        };
+
+        foreach (var ex in expensePayments)
+        {
+            var cat = ex.ExpenseCategory?.Name ?? "Expense";
+            rows.Add(new IncomeExpenseRowDto
+            {
+                Type = "Expense",
+                Category = cat,
+                Amount = ex.Amount
+            });
+        }
+
+        return new IncomeExpenseReportDto
+        {
+            Start = s,
+            End = e,
+            Income = incomeTotal,
+            Expense = expenseTotal,
+            Rows = rows
+        };
+    }
 }
 
