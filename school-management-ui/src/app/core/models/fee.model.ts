@@ -111,3 +111,45 @@ export interface ChallanSummary {
   collectedAmount: number;
   pendingAmount: number;
 }
+
+// ─── Fee Discounts ──────────────────────────────────────
+
+export interface FeeDiscount {
+  feeDiscountId: number;
+  name: string;
+  type: 'percentage' | 'fixed';
+  value: number;
+  scope: 'student' | 'family' | 'both';
+  description?: string;
+  isActive: boolean;
+  assignedCount: number;
+  createdAt?: string;
+}
+
+export interface CreateFeeDiscount {
+  name: string;
+  type: 'percentage' | 'fixed';
+  value: number;
+  scope: 'student' | 'family' | 'both';
+  description?: string;
+  isActive: boolean;
+}
+
+export interface UpdateFeeDiscount {
+  name: string;
+  type: 'percentage' | 'fixed';
+  value: number;
+  scope: 'student' | 'family' | 'both';
+  description?: string;
+  isActive: boolean;
+}
+
+export interface FeeDiscountAssignment {
+  feeDiscountAssignmentId: number;
+  feeDiscountId: number;
+  studentId?: number;
+  studentName?: string;
+  familyId?: number;
+  familyDisplayName?: string;
+  createdAt: string;
+}

@@ -4,7 +4,8 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   FeeStructure, CreateFeeStructure, UpdateFeeStructure,
-  FeeChallan, ChallanSummary, ChallanGenerateRequest, RecordPaymentRequest
+  FeeChallan, ChallanSummary, ChallanGenerateRequest, RecordPaymentRequest,
+  FeeDiscount, CreateFeeDiscount, UpdateFeeDiscount, FeeDiscountAssignment
 } from '../models/fee.model';
 
 @Injectable({ providedIn: 'root' })
@@ -79,5 +80,46 @@ export class FeeService {
 
   waiveChallan(challanId: number, reason: string): Observable<FeeChallan> {
     return this.http.post<FeeChallan>(`${this.base}/challans/${challanId}/waive`, { reason });
+  }
+
+  // ─── Fee Discounts ────────────────────────────────────
+
+  getDiscounts(scope?: string, status?: string): Observable<FeeDiscount[]> {
+    let params = new HttpParams();
+    if (scope) params = params.set('scope', scope);
+    if (status) params = params.set('status', status);
+    return this.http.get<FeeDiscount[]>(`${this.base}/discounts`, { params });
+  }
+
+  getDiscountById(id: number): Observable<FeeDiscount> {
+    return this.http.get<FeeDiscount>(`${this.base}/discounts/${id}`);
+  }
+
+  createDiscount(dto: CreateFeeDiscount): Observable<FeeDiscount> {
+    return this.http.post<FeeDiscount>(`${this.base}/discounts`, dto);
+  }
+
+  updateDiscount(id: number, dto: UpdateFeeDiscount): Observable<FeeDiscount> {
+    return this.http.put<FeeDiscount>(`${this.base}/discounts/${id}`, dto);
+  }
+
+  deleteDiscount(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/discounts/${id}`);
+  }
+
+  getDiscountAssignments(discountId: number): Observable<FeeDiscountAssignment[]> {
+    return this.http.get<FeeDiscountAssignment[]>(`${this.base}/discounts/${discountId}/assignments`);
+  }
+
+  assignDiscountToStudent(discountId: number, studentId: number): Observable<FeeDiscountAssignment> {
+    return this.http.post<FeeDiscountAssignment>(`${this.base}/discounts/${discountId}/assign/student/${studentId}`, {});
+  }
+
+  assignDiscountToFamily(discountId: number, familyId: number): Observable<FeeDiscountAssignment> {
+    return this.http.post<FeeDiscountAssignment>(`${this.base}/discounts/${discountId}/assign/family/${familyId}`, {});
+  }
+
+  unassignDiscount(assignmentId: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/discounts/assignments/${assignmentId}`);
   }
 }

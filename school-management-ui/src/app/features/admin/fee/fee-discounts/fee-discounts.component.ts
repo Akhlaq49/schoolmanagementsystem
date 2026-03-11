@@ -4,17 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { DropdownComponent, DropdownOption } from '../../../../shared/components/dropdown/dropdown.component';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
 import { NotificationService } from '../../../../shared/services/notification.service';
-
-interface Discount {
-  id: number;
-  name: string;
-  type: 'percentage' | 'fixed';
-  value: number;
-  scope: 'student' | 'family' | 'both';
-  description?: string;
-  isActive: boolean;
-  assignedCount: number;
-}
+import { FeeService } from '../../../../core/services/fee.service';
+import { StudentService } from '../../../../core/services/student.service';
+import { FamilyService } from '../../../../core/services/family/family.service';
+import { FeeDiscount, CreateFeeDiscount } from '../../../../core/models/fee.model';
 
 @Component({
   selector: 'app-fee-discounts',
@@ -154,7 +147,7 @@ interface Discount {
             placeholder="All"
             [placeholderValue]="''"
             [searchable]="false"
-            (changed)="applyFilters()">
+            (changed)="loadData()">
           </app-dropdown>
         </div>
         <div class="filter-group">
@@ -165,7 +158,7 @@ interface Discount {
             placeholder="All"
             [placeholderValue]="''"
             [searchable]="false"
-            (changed)="applyFilters()">
+            (changed)="loadData()">
           </app-dropdown>
         </div>
         <div class="filter-summary">
@@ -283,7 +276,7 @@ interface Discount {
         </div>
       </div>
 
-      <!-- Assign modal (UI only, no backend yet) -->
+      <!-- Assign modal -->
       <div class="modal-backdrop" *ngIf="showAssignModal" (click)="closeAssignModal()">
         <div class="modal-card" (click)="$event.stopPropagation()">
           <div class="modal-header">
@@ -294,28 +287,61 @@ interface Discount {
             <p class="assign-intro">
               Assign <strong>{{ assigningDiscount.name }}</strong> to students or families.
             </p>
-            <div class="academy-form-row single-col">
-              <div class="academy-form-group">
-                <label>Search students / families</label>
+            <div class="assign-search-section">
+              <label>Select student or family</label>
+              <div class="assign-search-wrap">
+                <i class="fa fa-search"></i>
                 <input
-                  class="academy-input"
+                  class="academy-input assign-search-input"
+                  type="text"
                   [(ngModel)]="assignSearch"
-                  placeholder="Search by name, roll, or family..."
-                  (input)="onAssignSearchChange()">
+                  [placeholder]="getAssignSearchPlaceholder()"
+                  (input)="onAssignSearchInput()"
+                  (focus)="assignSearchFocused = true"
+                  (blur)="onAssignSearchBlur()">
+              </div>
+              <div class="assign-results" *ngIf="assignSearchFocused && assignSearch.trim().length >= 2">
+                <div class="assign-results-loading" *ngIf="assignSearching">
+                  <i class="fa fa-spinner fa-spin"></i> Searching...
+                </div>
+                <div class="assign-results-list" *ngIf="!assignSearching && assignSearchResults.length > 0">
+                  <div
+                    class="assign-result-item"
+                    *ngFor="let item of assignSearchResults"
+                    (mousedown)="selectAssignTarget(item)">
+                    <span class="assign-result-type">{{ item.type === 'student' ? 'Student' : 'Family' }}</span>
+                    <span class="assign-result-label">{{ item.label }}</span>
+                    <span class="assign-result-sub" *ngIf="item.sublabel">{{ item.sublabel }}</span>
+                  </div>
+                </div>
+                <div class="assign-results-empty" *ngIf="!assignSearching && assignSearch.trim().length >= 2 && assignSearchResults.length === 0">
+                  No results found. Type at least 2 characters to search.
+                </div>
               </div>
             </div>
-            <div class="assign-placeholder">
-              <i class="fa fa-info-circle"></i>
-              <p>
-                This is a UI-only placeholder. Once backend APIs are ready, this section will list students/families
-                and allow you to assign/unassign this discount.
-              </p>
+            <div class="assign-selected" *ngIf="assignSelected">
+              <span class="assign-selected-label">Selected: <strong>{{ assignSelected.label }}</strong></span>
+              <button type="button" class="assign-clear-btn" (click)="clearAssignSelection()">
+                <i class="fa fa-times"></i> Clear
+              </button>
+            </div>
+            <div class="assign-current" *ngIf="assignments.length > 0">
+              <strong>Currently assigned ({{ assignments.length }})</strong>
+              <ul class="assignments-list">
+                <li *ngFor="let a of assignments" class="assignment-item">
+                  <span>{{ a.studentName || a.familyDisplayName }}</span>
+                  <button type="button" class="assign-remove-btn" (click)="unassign(a)" title="Remove">
+                    <i class="fa fa-times"></i>
+                  </button>
+                </li>
+              </ul>
             </div>
           </div>
           <div class="modal-footer">
             <button class="btn btn-secondary" (click)="closeAssignModal()">Close</button>
-            <button class="btn btn-primary" disabled>
-              <i class="fa fa-save"></i> Save Assignments (coming soon)
+            <button class="btn btn-primary" [disabled]="!assignSelected || assignSaving" (click)="doAssign()">
+              <i class="fa fa-spinner fa-spin" *ngIf="assignSaving"></i>
+              <i class="fa fa-save" *ngIf="!assignSaving"></i> Assign
             </button>
           </div>
         </div>
@@ -532,12 +558,50 @@ interface Discount {
       padding: 1rem 1.5rem; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 0.75rem;
     }
     .assign-intro { font-size: 0.9rem; color: #374151; margin-bottom: 0.9rem; }
-    .assign-placeholder {
-      margin-top: 0.75rem; padding: 0.85rem 1rem; border-radius: 10px;
-      background: #eef2f7; color: #435d7a; font-size: 0.85rem;
-      display: flex; gap: 0.5rem; align-items: flex-start;
+    .assign-search-section { margin-bottom: 1rem; position: relative; }
+    .assign-search-section label { display: block; margin-bottom: 0.35rem; font-size: 0.85rem; font-weight: 600; color: #1e3a5f; }
+    .assign-search-wrap { position: relative; }
+    .assign-search-wrap i { position: absolute; left: 0.9rem; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 0.85rem; }
+    .assign-search-input { padding-left: 2.25rem; width: 100%; }
+    .assign-results {
+      position: absolute; left: 0; right: 0; top: 100%; margin-top: 0.25rem;
+      background: #fff; border: 2px solid #1e3a5f; border-radius: 0.5rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12); max-height: 360px; overflow-y: auto;
+      z-index: 10;
     }
-    .assign-placeholder i { margin-top: 0.1rem; }
+    .assign-results-loading { padding: 1rem; text-align: center; color: #6b7280; font-size: 0.85rem; }
+    .assign-results-list { padding: 0.35rem 0; }
+    .assign-result-item {
+      padding: 0.6rem 0.9rem; cursor: pointer; display: flex; flex-direction: column; gap: 0.15rem;
+      transition: background 0.15s; border-bottom: 1px solid #f3f4f6;
+    }
+    .assign-result-item:last-child { border-bottom: none; }
+    .assign-result-item:hover { background: #eef2f7; }
+    .assign-result-type { font-size: 0.7rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; }
+    .assign-result-label { font-weight: 600; color: #111827; }
+    .assign-result-sub { font-size: 0.8rem; color: #6b7280; }
+    .assign-results-empty { padding: 1rem; color: #6b7280; font-size: 0.85rem; }
+    .assign-selected {
+      padding: 0.75rem 1rem; background: #eef2f7; border-radius: 0.5rem;
+      display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 1rem;
+    }
+    .assign-clear-btn {
+      padding: 0.25rem 0.5rem; font-size: 0.78rem; border-radius: 0.375rem;
+      border: 1px solid #d1d5db; background: #fff; color: #6b7280; cursor: pointer;
+    }
+    .assign-clear-btn:hover { background: #f3f4f6; color: #111827; }
+    .assign-current { margin-top: 0.75rem; }
+    .assign-current strong { display: block; margin-bottom: 0.5rem; font-size: 0.85rem; }
+    .assignments-list { list-style: none; margin: 0; padding: 0; max-height: 140px; overflow-y: auto; }
+    .assignment-item {
+      display: flex; align-items: center; justify-content: space-between; padding: 0.4rem 0.6rem;
+      background: #f9fafb; border-radius: 0.375rem; margin-bottom: 0.25rem; font-size: 0.88rem;
+    }
+    .assign-remove-btn {
+      padding: 0.15rem 0.35rem; border: none; background: #fecaca; color: #b91c1c; border-radius: 0.25rem;
+      cursor: pointer; font-size: 0.75rem;
+    }
+    .assign-remove-btn:hover { background: #fca5a5; }
 
     @media (max-width: 768px) {
       .academy-form-row { grid-template-columns: 1fr; }
@@ -550,9 +614,9 @@ interface Discount {
 export class FeeDiscountsComponent implements OnInit {
   loading = false;
 
-  discounts: Discount[] = [];
-  filteredDiscounts: Discount[] = [];
-  pagedDiscounts: Discount[] = [];
+  discounts: FeeDiscount[] = [];
+  filteredDiscounts: FeeDiscount[] = [];
+  pagedDiscounts: FeeDiscount[] = [];
 
   searchTerm = '';
   filterScope = '';
@@ -568,8 +632,8 @@ export class FeeDiscountsComponent implements OnInit {
   showForm = false;
   editing = false;
   submitted = false;
-  form: Discount = {
-    id: 0,
+  form: Partial<FeeDiscount> & { name: string; type: 'percentage' | 'fixed'; value: number; scope: 'student' | 'family' | 'both'; isActive: boolean } = {
+    feeDiscountId: 0,
     name: '',
     type: 'percentage',
     value: 0,
@@ -580,8 +644,15 @@ export class FeeDiscountsComponent implements OnInit {
   };
 
   showAssignModal = false;
-  assigningDiscount: Discount | null = null;
+  assigningDiscount: FeeDiscount | null = null;
   assignSearch = '';
+  assignSearchFocused = false;
+  assignSearching = false;
+  assignSearchResults: { type: 'student' | 'family'; id: number; label: string; sublabel?: string }[] = [];
+  assignSelected: { type: 'student' | 'family'; id: number; label: string; sublabel?: string } | null = null;
+  assignments: { feeDiscountAssignmentId: number; studentId?: number; familyId?: number; studentName?: string; familyDisplayName?: string }[] = [];
+  assignSaving = false;
+  private assignSearchDebounce: ReturnType<typeof setTimeout> | null = null;
 
   scopeOptions: DropdownOption[] = [
     { value: 'student', label: 'Student' },
@@ -605,59 +676,36 @@ export class FeeDiscountsComponent implements OnInit {
     { value: 'inactive', label: 'Inactive' }
   ];
 
-  constructor(private notify: NotificationService) {}
+  private allFamilies: { familyId: number; fatherName: string; motherName?: string }[] = [];
+
+  constructor(
+    private notify: NotificationService,
+    private feeService: FeeService,
+    private studentService: StudentService,
+    private familyService: FamilyService
+  ) {}
 
   ngOnInit(): void {
-    this.seedSampleData();
-    this.applyFilters();
+    this.loadData();
   }
 
-  seedSampleData(): void {
-    this.discounts = [
-      {
-        id: 1,
-        name: 'Sibling Discount 10%',
-        type: 'percentage',
-        value: 10,
-        scope: 'family',
-        description: 'Automatically applies when two or more siblings are enrolled.',
-        isActive: true,
-        assignedCount: 24
+  loadData(): void {
+    this.loading = true;
+    const scope = this.filterScope || undefined;
+    const status = this.filterStatus || undefined;
+    this.feeService.getDiscounts(scope, status).subscribe({
+      next: (list) => {
+        this.discounts = list;
+        this.applyFilters();
       },
-      {
-        id: 2,
-        name: 'Scholarship 50%',
-        type: 'percentage',
-        value: 50,
-        scope: 'student',
-        description: 'Merit-based scholarship for top-performing students.',
-        isActive: true,
-        assignedCount: 8
+      error: () => {
+        this.notify.error('Failed to load discount types.');
       },
-      {
-        id: 3,
-        name: 'Staff-child 100%',
-        type: 'percentage',
-        value: 100,
-        scope: 'both',
-        description: 'Full fee waiver for children of full-time staff.',
-        isActive: true,
-        assignedCount: 5
-      },
-      {
-        id: 4,
-        name: 'Need-based Aid 25%',
-        type: 'percentage',
-        value: 25,
-        scope: 'family',
-        description: 'Approved by principal on documented financial need.',
-        isActive: false,
-        assignedCount: 3
-      }
-    ];
+      complete: () => { this.loading = false; }
+    });
   }
 
-  getScopeLabel(scope: Discount['scope']): string {
+  getScopeLabel(scope: FeeDiscount['scope']): string {
     switch (scope) {
       case 'student': return 'Student';
       case 'family': return 'Family';
@@ -666,7 +714,7 @@ export class FeeDiscountsComponent implements OnInit {
     }
   }
 
-  openForm(discount?: Discount): void {
+  openForm(discount?: FeeDiscount): void {
     this.submitted = false;
     if (discount) {
       this.editing = true;
@@ -674,7 +722,7 @@ export class FeeDiscountsComponent implements OnInit {
     } else {
       this.editing = false;
       this.form = {
-        id: 0,
+        feeDiscountId: 0,
         name: '',
         type: 'percentage',
         value: 0,
@@ -693,34 +741,53 @@ export class FeeDiscountsComponent implements OnInit {
 
   save(): void {
     this.submitted = true;
-    if (!this.form.name?.trim() || !this.form.value) {
+    if (!this.form.name?.trim() || this.form.value == null) {
       return;
     }
 
-    if (this.editing) {
-      const idx = this.discounts.findIndex(d => d.id === this.form.id);
-      if (idx >= 0) {
-        this.discounts[idx] = { ...this.form };
-      }
-      this.notify.success('Discount type updated.');
-    } else {
-      const nextId = this.discounts.length ? Math.max(...this.discounts.map(d => d.id)) + 1 : 1;
-      this.discounts.push({ ...this.form, id: nextId });
-      this.notify.success('Discount type created.');
-    }
+    const dto: CreateFeeDiscount = {
+      name: this.form.name.trim(),
+      type: this.form.type ?? 'percentage',
+      value: this.form.value,
+      scope: this.form.scope ?? 'student',
+      description: this.form.description?.trim() || undefined,
+      isActive: this.form.isActive ?? true
+    };
 
-    this.showForm = false;
-    this.applyFilters();
+    if (this.editing && this.form.feeDiscountId) {
+      this.feeService.updateDiscount(this.form.feeDiscountId, dto).subscribe({
+        next: () => {
+          this.notify.success('Discount type updated.');
+          this.showForm = false;
+          this.loadData();
+        },
+        error: () => this.notify.error('Failed to update discount.')
+      });
+    } else {
+      this.feeService.createDiscount(dto).subscribe({
+        next: () => {
+          this.notify.success('Discount type created.');
+          this.showForm = false;
+          this.loadData();
+        },
+        error: () => this.notify.error('Failed to create discount.')
+      });
+    }
   }
 
-  edit(d: Discount): void {
+  edit(d: FeeDiscount): void {
     this.openForm(d);
   }
 
-  remove(d: Discount): void {
-    this.discounts = this.discounts.filter(x => x.id !== d.id);
-    this.notify.success('Discount type deleted.');
-    this.applyFilters();
+  remove(d: FeeDiscount): void {
+    if (!confirm('Delete this discount type? Assignments will be removed.')) return;
+    this.feeService.deleteDiscount(d.feeDiscountId).subscribe({
+      next: () => {
+        this.notify.success('Discount type deleted.');
+        this.loadData();
+      },
+      error: () => this.notify.error('Failed to delete discount.')
+    });
   }
 
   applyFilters(): void {
@@ -776,19 +843,170 @@ export class FeeDiscountsComponent implements OnInit {
     this.pageNumbers = pages;
   }
 
-  openAssignModal(d: Discount): void {
+  openAssignModal(d: FeeDiscount): void {
     this.assigningDiscount = d;
     this.assignSearch = '';
+    this.assignSearchFocused = false;
+    this.assignSearchResults = [];
+    this.assignSelected = null;
+    this.assignments = [];
     this.showAssignModal = true;
+    this.loadAssignments();
+    if (d.scope === 'family' || d.scope === 'both') {
+      this.familyService.getAllFamilies().subscribe({
+        next: (families) => {
+          this.allFamilies = families.map(f => ({
+            familyId: f.familyId!,
+            fatherName: f.fatherName,
+            motherName: f.motherName
+          }));
+        },
+        error: () => {}
+      });
+    } else {
+      this.allFamilies = [];
+    }
   }
 
   closeAssignModal(): void {
     this.showAssignModal = false;
     this.assigningDiscount = null;
+    if (this.assignSearchDebounce) clearTimeout(this.assignSearchDebounce);
   }
 
-  onAssignSearchChange(): void {
-    // UI-only placeholder; no actual search yet
+  getAssignSearchPlaceholder(): string {
+    if (!this.assigningDiscount) return 'Search...';
+    const s = this.assigningDiscount.scope;
+    if (s === 'student') return 'Search students by name or roll...';
+    if (s === 'family') return 'Search families by father/mother name...';
+    return 'Search students or families...';
+  }
+
+  loadAssignments(): void {
+    if (!this.assigningDiscount) return;
+    this.feeService.getDiscountAssignments(this.assigningDiscount.feeDiscountId).subscribe({
+      next: (list) => this.assignments = list,
+      error: () => {}
+    });
+  }
+
+  onAssignSearchInput(): void {
+    if (this.assignSearchDebounce) clearTimeout(this.assignSearchDebounce);
+    const term = this.assignSearch.trim();
+    if (term.length < 2) {
+      this.assignSearchResults = [];
+      return;
+    }
+    this.assignSearchDebounce = setTimeout(() => this.runAssignSearch(term), 300);
+  }
+
+  onAssignSearchBlur(): void {
+    setTimeout(() => { this.assignSearchFocused = false; }, 200);
+  }
+
+  private runAssignSearch(term: string): void {
+    if (!this.assigningDiscount) return;
+    const scope = this.assigningDiscount.scope;
+    const results: { type: 'student' | 'family'; id: number; label: string; sublabel?: string }[] = [];
+    const assignedStudentIds = new Set(
+      this.assignments.filter(a => a.studentId != null).map(a => a.studentId!)
+    );
+    const assignedFamilyIds = new Set(
+      this.assignments.filter(a => a.familyId != null).map(a => a.familyId!)
+    );
+    const t = term.toLowerCase();
+
+    const addStudents = (students: { studentId: number; name: string; roll?: string }[]) => {
+      students.forEach(s => {
+        if (!assignedStudentIds.has(s.studentId)) {
+          results.push({
+            type: 'student',
+            id: s.studentId,
+            label: s.name,
+            sublabel: s.roll ? `Roll: ${s.roll}` : undefined
+          });
+        }
+      });
+    };
+
+    const addFamilies = (families: { familyId: number; fatherName: string; motherName?: string }[]) => {
+      families.forEach(f => {
+        if (!assignedFamilyIds.has(f.familyId)) {
+          const label = f.fatherName + (f.motherName ? ` / ${f.motherName}` : '');
+          results.push({ type: 'family', id: f.familyId, label, sublabel: 'Family' });
+        }
+      });
+    };
+
+    if (scope === 'student' || scope === 'both') {
+      this.assignSearching = true;
+      this.studentService.searchActiveStudents(term).subscribe({
+        next: (students) => {
+          addStudents(students);
+          if (scope === 'both') {
+            const fams = this.allFamilies.filter(f =>
+              (f.fatherName || '').toLowerCase().includes(t) ||
+              (f.motherName || '').toLowerCase().includes(t)
+            );
+            addFamilies(fams);
+          }
+          this.assignSearchResults = results.slice(0, 30);
+          this.assignSearching = false;
+        },
+        error: () => { this.assignSearching = false; this.assignSearchResults = []; }
+      });
+    } else {
+      const fams = this.allFamilies.filter(f =>
+        (f.fatherName || '').toLowerCase().includes(t) ||
+        (f.motherName || '').toLowerCase().includes(t)
+      );
+      addFamilies(fams);
+      this.assignSearchResults = results.slice(0, 30);
+    }
+  }
+
+  selectAssignTarget(item: { type: 'student' | 'family'; id: number; label: string; sublabel?: string }): void {
+    this.assignSelected = item;
+    this.assignSearch = '';
+    this.assignSearchResults = [];
+    this.assignSearchFocused = false;
+  }
+
+  clearAssignSelection(): void {
+    this.assignSelected = null;
+  }
+
+  doAssign(): void {
+    if (!this.assignSelected || !this.assigningDiscount) return;
+    this.assignSaving = true;
+    const discountId = this.assigningDiscount.feeDiscountId;
+    const obs = this.assignSelected.type === 'student'
+      ? this.feeService.assignDiscountToStudent(discountId, this.assignSelected.id)
+      : this.feeService.assignDiscountToFamily(discountId, this.assignSelected.id);
+    obs.subscribe({
+      next: () => {
+        this.notify.success('Discount assigned successfully.');
+        this.assignSelected = null;
+        this.loadAssignments();
+        this.loadData();
+      },
+      error: (err) => {
+        this.notify.error(err?.error?.message || 'Failed to assign discount.');
+      },
+      complete: () => { this.assignSaving = false; }
+    });
+  }
+
+  unassign(a: { feeDiscountAssignmentId: number }): void {
+    if (!confirm('Remove this assignment?')) return;
+    this.feeService.unassignDiscount(a.feeDiscountAssignmentId).subscribe({
+      next: () => {
+        this.notify.success('Assignment removed.');
+        this.loadAssignments();
+        this.loadData();
+      },
+      error: () => this.notify.error('Failed to remove assignment.')
+    });
   }
 }
 
