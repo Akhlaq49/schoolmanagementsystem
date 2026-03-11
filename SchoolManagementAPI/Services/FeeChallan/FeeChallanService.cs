@@ -144,6 +144,23 @@ public class FeeChallanService : IFeeChallanService
             .Where(fs => fs.AcademicSessionId == dto.AcademicSessionId && fs.IsActive)
             .ToListAsync();
 
+        // Load all active discount assignments with their discount details
+        var discountAssignments = await _context.FeeDiscountAssignments
+            .Include(a => a.FeeDiscount)
+            .Where(a => a.FeeDiscount.IsActive)
+            .ToListAsync();
+
+        // Create lookup dictionaries for quick access
+        var studentDiscounts = discountAssignments
+            .Where(a => a.StudentId.HasValue)
+            .GroupBy(a => a.StudentId!.Value)
+            .ToDictionary(g => g.Key, g => g.Select(a => a.FeeDiscount).ToList());
+
+        var familyDiscounts = discountAssignments
+            .Where(a => a.FamilyId.HasValue)
+            .GroupBy(a => a.FamilyId!.Value)
+            .ToDictionary(g => g.Key, g => g.Select(a => a.FeeDiscount).ToList());
+
         var existingChallans = await _context.FeeChallans
             .Where(c => c.Month == dto.Month && c.Year == dto.Year)
             .Select(c => c.StudentId)
@@ -165,7 +182,16 @@ public class FeeChallanService : IFeeChallanService
             var lateFine = dto.ApplyLateFine && structure != null
                 ? CalculateLateFine(structure.LateFinePerDay, dto.Month, dto.Year, dueDay)
                 : 0;
-            var totalAmount = baseAmount + addonsAmount - 0 + lateFine;
+
+            // Calculate discount amount
+            var discountAmount = CalculateDiscountAmount(
+                student.StudentId,
+                student.FamilyId,
+                baseAmount + addonsAmount,
+                studentDiscounts,
+                familyDiscounts);
+
+            var totalAmount = baseAmount + addonsAmount - discountAmount + lateFine;
 
             newChallans.Add(new FeeChallan
             {
@@ -177,7 +203,7 @@ public class FeeChallanService : IFeeChallanService
                 DueDate = new DateTime(dto.Year, dto.Month, Math.Min(dueDay, DateTime.DaysInMonth(dto.Year, dto.Month))),
                 BaseAmount = baseAmount,
                 AddonsAmount = addonsAmount,
-                DiscountAmount = 0,
+                DiscountAmount = discountAmount,
                 LateFine = lateFine,
                 TotalAmount = totalAmount,
                 PaidAmount = 0,
@@ -197,6 +223,52 @@ public class FeeChallanService : IFeeChallanService
         }
 
         return newChallans.Count;
+    }
+
+    private static decimal CalculateDiscountAmount(
+        int studentId,
+        int? familyId,
+        decimal baseAmount,
+        Dictionary<int, List<FeeDiscount>> studentDiscounts,
+        Dictionary<int, List<FeeDiscount>> familyDiscounts)
+    {
+        var applicableDiscounts = new List<FeeDiscount>();
+
+        // Get student-level discounts
+        if (studentDiscounts.TryGetValue(studentId, out var studentDiscs))
+        {
+            applicableDiscounts.AddRange(studentDiscs);
+        }
+
+        // Get family-level discounts
+        if (familyId.HasValue && familyDiscounts.TryGetValue(familyId.Value, out var familyDiscs))
+        {
+            applicableDiscounts.AddRange(familyDiscs);
+        }
+
+        if (applicableDiscounts.Count == 0)
+            return 0;
+
+        // Calculate total discount amount
+        // If multiple discounts, we sum them (you can change this logic if needed)
+        decimal totalDiscount = 0;
+
+        foreach (var discount in applicableDiscounts)
+        {
+            if (discount.Type == "percentage")
+            {
+                // Percentage discount: calculate percentage of base amount
+                totalDiscount += baseAmount * (discount.Value / 100m);
+            }
+            else if (discount.Type == "fixed")
+            {
+                // Fixed discount: subtract fixed amount
+                totalDiscount += discount.Value;
+            }
+        }
+
+        // Ensure discount doesn't exceed the base amount
+        return totalDiscount > baseAmount ? baseAmount : totalDiscount;
     }
 
     public async Task<FeeChallanResponseDto?> RecordPaymentAsync(int challanId, RecordPaymentRequestDto dto)

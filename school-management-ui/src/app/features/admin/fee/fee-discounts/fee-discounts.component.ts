@@ -49,8 +49,8 @@ import { FeeDiscount, CreateFeeDiscount } from '../../../../core/models/fee.mode
                 name="name"
                 [(ngModel)]="form.name"
                 placeholder="e.g. Sibling 10%, Scholarship 50%, Staff-child 100%"
-                [class.is-invalid]="submitted && !form.name?.trim()">
-              <div *ngIf="submitted && !form.name?.trim()" class="academy-invalid">
+                [class.is-invalid]="submitted && !form.name.trim()">
+              <div *ngIf="submitted && !form.name.trim()" class="academy-invalid">
                 Name is required
               </div>
             </div>
@@ -741,7 +741,7 @@ export class FeeDiscountsComponent implements OnInit {
 
   save(): void {
     this.submitted = true;
-    if (!this.form.name?.trim() || this.form.value == null) {
+    if (!this.form.name.trim() || this.form.value == null) {
       return;
     }
 
