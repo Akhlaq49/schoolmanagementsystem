@@ -137,6 +137,10 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./fee/fee-defaulters/fee-defaulters.component').then(m => m.FeeDefaultersComponent)
       },
       {
+        path: 'fee/family/:familyId',
+        loadComponent: () => import('./fee/family-fee/family-fee.component').then(m => m.FamilyFeeComponent)
+      },
+      {
         path: 'dormitories',
         loadComponent: () => import('./dormitories/dormitories.component').then(m => m.DormitoriesComponent)
       },

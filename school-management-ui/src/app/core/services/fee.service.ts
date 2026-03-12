@@ -8,7 +8,8 @@ import {
   FeeDiscount, CreateFeeDiscount, UpdateFeeDiscount, FeeDiscountAssignment,
   CollectionPayment, CollectionSummary,
   MonthlySummaryReport, ClassSummaryReportRow,
-  AgingReport, DiscountReport, IncomeExpenseReport
+  AgingReport, DiscountReport, IncomeExpenseReport,
+  FamilyFeeSummary
 } from '../models/fee.model';
 
 @Injectable({ providedIn: 'root' })
@@ -139,6 +140,12 @@ export class FeeService {
     if (start) params = params.set('start', start);
     if (end) params = params.set('end', end);
     return this.http.get<IncomeExpenseReport>(`${this.base}/reports/income-expense`, { params });
+  }
+
+  // ─── Family Fee Summary ─────────────────────────────────
+
+  getFamilyFeeSummary(familyId: number): Observable<FamilyFeeSummary> {
+    return this.http.get<FamilyFeeSummary>(`${this.base}/family/${familyId}/summary`);
   }
 
   // ─── Fee Discounts ────────────────────────────────────

@@ -1,16 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterModule } from '@angular/router';
-
-interface FamilyChildFeeRow {
-  studentId: number;
-  studentName: string;
-  className: string;
-  sectionName?: string | null;
-  outstandingAmount: number;
-  lastPaymentDate?: string | null;
-}
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { FeeService } from '../../../../core/services/fee.service';
+import { FamilyService } from '../../../../core/services/family/family.service';
+import { NotificationService } from '../../../../shared/services/notification.service';
+import { Family } from '../../../../core/models/family.model';
+import { FamilyChildFeeRow, FamilyFeeSummary } from '../../../../core/models/fee.model';
 
 @Component({
   selector: 'app-family-fee',
@@ -39,7 +35,6 @@ interface FamilyChildFeeRow {
           <label class="filter-label">Search Family</label>
           <div class="search-group">
             <div class="search-input-wrapper">
-              <i class="fa fa-search"></i>
               <input
                 type="text"
                 class="academy-input search-input"
@@ -99,9 +94,33 @@ interface FamilyChildFeeRow {
             <i class="fa fa-table"></i>
             Children Fee Overview
           </div>
-          <div class="modern-table-count" *ngIf="children.length > 0">
-            <i class="fa fa-users"></i>
-            {{ children.length }} child{{ children.length !== 1 ? 'ren' : '' }}
+          <div class="modern-table-toolbar" *ngIf="children.length > 0">
+            <div class="child-filter">
+              <input
+                type="text"
+                class="academy-input"
+                placeholder="Filter children by name or class..."
+                [(ngModel)]="childFilter"
+                (input)="applyChildFilters()"
+              />
+            </div>
+            <label class="toggle-label">
+              <input type="checkbox" [(ngModel)]="onlyOutstanding" (change)="applyChildFilters()" />
+              <span>Show only with outstanding</span>
+            </label>
+            <div class="page-size">
+              Show
+              <select [(ngModel)]="pageSize" (change)="paginate()" class="page-size-select">
+                <option [ngValue]="5">5</option>
+                <option [ngValue]="10">10</option>
+                <option [ngValue]="25">25</option>
+              </select>
+              entries
+            </div>
+            <div class="modern-table-count">
+              <i class="fa fa-users"></i>
+              {{ filteredChildren.length }} child{{ filteredChildren.length !== 1 ? 'ren' : '' }}
+            </div>
           </div>
         </div>
 
@@ -124,8 +143,8 @@ interface FamilyChildFeeRow {
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let child of children; let i = index">
-                <td>{{ i + 1 }}</td>
+              <tr *ngFor="let child of pagedChildren; let i = index">
+                <td>{{ (currentPage - 1) * pageSize + i + 1 }}</td>
                 <td>
                   <div class="student-cell">
                     <div class="avatar">
@@ -164,10 +183,10 @@ interface FamilyChildFeeRow {
                 <td class="actions-cell">
                   <div class="actions-group">
                     <button
+                      *ngIf="child.outstandingAmount > 0"
                       class="btn btn-primary btn-xs"
                       type="button"
                       (click)="onPay(child)"
-                      [disabled]="child.outstandingAmount <= 0"
                     >
                       <i class="fa fa-money"></i>
                       Pay
@@ -184,6 +203,35 @@ interface FamilyChildFeeRow {
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="pagination-bar" *ngIf="totalPages > 1">
+          <span class="pagination-info">
+            Showing
+            {{ (currentPage - 1) * pageSize + 1 }}
+            –
+            {{
+              currentPage * pageSize > filteredChildren.length
+                ? filteredChildren.length
+                : currentPage * pageSize
+            }}
+            of {{ filteredChildren.length }}
+          </span>
+          <div class="pagination-controls">
+            <button class="page-btn" (click)="changePage(currentPage - 1)" [disabled]="currentPage === 1">
+              <i class="fa fa-chevron-left"></i>
+            </button>
+            <button
+              *ngFor="let p of pageNumbers"
+              class="page-num"
+              [class.active]="p === currentPage"
+              (click)="changePage(p)">
+              {{ p }}
+            </button>
+            <button class="page-btn" (click)="changePage(currentPage + 1)" [disabled]="currentPage === totalPages">
+              <i class="fa fa-chevron-right"></i>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -274,17 +322,8 @@ interface FamilyChildFeeRow {
         min-width: 220px;
       }
 
-      .search-input-wrapper i {
-        position: absolute;
-        left: 0.9rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #9ca3af;
-        z-index: 1;
-      }
-
       .search-input {
-        padding-left: 2.4rem;
+        padding-left: 0.9rem;
       }
 
       .academy-input {
@@ -492,6 +531,14 @@ interface FamilyChildFeeRow {
         color: #2c5282;
       }
 
+      .modern-table-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
       .modern-table-count {
         display: flex;
         align-items: center;
@@ -502,6 +549,21 @@ interface FamilyChildFeeRow {
         border-radius: 999px;
         border: 1px solid #d1d5db;
         background: #fff;
+      }
+
+      .page-size {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.85rem;
+        color: #6b7280;
+      }
+
+      .page-size-select {
+        border-radius: 999px;
+        border: 1px solid #d1d5db;
+        padding: 0.2rem 0.6rem;
+        font-size: 0.85rem;
       }
 
       .modern-table-empty {
@@ -629,6 +691,58 @@ interface FamilyChildFeeRow {
         gap: 0.4rem;
       }
 
+      .toggle-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.8rem;
+        color: #4b5563;
+      }
+
+      .pagination-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.85rem 1.25rem;
+        border-top: 1px solid #e2e8f0;
+        background: #fafbfc;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+      }
+
+      .pagination-info {
+        font-size: 0.8rem;
+        color: #6b7280;
+      }
+
+      .pagination-controls {
+        display: flex;
+        gap: 0.25rem;
+      }
+
+      .page-btn,
+      .page-num {
+        border-radius: 999px;
+        border: 1px solid #e5e7eb;
+        background: #fff;
+        padding: 0.25rem 0.6rem;
+        font-size: 0.78rem;
+        cursor: pointer;
+        min-width: 26px;
+        transition: all 0.2s;
+      }
+
+      .page-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .page-num.active {
+        background: #1e3a5f;
+        border-color: #1e3a5f;
+        color: #fff;
+      }
+
       @media (max-width: 768px) {
         .filters-card {
           flex-direction: column;
@@ -655,7 +769,29 @@ export class FamilyFeeComponent implements OnInit {
   familyName: string | null = null;
   children: FamilyChildFeeRow[] = [];
 
-  constructor(private route: ActivatedRoute) {}
+  // filtered & paged
+  filteredChildren: FamilyChildFeeRow[] = [];
+  pagedChildren: FamilyChildFeeRow[] = [];
+
+  // child filters
+  childFilter = '';
+  onlyOutstanding = false;
+
+  // pagination
+  pageSize = 10;
+  currentPage = 1;
+  totalPages = 1;
+  pageNumbers: number[] = [];
+
+  loading = false;
+
+  constructor(
+    private route: ActivatedRoute,
+    private router: Router,
+    private feeService: FeeService,
+    private familyService: FamilyService,
+    private notify: NotificationService
+  ) {}
 
   get combinedOutstanding(): number {
     return this.children.reduce((sum, c) => sum + (c.outstandingAmount || 0), 0);
@@ -664,8 +800,10 @@ export class FamilyFeeComponent implements OnInit {
   ngOnInit(): void {
     const familyIdParam = this.route.snapshot.paramMap.get('familyId');
     if (familyIdParam) {
-      // Placeholder: in real implementation, load by familyId
-      this.familyName = `Family #${familyIdParam}`;
+      const id = Number(familyIdParam);
+      if (!isNaN(id) && id > 0) {
+        this.loadFamilyFeeSummary(id);
+      }
     }
   }
 
@@ -675,32 +813,128 @@ export class FamilyFeeComponent implements OnInit {
       return;
     }
 
-    // Placeholder: in real implementation, call backend to search family and children
-    this.familyName = `Sample Family (${term})`;
-    this.children = [
-      {
-        studentId: 101,
-        studentName: 'Ali Khan',
-        className: 'Grade 5',
-        sectionName: 'A',
-        outstandingAmount: 4500,
-        lastPaymentDate: new Date().toISOString(),
+    // If numeric, treat as direct family ID
+    const numericId = Number(term);
+    if (!isNaN(numericId) && numericId > 0) {
+      this.loadFamilyFeeSummary(numericId);
+      return;
+    }
+
+    // Otherwise search in families list (client-side) and pick first match
+    this.loading = true;
+    this.familyService.getAllFamilies().subscribe({
+      next: (families: Family[]) => {
+        const lower = term.toLowerCase();
+        const match = families.find(f =>
+          (f.fatherName && f.fatherName.toLowerCase().includes(lower)) ||
+          (f.motherName && f.motherName.toLowerCase().includes(lower)) ||
+          (f.smsNumber && f.smsNumber.toLowerCase().includes(lower))
+        );
+
+        if (!match || !match.familyId) {
+          this.notify.warning('No matching family found.');
+          this.loading = false;
+          return;
+        }
+
+        this.loadFamilyFeeSummary(match.familyId);
       },
-      {
-        studentId: 102,
-        studentName: 'Ayesha Khan',
-        className: 'Grade 3',
-        sectionName: 'B',
-        outstandingAmount: 2500,
-        lastPaymentDate: null,
-      },
-    ];
+      error: () => {
+        this.notify.error('Failed to search families.');
+        this.loading = false;
+      }
+    });
   }
 
   onPay(child: FamilyChildFeeRow): void {
-    // Placeholder for now: in real implementation, navigate to child's payment / challan view
-    // or open a payment dialog scoped to this student.
-    console.log('Pay clicked for student', child.studentId);
+    if (!child || !child.studentId) {
+      return;
+    }
+    this.router.navigate(['/admin/fee/student', child.studentId]);
+  }
+
+  getInitials(name: string): string {
+    if (!name) return '?';
+    return name
+      .split(' ')
+      .filter(p => !!p)
+      .map(p => p[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  }
+
+  private loadFamilyFeeSummary(familyId: number): void {
+    this.loading = true;
+    this.feeService.getFamilyFeeSummary(familyId).subscribe({
+      next: (summary: FamilyFeeSummary) => {
+        this.familyName = summary.familyName;
+        this.children = summary.children || [];
+        this.childFilter = '';
+        this.onlyOutstanding = false;
+        this.applyChildFilters();
+        this.loading = false;
+      },
+      error: (err) => {
+        if (err?.status === 404) {
+          this.notify.warning('Family or fee summary not found.');
+        } else {
+          this.notify.error('Failed to load family fee summary.');
+        }
+        this.children = [];
+        this.filteredChildren = [];
+        this.pagedChildren = [];
+        this.loading = false;
+      }
+    });
+  }
+
+  applyChildFilters(): void {
+    let list = [...this.children];
+
+    const term = (this.childFilter || '').toLowerCase().trim();
+    if (term) {
+      list = list.filter(c =>
+        c.studentName.toLowerCase().includes(term) ||
+        (c.className || '').toLowerCase().includes(term) ||
+        (c.sectionName || '').toLowerCase().includes(term)
+      );
+    }
+
+    if (this.onlyOutstanding) {
+      list = list.filter(c => c.outstandingAmount > 0);
+    }
+
+    this.filteredChildren = list;
+    this.currentPage = 1;
+    this.paginate();
+  }
+
+  paginate(): void {
+    this.totalPages = Math.max(1, Math.ceil(this.filteredChildren.length / this.pageSize));
+    if (this.currentPage > this.totalPages) this.currentPage = this.totalPages;
+    const start = (this.currentPage - 1) * this.pageSize;
+    this.pagedChildren = this.filteredChildren.slice(start, start + this.pageSize);
+    this.buildPageNumbers();
+  }
+
+  changePage(p: number): void {
+    if (p < 1 || p > this.totalPages || p === this.currentPage) return;
+    this.currentPage = p;
+    this.paginate();
+  }
+
+  buildPageNumbers(): void {
+    const maxVisible = 5;
+    const pages: number[] = [];
+    let start = Math.max(1, this.currentPage - Math.floor(maxVisible / 2));
+    let end = start + maxVisible - 1;
+    if (end > this.totalPages) {
+      end = this.totalPages;
+      start = Math.max(1, end - maxVisible + 1);
+    }
+    for (let i = start; i <= end; i++) pages.push(i);
+    this.pageNumbers = pages;
   }
 }
 

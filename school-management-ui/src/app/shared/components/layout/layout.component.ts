@@ -384,6 +384,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
             { route: '/admin/fee/reports', label: 'Fee Reports', role: 'admin' },
             { route: '/admin/fee/defaulters', label: 'Defaulters', role: 'admin' },
             { route: '/admin/fee/student', label: 'Student Fee History', role: 'admin' },
+            { route: '/admin/fee/family/0', label: 'Family Fee Summary', role: 'admin' },
             { route: '/admin/invoices', label: 'Invoices', role: 'admin' }
           ]
         },

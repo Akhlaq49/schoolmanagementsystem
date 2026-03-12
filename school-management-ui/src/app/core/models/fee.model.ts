@@ -262,3 +262,23 @@ export interface IncomeExpenseReport {
   net: number;
   rows: IncomeExpenseRow[];
 }
+
+// ─── Family Fee Summary ───────────────────────────────────
+
+export interface FamilyChildFeeRow {
+  studentId: number;
+  studentName: string;
+  className: string;
+  sectionName?: string;
+  outstandingAmount: number;
+  lastPaymentDate?: string;
+}
+
+export interface FamilyFeeSummary {
+  familyId: number;
+  familyName: string;
+  fatherName?: string;
+  smsNumber?: string;
+  combinedOutstanding: number;
+  children: FamilyChildFeeRow[];
+}
