@@ -1358,7 +1358,7 @@ export class StudentsComponent implements OnInit {
         this.loading = false;
         const editId = this.route.snapshot.queryParamMap.get('edit');
         if (editId) {
-          const s = students.find(x => String(x.studentId) === editId);
+          const s = students.find(x => String((x as any).userId ?? x.studentId) === editId);
           if (s) this.editStudent(s);
         }
       },
@@ -1591,7 +1591,8 @@ export class StudentsComponent implements OnInit {
         };
       }
 
-      this.studentService.updateStudent(this.editingStudent.studentId, updateDto).subscribe({
+      const id = (this.editingStudent as any).userId ?? this.editingStudent.studentId;
+      this.studentService.updateStudent(id, updateDto).subscribe({
         next: () => {
           this.notificationService.success('Student updated successfully');
           if (!this.addOnly) this.loadStudents();
@@ -1679,7 +1680,8 @@ export class StudentsComponent implements OnInit {
   }
 
   viewStudent(student: Student) {
-    this.router.navigate(['/admin/students/view', student.studentId]);
+    const id = (student as any).userId ?? student.studentId;
+    this.router.navigate(['/admin/students/view', id]);
   }
 
   editStudent(student: Student) {
@@ -1704,7 +1706,7 @@ export class StudentsComponent implements OnInit {
 
   dropStudent() {
     if (!this.studentToDrop) return;
-    const id = this.studentToDrop.studentId;
+    const id = (this.studentToDrop as any).userId ?? this.studentToDrop.studentId;
     this.studentToDrop = null;
     this.showDropConfirm = false;
     this.studentService.updateStudent(id, { status: 'Dropped' }).subscribe({
@@ -1717,7 +1719,8 @@ export class StudentsComponent implements OnInit {
   }
 
   confirmDelete(student: Student) {
-    this.studentToDelete = student.studentId;
+    const id = (student as any).userId ?? student.studentId;
+    this.studentToDelete = id;
     this.showDeleteConfirm = true;
   }
 

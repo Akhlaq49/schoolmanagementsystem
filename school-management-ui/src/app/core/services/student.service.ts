@@ -20,6 +20,7 @@ export class StudentService {
     const adm = api.admission;
     return {
       ...api,
+      userId: api.userId,
       studentId: api.studentProfile?.studentId ?? api.studentId ?? api.userId,
       fee: adm?.fee ?? api.fee,
       feeType: adm?.feeType ?? api.feeType,

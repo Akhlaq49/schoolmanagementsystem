@@ -19,7 +19,7 @@ import { Student } from '../../../../core/models/student.model';
           <span class="status-badge" [class.status-active]="student?.status !== 'Dropped'" [class.status-dropped]="student?.status === 'Dropped'">
             {{ student?.status || 'Active' }}
           </span>
-          <a [routerLink]="['/admin/students/active']" [queryParams]="{ edit: student.studentId }" class="btn-edit" *ngIf="student">
+          <a [routerLink]="['/admin/students/active']" [queryParams]="{ edit: student.userId ?? student.studentId }" class="btn-edit" *ngIf="student">
             <i class="fa fa-edit"></i>
             Edit Student
           </a>

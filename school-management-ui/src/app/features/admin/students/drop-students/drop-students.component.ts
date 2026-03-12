@@ -122,7 +122,7 @@ import { DropdownComponent, DropdownOption } from '../../../../shared/components
                 <span *ngIf="!s.section?.name" class="text-muted">-</span>
               </td>
               <td>
-                <a [routerLink]="['/admin/students/view', s.studentId]" class="btn-view">
+                <a [routerLink]="['/admin/students/view', s.userId ?? s.studentId]" class="btn-view">
                   <i class="fa fa-eye"></i> View
                 </a>
                 <button class="btn-reactivate" (click)="reactivate(s)">
@@ -476,7 +476,8 @@ export class DropStudentsComponent implements OnInit {
   }
 
   reactivate(student: Student) {
-    this.studentService.updateStudent(student.studentId, { status: 'Active' }).subscribe({
+    const id = (student as any).userId ?? student.studentId;
+    this.studentService.updateStudent(id, { status: 'Active' }).subscribe({
       next: () => {
         this.notificationService.success('Student reactivated');
         this.loadDropped();

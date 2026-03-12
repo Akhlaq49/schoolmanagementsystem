@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 
 export interface WaiveChallanInfo {
   challanNumber: string;
@@ -16,7 +17,7 @@ export interface WaiveChallanInfo {
 @Component({
   selector: 'app-waive-challan-modal',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="modal-backdrop" *ngIf="show" (click)="onBackdropClick()">
       <div class="modal-card modal-md" (click)="$event.stopPropagation()">
@@ -83,7 +84,9 @@ export interface WaiveChallanInfo {
               <textarea
                 rows="3"
                 class="academy-input"
+                name="waiveReason"
                 [(ngModel)]="reason"
+                [ngModelOptions]="{ standalone: true }"
                 placeholder="e.g. Scholarship granted, fee adjustment, management approval..."
               ></textarea>
               <div class="error-text" *ngIf="showErrors && !reason.trim()">
@@ -99,7 +102,9 @@ export interface WaiveChallanInfo {
               <input
                 type="text"
                 class="academy-input"
+                name="authorizedBy"
                 [(ngModel)]="authorizedBy"
+                [ngModelOptions]="{ standalone: true }"
                 placeholder="Name / designation of the person authorizing"
               />
               <div class="error-text" *ngIf="showErrors && !authorizedBy.trim()">

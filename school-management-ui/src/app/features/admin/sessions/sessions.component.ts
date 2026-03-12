@@ -129,7 +129,6 @@ import { DropdownComponent, DropdownOption } from '../../../shared/components/dr
           <table class="data-table">
             <thead>
               <tr>
-                <th>#</th>
                 <th>Session Name</th>
                 <th>Current</th>
                 <th>Start Date</th>

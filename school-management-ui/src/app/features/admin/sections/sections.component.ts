@@ -49,7 +49,9 @@ import { DropdownComponent, DropdownOption } from '../../../shared/components/dr
             <div class="academy-form-group">
               <label>Class <span class="required">*</span></label>
               <app-dropdown
+                name="classId"
                 [(ngModel)]="sectionForm.classId"
+                [ngModelOptions]="{ standalone: true }"
                 [options]="classOptions"
                 placeholder="Select Class"
                 [searchable]="true">
@@ -447,7 +449,10 @@ export class SectionsComponent implements OnInit {
 
   editSection(section: Section) {
     this.editingSection = section;
-    this.sectionForm = { ...section };
+    this.sectionForm = {
+      name: section.name,
+      classId: section.classId ?? section.class?.classId
+    };
     this.showAddForm = true;
     this.submitted = false;
     window.scrollTo({ top: 0, behavior: 'smooth' });

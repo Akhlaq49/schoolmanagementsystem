@@ -138,7 +138,7 @@ import { DropdownComponent, DropdownOption } from '../../../../shared/components
                   </span>
                 </td>
                 <td>
-                  <a [routerLink]="['/admin/students/view', s.studentId]" class="btn-view">
+                  <a [routerLink]="['/admin/students/view', s.userId ?? s.studentId]" class="btn-view">
                     <i class="fa fa-eye"></i> View
                   </a>
                 </td>
@@ -530,7 +530,8 @@ export class PromoteStudentComponent implements OnInit {
   private callPromoteApi(student: Student, newClassId: number, sectionId?: number) {
     const payload: { classId: number; sectionId?: number } = { classId: newClassId };
     if (sectionId != null) payload.sectionId = sectionId;
-    this.studentService.updateStudent(student.studentId, payload).subscribe({
+    const id = (student as any).userId ?? student.studentId;
+    this.studentService.updateStudent(id, payload).subscribe({
       next: (updated) => {
         this.promotingStudentId = null;
         this.promoteToClassMap[student.studentId] = null;
