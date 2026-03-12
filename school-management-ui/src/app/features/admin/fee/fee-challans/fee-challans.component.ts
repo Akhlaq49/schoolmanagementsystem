@@ -14,6 +14,7 @@ import { NotificationService } from '../../../../shared/services/notification.se
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DropdownComponent, DropdownOption } from '../../../../shared/components/dropdown/dropdown.component';
+import { FeeReceiptComponent } from '../../../../shared/components/fee-receipt/fee-receipt.component';
 
 const MONTH_NAMES = [
   '', 'January', 'February', 'March', 'April', 'May', 'June',
@@ -23,7 +24,7 @@ const MONTH_NAMES = [
 @Component({
   selector: 'app-fee-challans',
   standalone: true,
-  imports: [CommonModule, FormsModule, LoadingComponent, ConfirmDialogComponent, DropdownComponent],
+  imports: [CommonModule, FormsModule, LoadingComponent, ConfirmDialogComponent, DropdownComponent, FeeReceiptComponent],
   template: `
     <div class="challans-container">
       <app-loading [show]="loading" [message]="'Loading challans...'"></app-loading>
@@ -531,6 +532,24 @@ const MONTH_NAMES = [
         (confirmed)="onConfirmed()"
         (cancelled)="confirmVisible = false">
       </app-confirm-dialog>
+      <!-- Printable Payment Receipt -->
+      <app-fee-receipt
+        [show]="receiptVisible"
+        [receiptNumber]="latestReceipt?.receiptNumber || null"
+        [challanNumber]="latestReceipt?.challanNumber || null"
+        [paidAt]="latestReceipt?.paidAt || null"
+        [studentName]="latestReceipt?.studentName || null"
+        [className]="latestReceipt?.className || null"
+        [sectionName]="latestReceipt?.sectionName || null"
+        [paymentMethod]="latestReceipt?.paymentMethod || null"
+        [receivedBy]="latestReceipt?.receivedBy || null"
+        [totalAmount]="latestReceipt?.totalAmount || 0"
+        [amountPaid]="latestReceipt?.amountPaid || 0"
+        [balanceRemaining]="latestReceipt?.balanceRemaining || 0"
+        [amountInWords]="latestReceipt?.amountInWords || null"
+        [autoPrint]="true"
+        (closed)="receiptVisible = false">
+      </app-fee-receipt>
     </div>
   `,
   styles: [`
@@ -966,6 +985,23 @@ export class FeeChallansComponent implements OnInit {
   confirmMessage = '';
   private pendingAction: (() => void) | null = null;
 
+  // Receipt Modal
+  receiptVisible = false;
+  latestReceipt: {
+    receiptNumber: string;
+    challanNumber: string;
+    paidAt: string;
+    studentName: string;
+    className: string;
+    sectionName?: string | null;
+    paymentMethod: string;
+    receivedBy?: string | null;
+    totalAmount: number;
+    amountPaid: number;
+    balanceRemaining: number;
+    amountInWords?: string | null;
+  } | null = null;
+
   constructor(
     private feeService: FeeService,
     private sessionService: AcademicSessionService,
@@ -1119,10 +1155,16 @@ export class FeeChallansComponent implements OnInit {
     }
     this.paying = true;
     this.feeService.recordPayment(this.selectedChallan.feeChallanId, this.payForm).subscribe({
-      next: () => {
+      next: (updatedChallan) => {
         this.notify.success('Payment recorded successfully');
         this.showPaymentModal = false;
         this.paying = false;
+
+        // Prepare printable receipt using latest payment info
+        this.prepareLatestReceipt(updatedChallan);
+        this.receiptVisible = true;
+
+        // Refresh challans/summary
         this.loadData();
       },
       error: (err) => {
@@ -1225,5 +1267,38 @@ export class FeeChallansComponent implements OnInit {
       this.pendingAction();
       this.pendingAction = null;
     }
+  }
+
+  private prepareLatestReceipt(challan: FeeChallan): void {
+    const payments: FeePayment[] = challan.payments || [];
+    // Try to infer the latest payment from payments array (fallback to current payForm)
+    let latest: FeePayment | null = null;
+    if (payments.length > 0) {
+      latest = [...payments].sort((a, b) => {
+        const aTime = new Date(a.paidAt).getTime();
+        const bTime = new Date(b.paidAt).getTime();
+        return bTime - aTime;
+      })[0];
+    }
+
+    const feePaymentId = latest?.feePaymentId;
+    const receiptNumber = feePaymentId != null
+      ? `RCP-${feePaymentId.toString().padStart(6, '0')}`
+      : challan.challanNumber || 'RECEIPT';
+
+    this.latestReceipt = {
+      receiptNumber,
+      challanNumber: challan.challanNumber,
+      paidAt: latest?.paidAt || new Date().toISOString(),
+      studentName: challan.studentName || '',
+      className: challan.className || '',
+      sectionName: challan.sectionName || '',
+      paymentMethod: latest?.paymentMethod || this.payForm.paymentMethod || '',
+      receivedBy: latest?.receivedBy || this.payForm.receivedBy || '',
+      totalAmount: challan.totalAmount,
+      amountPaid: latest?.amount ?? this.payForm.amount,
+      balanceRemaining: challan.balance,
+      amountInWords: null
+    };
   }
 }
