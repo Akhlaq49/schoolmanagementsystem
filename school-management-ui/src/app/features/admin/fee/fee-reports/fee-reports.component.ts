@@ -3,6 +3,15 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DropdownComponent, DropdownOption } from '../../../../shared/components/dropdown/dropdown.component';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
+import { FeeService } from '../../../../core/services/fee.service';
+import {
+  MonthlySummaryReport,
+  ClassSummaryReportRow,
+  AgingReport,
+  DiscountReport,
+  IncomeExpenseReport
+} from '../../../../core/models/fee.model';
+import { NotificationService } from '../../../../shared/services/notification.service';
 
 @Component({
   selector: 'app-fee-reports',
@@ -76,32 +85,32 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
           </div>
         </div>
 
-        <div class="summary-grid">
+        <div class="summary-grid" *ngIf="monthlyReport">
           <div class="summary-card card-billed">
             <div class="card-icon"><i class="fa fa-file-text-o"></i></div>
             <div class="card-data">
-              <span class="card-value">{{ dummyMonthly.billed | number:'1.0-0' }}</span>
+              <span class="card-value">{{ monthlyReport.totalBilled | number:'1.0-0' }}</span>
               <span class="card-label">Total Billed</span>
             </div>
           </div>
           <div class="summary-card card-collected">
             <div class="card-icon"><i class="fa fa-money"></i></div>
             <div class="card-data">
-              <span class="card-value">{{ dummyMonthly.collected | number:'1.0-0' }}</span>
+              <span class="card-value">{{ monthlyReport.totalCollected | number:'1.0-0' }}</span>
               <span class="card-label">Total Collected</span>
             </div>
           </div>
           <div class="summary-card card-outstanding">
             <div class="card-icon"><i class="fa fa-hourglass-half"></i></div>
             <div class="card-data">
-              <span class="card-value">{{ dummyMonthly.outstanding | number:'1.0-0' }}</span>
+              <span class="card-value">{{ monthlyReport.totalOutstanding | number:'1.0-0' }}</span>
               <span class="card-label">Outstanding</span>
             </div>
           </div>
           <div class="summary-card card-rate">
             <div class="card-icon"><i class="fa fa-line-chart"></i></div>
             <div class="card-data">
-              <span class="card-value">{{ dummyMonthly.collectionRate }}%</span>
+              <span class="card-value">{{ monthlyReport.collectionRate }}%</span>
               <span class="card-label">Collection Rate</span>
             </div>
           </div>
@@ -125,14 +134,14 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let row of dummyMonthly.rows">
+                <tr *ngFor="let row of monthlyReport?.rows">
                   <td>{{ row.className }}</td>
                   <td>{{ row.billed | number:'1.0-0' }}</td>
                   <td>{{ row.collected | number:'1.0-0' }}</td>
                   <td>{{ row.outstanding | number:'1.0-0' }}</td>
                   <td>{{ row.collectionRate }}%</td>
                 </tr>
-                <tr *ngIf="dummyMonthly.rows.length === 0">
+                <tr *ngIf="!monthlyReport || monthlyReport.rows.length === 0">
                   <td colspan="5" class="empty-cell">No data for selected filters.</td>
                 </tr>
               </tbody>
@@ -175,14 +184,14 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor=\"let row of dummyClassSummary\">
+                <tr *ngFor=\"let row of classSummaryRows\">
                   <td>{{ row.className }}</td>
                   <td>{{ row.billed | number:'1.0-0' }}</td>
                   <td>{{ row.collected | number:'1.0-0' }}</td>
                   <td>{{ row.outstanding | number:'1.0-0' }}</td>
                   <td>{{ row.collectionRate }}%</td>
                 </tr>
-                <tr *ngIf=\"dummyClassSummary.length === 0\">
+                <tr *ngIf=\"classSummaryRows.length === 0\">
                   <td colspan=\"5\" class=\"empty-cell\">No data for selected filters.</td>
                 </tr>
               </tbody>
@@ -217,8 +226,8 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
 
         <div class=\"aging-grid-card\">
           <h3><i class=\"fa fa-clock-o\"></i> Outstanding Aging Buckets</h3>
-          <div class=\"aging-grid\">
-            <div class=\"aging-item\" *ngFor=\"let bucket of dummyAging\">
+          <div class=\"aging-grid\" *ngIf=\"agingReport\">
+            <div class=\"aging-item\" *ngFor=\"let bucket of agingReport.buckets\">
               <span class=\"label\">{{ bucket.label }}</span>
               <span class=\"value\">{{ bucket.amount | number:'1.0-0' }} PKR</span>
               <span class=\"count\">{{ bucket.count }} challan(s)</span>
@@ -246,7 +255,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor=\"let row of dummyAgingDetails\">
+                <tr *ngFor=\"let row of agingReport?.details\">
                   <td>{{ row.studentName }}</td>
                   <td>{{ row.className }}</td>
                   <td>{{ row.challanNumber }}</td>
@@ -255,7 +264,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
                   <td>{{ row.outstanding | number:'1.0-0' }}</td>
                   <td>{{ row.bucket }}</td>
                 </tr>
-                <tr *ngIf=\"dummyAgingDetails.length === 0\">
+                <tr *ngIf=\"!agingReport || agingReport.details.length === 0\">
                   <td colspan=\"7\" class=\"empty-cell\">No outstanding data.</td>
                 </tr>
               </tbody>
@@ -296,18 +305,18 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
           </div>
         </div>
 
-        <div class=\"summary-grid\">
+        <div class=\"summary-grid\" *ngIf=\"discountReport\">
           <div class=\"summary-card card-discount\">
             <div class=\"card-icon\"><i class=\"fa fa-percent\"></i></div>
             <div class=\"card-data\">
-              <span class=\"card-value\">{{ dummyDiscount.totalAmount | number:'1.0-0' }}</span>
+              <span class=\"card-value\">{{ discountReport.totalAmount | number:'1.0-0' }}</span>
               <span class=\"card-label\">Total Discount Amount</span>
             </div>
           </div>
           <div class=\"summary-card card-discount\">
             <div class=\"card-icon\"><i class=\"fa fa-users\"></i></div>
             <div class=\"card-data\">
-              <span class=\"card-value\">{{ dummyDiscount.studentCount }}</span>
+              <span class=\"card-value\">{{ discountReport.targetCount }}</span>
               <span class=\"card-label\">Students / Families</span>
             </div>
           </div>
@@ -332,15 +341,15 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor=\"let row of dummyDiscount.rows\">
+                <tr *ngFor=\"let row of discountReport?.rows\">
                   <td>{{ row.discountName }}</td>
                   <td>{{ row.scope }}</td>
                   <td>{{ row.targetName }}</td>
                   <td>{{ row.challanNumber }}</td>
                   <td>{{ row.amount | number:'1.0-0' }}</td>
-                  <td>{{ row.date }}</td>
+                  <td>{{ row.appliedAt | date:'dd MMM yyyy' }}</td>
                 </tr>
-                <tr *ngIf=\"dummyDiscount.rows.length === 0\">
+                <tr *ngIf=\"!discountReport || discountReport.rows.length === 0\">
                   <td colspan=\"6\" class=\"empty-cell\">No discounts applied in this period.</td>
                 </tr>
               </tbody>
@@ -370,25 +379,25 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
           </div>
         </div>
 
-        <div class=\"summary-grid\">
+        <div class=\"summary-grid\" *ngIf=\"incomeExpenseReport\">
           <div class=\"summary-card card-income\">
             <div class=\"card-icon\"><i class=\"fa fa-arrow-circle-down\"></i></div>
             <div class=\"card-data\">
-              <span class=\"card-value\">{{ dummyIE.income | number:'1.0-0' }}</span>
+              <span class=\"card-value\">{{ incomeExpenseReport.income | number:'1.0-0' }}</span>
               <span class=\"card-label\">Fee Income</span>
             </div>
           </div>
           <div class=\"summary-card card-expense\">
             <div class=\"card-icon\"><i class=\"fa fa-arrow-circle-up\"></i></div>
             <div class=\"card-data\">
-              <span class=\"card-value\">{{ dummyIE.expense | number:'1.0-0' }}</span>
+              <span class=\"card-value\">{{ incomeExpenseReport.expense | number:'1.0-0' }}</span>
               <span class=\"card-label\">Expenses</span>
             </div>
           </div>
-          <div class=\"summary-card\" [ngClass]=\"dummyIE.net >= 0 ? 'card-surplus' : 'card-deficit'\">
-            <div class=\"card-icon\"><i class=\"fa\" [ngClass]=\"dummyIE.net >= 0 ? 'fa-smile-o' : 'fa-frown-o'\"></i></div>
+          <div class=\"summary-card\" [ngClass]=\"incomeExpenseReport.net >= 0 ? 'card-surplus' : 'card-deficit'\">
+            <div class=\"card-icon\"><i class=\"fa\" [ngClass]=\"incomeExpenseReport.net >= 0 ? 'fa-smile-o' : 'fa-frown-o'\"></i></div>
             <div class=\"card-data\">
-              <span class=\"card-value\">{{ dummyIE.net | number:'1.0-0' }}</span>
+              <span class=\"card-value\">{{ incomeExpenseReport.net | number:'1.0-0' }}</span>
               <span class=\"card-label\">Net (Income - Expense)</span>
             </div>
           </div>
@@ -410,12 +419,12 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor=\"let row of dummyIE.rows\">
+                <tr *ngFor=\"let row of incomeExpenseReport?.rows\">
                   <td>{{ row.type }}</td>
                   <td>{{ row.category }}</td>
                   <td>{{ row.amount | number:'1.0-0' }}</td>
                 </tr>
-                <tr *ngIf=\"dummyIE.rows.length === 0\">
+                <tr *ngIf=\"!incomeExpenseReport || incomeExpenseReport.rows.length === 0\">
                   <td colspan=\"3\" class=\"empty-cell\">No income/expense data.</td>
                 </tr>
               </tbody>
@@ -665,61 +674,20 @@ export class FeeReportsComponent {
     ieEnd: ''
   };
 
-  // Dummy data placeholders to show structure
-  dummyMonthly = {
-    billed: 125000,
-    collected: 98000,
-    outstanding: 27000,
-    collectionRate: 78,
-    rows: [
-      { className: 'Class 1', billed: 25000, collected: 20000, outstanding: 5000, collectionRate: 80 },
-      { className: 'Class 2', billed: 30000, collected: 22000, outstanding: 8000, collectionRate: 73 },
-      { className: 'Class 3', billed: 20000, collected: 18000, outstanding: 2000, collectionRate: 90 }
-    ]
-  };
+  monthlyReport: MonthlySummaryReport | null = null;
+  classSummaryRows: ClassSummaryReportRow[] = [];
+  agingReport: AgingReport | null = null;
+  discountReport: DiscountReport | null = null;
+  incomeExpenseReport: IncomeExpenseReport | null = null;
 
-  dummyClassSummary = [
-    { className: 'Class 1', billed: 25000, collected: 20000, outstanding: 5000, collectionRate: 80 },
-    { className: 'Class 2', billed: 30000, collected: 22000, outstanding: 8000, collectionRate: 73 },
-    { className: 'Class 3', billed: 20000, collected: 18000, outstanding: 2000, collectionRate: 90 }
-  ];
-
-  dummyAging = [
-    { label: '1 – 30 days', amount: 12000, count: 14 },
-    { label: '31 – 60 days', amount: 8000, count: 9 },
-    { label: '61 – 90 days', amount: 5000, count: 5 },
-    { label: '90+ days', amount: 3000, count: 3 }
-  ];
-
-  dummyAgingDetails = [
-    { studentName: 'Ali Khan', className: 'Class 1', challanNumber: 'CH-202603-00001', dueDate: '10 Mar 2026', daysOverdue: 12, outstanding: 3500, bucket: '1 – 30 days' },
-    { studentName: 'Sara Ahmed', className: 'Class 2', challanNumber: 'CH-202602-00044', dueDate: '10 Feb 2026', daysOverdue: 40, outstanding: 4200, bucket: '31 – 60 days' }
-  ];
-
-  dummyDiscount = {
-    totalAmount: 15000,
-    studentCount: 22,
-    rows: [
-      { discountName: 'Sibling 10%', scope: 'Student', targetName: 'Ali Khan', challanNumber: 'CH-202603-00001', amount: 1500, date: '05 Mar 2026' },
-      { discountName: 'Staff Child', scope: 'Family', targetName: 'Ahmed Family', challanNumber: 'CH-202603-00022', amount: 5000, date: '03 Mar 2026' }
-    ]
-  };
-
-  dummyIE = {
-    income: 98000,
-    expense: 45000,
-    get net() { return this.income - this.expense; },
-    rows: [
-      { type: 'Income', category: 'Fee Collection', amount: 98000 },
-      { type: 'Expense', category: 'Salaries', amount: 30000 },
-      { type: 'Expense', category: 'Utilities', amount: 8000 },
-      { type: 'Expense', category: 'Maintenance', amount: 7000 }
-    ]
-  };
-
-  constructor() {
+  constructor(
+    private feeService: FeeService,
+    private notify: NotificationService
+  ) {
     this.initYearOptions();
     this.initStaticDropdowns();
+    this.initDefaultDates();
+    this.loadCurrentTab();
   }
 
   private initYearOptions(): void {
@@ -752,8 +720,118 @@ export class FeeReportsComponent {
     ];
   }
 
+  private initDefaultDates(): void {
+    const today = new Date();
+    const iso = today.toISOString().substring(0, 10);
+    this.filters.asOfDate = iso;
+    this.filters.discountStart = iso;
+    this.filters.discountEnd = iso;
+    this.filters.ieStart = iso;
+    this.filters.ieEnd = iso;
+  }
+
   onFilterChange(): void {
-    // Placeholder: when backend is wired, trigger API calls here per tab
+    this.loadCurrentTab();
+  }
+
+  private loadCurrentTab(): void {
+    switch (this.activeTab) {
+      case 'monthly':
+        this.loadMonthlySummary();
+        break;
+      case 'class-summary':
+        this.loadClassSummary();
+        break;
+      case 'aging':
+        this.loadAgingReport();
+        break;
+      case 'discounts':
+        this.loadDiscountReport();
+        break;
+      case 'income-expense':
+        this.loadIncomeExpenseReport();
+        break;
+    }
+  }
+
+  private loadMonthlySummary(): void {
+    this.loading = true;
+    const { month, year, classId } = this.filters;
+    this.feeService.getMonthlySummaryReport(month || undefined, year || undefined, classId || undefined).subscribe({
+      next: (report) => {
+        this.monthlyReport = report;
+      },
+      error: () => {
+        this.notify.error('Failed to load monthly summary report.');
+      },
+      complete: () => {
+        this.loading = false;
+      }
+    });
+  }
+
+  private loadClassSummary(): void {
+    this.loading = true;
+    const { sessionId } = this.filters;
+    this.feeService.getClassSummaryReport(sessionId || undefined).subscribe({
+      next: (rows) => {
+        this.classSummaryRows = rows;
+      },
+      error: () => {
+        this.notify.error('Failed to load class-wise summary report.');
+      },
+      complete: () => {
+        this.loading = false;
+      }
+    });
+  }
+
+  private loadAgingReport(): void {
+    this.loading = true;
+    const { asOfDate, classId } = this.filters;
+    this.feeService.getAgingReport(asOfDate || undefined, classId || undefined).subscribe({
+      next: (report) => {
+        this.agingReport = report;
+      },
+      error: () => {
+        this.notify.error('Failed to load aging report.');
+      },
+      complete: () => {
+        this.loading = false;
+      }
+    });
+  }
+
+  private loadDiscountReport(): void {
+    this.loading = true;
+    const { discountStart, discountEnd, discountId } = this.filters;
+    this.feeService.getDiscountReport(discountStart || undefined, discountEnd || undefined, discountId || undefined).subscribe({
+      next: (report) => {
+        this.discountReport = report;
+      },
+      error: () => {
+        this.notify.error('Failed to load discount report.');
+      },
+      complete: () => {
+        this.loading = false;
+      }
+    });
+  }
+
+  private loadIncomeExpenseReport(): void {
+    this.loading = true;
+    const { ieStart, ieEnd } = this.filters;
+    this.feeService.getIncomeExpenseReport(ieStart || undefined, ieEnd || undefined).subscribe({
+      next: (report) => {
+        this.incomeExpenseReport = report;
+      },
+      error: () => {
+        this.notify.error('Failed to load income vs expense report.');
+      },
+      complete: () => {
+        this.loading = false;
+      }
+    });
   }
 
   getCurrentTabLabel(): string {
