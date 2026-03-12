@@ -6,7 +6,9 @@ import {
   FeeStructure, CreateFeeStructure, UpdateFeeStructure,
   FeeChallan, ChallanSummary, ChallanGenerateRequest, RecordPaymentRequest,
   FeeDiscount, CreateFeeDiscount, UpdateFeeDiscount, FeeDiscountAssignment,
-  CollectionPayment, CollectionSummary
+  CollectionPayment, CollectionSummary,
+  MonthlySummaryReport, ClassSummaryReportRow,
+  AgingReport, DiscountReport, IncomeExpenseReport
 } from '../models/fee.model';
 
 @Injectable({ providedIn: 'root' })
@@ -97,6 +99,46 @@ export class FeeService {
     if (start) params = params.set('start', start);
     if (end) params = params.set('end', end);
     return this.http.get<CollectionSummary>(`${this.base}/collection/summary`, { params });
+  }
+
+  // ─── Fee Reports ───────────────────────────────────────
+
+  getMonthlySummaryReport(month?: number, year?: number, classId?: number): Observable<MonthlySummaryReport> {
+    let params = new HttpParams();
+    if (month != null && month > 0) params = params.set('month', month);
+    if (year != null && year > 0) params = params.set('year', year);
+    if (classId != null && classId > 0) params = params.set('classId', classId);
+    return this.http.get<MonthlySummaryReport>(`${this.base}/reports/monthly-summary`, { params });
+  }
+
+  getClassSummaryReport(academicSessionId?: number): Observable<ClassSummaryReportRow[]> {
+    let params = new HttpParams();
+    if (academicSessionId != null && academicSessionId > 0) {
+      params = params.set('academicSessionId', academicSessionId);
+    }
+    return this.http.get<ClassSummaryReportRow[]>(`${this.base}/reports/class-summary`, { params });
+  }
+
+  getAgingReport(asOfDate?: string, classId?: number): Observable<AgingReport> {
+    let params = new HttpParams();
+    if (asOfDate) params = params.set('asOfDate', asOfDate);
+    if (classId != null && classId > 0) params = params.set('classId', classId);
+    return this.http.get<AgingReport>(`${this.base}/reports/aging`, { params });
+  }
+
+  getDiscountReport(start?: string, end?: string, discountId?: number): Observable<DiscountReport> {
+    let params = new HttpParams();
+    if (start) params = params.set('start', start);
+    if (end) params = params.set('end', end);
+    if (discountId != null && discountId > 0) params = params.set('discountId', discountId);
+    return this.http.get<DiscountReport>(`${this.base}/reports/discounts`, { params });
+  }
+
+  getIncomeExpenseReport(start?: string, end?: string): Observable<IncomeExpenseReport> {
+    let params = new HttpParams();
+    if (start) params = params.set('start', start);
+    if (end) params = params.set('end', end);
+    return this.http.get<IncomeExpenseReport>(`${this.base}/reports/income-expense`, { params });
   }
 
   // ─── Fee Discounts ────────────────────────────────────

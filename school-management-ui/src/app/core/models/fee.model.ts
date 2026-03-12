@@ -180,3 +180,85 @@ export interface FeeDiscountAssignment {
   familyDisplayName?: string;
   createdAt: string;
 }
+
+// ─── Fee Reports ─────────────────────────────────────────
+
+export interface MonthlyClassSummaryRow {
+  classId: number;
+  className: string;
+  billed: number;
+  collected: number;
+  outstanding: number;
+  collectionRate: number;
+}
+
+export interface MonthlySummaryReport {
+  month: number;
+  year: number;
+  totalBilled: number;
+  totalCollected: number;
+  totalOutstanding: number;
+  collectionRate: number;
+  rows: MonthlyClassSummaryRow[];
+}
+
+export interface ClassSummaryReportRow {
+  classId: number;
+  className: string;
+  billed: number;
+  collected: number;
+  outstanding: number;
+  collectionRate: number;
+}
+
+export interface AgingBucket {
+  label: string;
+  amount: number;
+  count: number;
+}
+
+export interface AgingDetailRow {
+  studentName: string;
+  className: string;
+  challanNumber: string;
+  dueDate: string;
+  daysOverdue: number;
+  outstanding: number;
+  bucket: string;
+}
+
+export interface AgingReport {
+  asOfDate: string;
+  buckets: AgingBucket[];
+  details: AgingDetailRow[];
+}
+
+export interface DiscountReportRow {
+  discountName: string;
+  scope: string;
+  targetName: string;
+  challanNumber: string;
+  amount: number;
+  appliedAt: string;
+}
+
+export interface DiscountReport {
+  totalAmount: number;
+  targetCount: number;
+  rows: DiscountReportRow[];
+}
+
+export interface IncomeExpenseRow {
+  type: string;
+  category: string;
+  amount: number;
+}
+
+export interface IncomeExpenseReport {
+  start: string;
+  end: string;
+  income: number;
+  expense: number;
+  net: number;
+  rows: IncomeExpenseRow[];
+}
