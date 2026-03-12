@@ -49,4 +49,7 @@ public class Payment
     // Navigation Properties
     [ForeignKey("InvoiceId")]
     public virtual Invoice? Invoice { get; set; }
+
+    [ForeignKey("ExpenseCategoryId")]
+    public virtual ExpenseCategory? ExpenseCategory { get; set; }
 }

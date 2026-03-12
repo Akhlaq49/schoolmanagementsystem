@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SchoolManagementAPI.Data;
 using SchoolManagementAPI.Models;
+using SchoolManagementAPI.DTOs;
 
 namespace SchoolManagementAPI.Services;
 
