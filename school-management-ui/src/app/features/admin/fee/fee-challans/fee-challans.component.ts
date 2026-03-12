@@ -15,6 +15,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DropdownComponent, DropdownOption } from '../../../../shared/components/dropdown/dropdown.component';
 import { FeeReceiptComponent } from '../../../../shared/components/fee-receipt/fee-receipt.component';
+import { WaiveChallanModalComponent } from '../../../../shared/components/waive-challan-modal/waive-challan-modal.component';
 
 const MONTH_NAMES = [
   '', 'January', 'February', 'March', 'April', 'May', 'June',
@@ -24,7 +25,7 @@ const MONTH_NAMES = [
 @Component({
   selector: 'app-fee-challans',
   standalone: true,
-  imports: [CommonModule, FormsModule, LoadingComponent, ConfirmDialogComponent, DropdownComponent, FeeReceiptComponent],
+  imports: [CommonModule, FormsModule, LoadingComponent, ConfirmDialogComponent, DropdownComponent, FeeReceiptComponent, WaiveChallanModalComponent],
   template: `
     <div class="challans-container">
       <app-loading [show]="loading" [message]="'Loading challans...'"></app-loading>
@@ -495,33 +496,24 @@ const MONTH_NAMES = [
         </div>
       </div>
 
-      <!-- ═══════════════════════════════════════════════════════
-           MODAL: Waive Challan (reason input)
-           ═══════════════════════════════════════════════════════ -->
-      <div class="modal-backdrop" *ngIf="showWaiveModal" (click)="showWaiveModal = false">
-        <div class="modal-card modal-md" (click)="$event.stopPropagation()">
-          <div class="modal-header">
-            <h3><i class="fa fa-ban"></i> Waive Challan</h3>
-            <button class="modal-close" (click)="showWaiveModal = false"><i class="fa fa-times"></i></button>
-          </div>
-          <div class="modal-body" *ngIf="waiveChallan">
-            <p class="waive-prompt">Are you sure you want to waive challan <strong>{{ waiveChallan.challanNumber }}</strong> for <strong>{{ waiveChallan.studentName }}</strong>?</p>
-            <div class="academy-form-group" style="margin-top: 1.25rem">
-              <label>Reason for waiving <span class="required">*</span></label>
-              <textarea class="academy-input" rows="3" [(ngModel)]="waiveReason"
-                        placeholder="e.g. Scholarship granted, Financial hardship..."></textarea>
-              <span class="waive-error" *ngIf="waiveError">{{ waiveError }}</span>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-secondary" (click)="showWaiveModal = false">Cancel</button>
-            <button class="btn btn-primary" (click)="submitWaive()" [disabled]="waiving">
-              <i class="fa" [ngClass]="waiving ? 'fa-spinner fa-spin' : 'fa-ban'"></i>
-              {{ waiving ? 'Waiving...' : 'Waive Challan' }}
-            </button>
-          </div>
-        </div>
-      </div>
+      <!-- Waive Challan Modal -->
+      <app-waive-challan-modal
+        [show]="showWaiveModal"
+        [loading]="waiving"
+        [challan]="waiveChallan && {
+          challanNumber: waiveChallan.challanNumber,
+          studentName: waiveChallan.studentName || '',
+          className: waiveChallan.className || '',
+          sectionName: waiveChallan.sectionName || '',
+          month: waiveChallan.month,
+          year: waiveChallan.year,
+          totalAmount: waiveChallan.totalAmount,
+          paidAmount: waiveChallan.paidAmount,
+          balance: waiveChallan.balance
+        }"
+        (cancelled)="showWaiveModal = false"
+        (confirmed)="onWaiveConfirmed($event)">
+      </app-waive-challan-modal>
 
       <!-- Confirm Dialog -->
       <app-confirm-dialog
@@ -975,8 +967,6 @@ export class FeeChallansComponent implements OnInit {
   // Waive Modal
   showWaiveModal = false;
   waiveChallan: FeeChallan | null = null;
-  waiveReason = '';
-  waiveError = '';
   waiving = false;
 
   // Confirm
@@ -1232,19 +1222,18 @@ export class FeeChallansComponent implements OnInit {
 
   waive(c: FeeChallan) {
     this.waiveChallan = c;
-    this.waiveReason = '';
-    this.waiveError = '';
     this.showWaiveModal = true;
   }
 
   submitWaive() {
+    // kept for backward compatibility if referenced elsewhere
+  }
+
+  onWaiveConfirmed(payload: { reason: string; authorizedBy: string }) {
     if (!this.waiveChallan) return;
-    const reason = (this.waiveReason || '').trim();
-    if (!reason) {
-      this.waiveError = 'Please enter a reason for waiving';
-      return;
-    }
-    this.waiveError = '';
+    const reason = payload.reason?.trim();
+    if (!reason) return;
+
     this.waiving = true;
     this.feeService.waiveChallan(this.waiveChallan.feeChallanId, reason).subscribe({
       next: () => {
