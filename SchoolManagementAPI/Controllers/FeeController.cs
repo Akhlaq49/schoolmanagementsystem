@@ -340,4 +340,24 @@ public class FeeController : ControllerBase
         if (!ok) return NotFound();
         return NoContent();
     }
+
+    // ─── Family Fee Summary ─────────────────────────────────
+
+    [HttpGet("family/{familyId}/summary")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<FamilyFeeSummaryDto>> GetFamilyFeeSummary(int familyId)
+    {
+        if (familyId <= 0)
+        {
+            return BadRequest(new { message = "Invalid family id." });
+        }
+
+        var summary = await _challanService.GetFamilyFeeSummaryAsync(familyId);
+        if (summary == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(summary);
+    }
 }

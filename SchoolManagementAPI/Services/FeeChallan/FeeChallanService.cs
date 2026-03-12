@@ -360,6 +360,87 @@ public class FeeChallanService : IFeeChallanService
         };
     }
 
+    public async Task<FamilyFeeSummaryDto?> GetFamilyFeeSummaryAsync(int familyId)
+    {
+        // Load all students for this family with their class/section
+        var students = await _context.Students
+            .AsNoTracking()
+            .Include(s => s.Class)
+            .Include(s => s.Section)
+            .Where(s => s.FamilyId == familyId)
+            .ToListAsync();
+
+        if (students.Count == 0)
+        {
+            return null;
+        }
+
+        var studentIds = students.Select(s => s.StudentId).ToList();
+
+        // Load all challans for these students
+        var challans = await _context.FeeChallans
+            .AsNoTracking()
+            .Where(c => studentIds.Contains(c.StudentId))
+            .ToListAsync();
+
+        // Load last payment per student (optional)
+        var lastPayments = await _context.FeePayments
+            .AsNoTracking()
+            .Where(p => challans.Select(c => c.FeeChallanId).Contains(p.FeeChallanId))
+            .GroupBy(p => p.FeeChallan.StudentId)
+            .Select(g => new
+            {
+                StudentId = g.Key,
+                LastPaidAt = g.Max(p => p.PaidAt)
+            })
+            .ToListAsync();
+
+        var lastPaymentLookup = lastPayments.ToDictionary(x => x.StudentId, x => (DateTime?)x.LastPaidAt);
+
+        var children = new List<FamilyChildFeeRowDto>();
+        decimal combinedOutstanding = 0;
+
+        foreach (var student in students)
+        {
+            var studentChallans = challans.Where(c => c.StudentId == student.StudentId).ToList();
+            var outstanding = studentChallans.Sum(c => c.Balance);
+            combinedOutstanding += outstanding;
+
+            lastPaymentLookup.TryGetValue(student.StudentId, out var lastPaidAt);
+
+            children.Add(new FamilyChildFeeRowDto
+            {
+                StudentId = student.StudentId,
+                StudentName = student.Name,
+                ClassName = student.Class?.Name ?? string.Empty,
+                SectionName = student.Section?.Name,
+                OutstandingAmount = outstanding,
+                LastPaymentDate = lastPaidAt
+            });
+        }
+
+        // Load basic family info
+        var family = await _context.Families.AsNoTracking().FirstOrDefaultAsync(f => f.FamilyId == familyId);
+        if (family == null)
+        {
+            return null;
+        }
+
+        var familyName = !string.IsNullOrWhiteSpace(family.FatherName)
+            ? family.FatherName
+            : (!string.IsNullOrWhiteSpace(family.MotherName) ? family.MotherName : $"Family #{family.FamilyId}");
+
+        return new FamilyFeeSummaryDto
+        {
+            FamilyId = family.FamilyId,
+            FamilyName = familyName,
+            FatherName = family.FatherName,
+            SmsNumber = family.SmsNumber,
+            CombinedOutstanding = combinedOutstanding,
+            Children = children
+        };
+    }
+
     public async Task<List<FeeChallanResponseDto>> GetByStudentAsync(int studentId, string? status)
     {
         var query = _context.FeeChallans

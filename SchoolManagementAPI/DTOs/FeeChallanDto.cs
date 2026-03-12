@@ -202,3 +202,25 @@ public class IncomeExpenseReportDto
     public decimal Net => Income - Expense;
     public List<IncomeExpenseRowDto> Rows { get; set; } = new();
 }
+
+// ─── Family Fee Summary DTOs ─────────────────────────────
+
+public class FamilyChildFeeRowDto
+{
+    public int StudentId { get; set; }
+    public string StudentName { get; set; } = string.Empty;
+    public string ClassName { get; set; } = string.Empty;
+    public string? SectionName { get; set; }
+    public decimal OutstandingAmount { get; set; }
+    public DateTime? LastPaymentDate { get; set; }
+}
+
+public class FamilyFeeSummaryDto
+{
+    public int FamilyId { get; set; }
+    public string FamilyName { get; set; } = string.Empty;
+    public string? FatherName { get; set; }
+    public string? SmsNumber { get; set; }
+    public decimal CombinedOutstanding { get; set; }
+    public List<FamilyChildFeeRowDto> Children { get; set; } = new();
+}

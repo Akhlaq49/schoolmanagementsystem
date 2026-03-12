@@ -18,4 +18,5 @@ public interface IFeeChallanService
     Task<int> GenerateChallansAsync(ChallanGenerateRequestDto dto);
     Task<FeeChallanResponseDto?> RecordPaymentAsync(int challanId, RecordPaymentRequestDto dto);
     Task<FeeChallanResponseDto?> WaiveChallanAsync(int challanId, string reason);
+    Task<FamilyFeeSummaryDto?> GetFamilyFeeSummaryAsync(int familyId);
 }
