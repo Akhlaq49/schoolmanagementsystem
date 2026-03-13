@@ -252,6 +252,15 @@ public class FeeController : ControllerBase
         return Ok(result);
     }
 
+    [HttpDelete("challans/{id}")]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> DeleteChallan(int id)
+    {
+        var ok = await _challanService.DeleteChallanAsync(id);
+        if (!ok) return NotFound();
+        return NoContent();
+    }
+
     // ─── Fee Discounts ────────────────────────────────────
 
     [HttpGet("discounts")]

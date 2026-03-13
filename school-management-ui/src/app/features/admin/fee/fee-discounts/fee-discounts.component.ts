@@ -676,7 +676,7 @@ export class FeeDiscountsComponent implements OnInit {
     { value: 'inactive', label: 'Inactive' }
   ];
 
-  private allFamilies: { familyId: number; fatherName: string; motherName?: string }[] = [];
+  private allFamilies: { familyId: number; fatherName: string; motherName?: string; smsNumber?: string }[] = [];
 
   constructor(
     private notify: NotificationService,
@@ -858,7 +858,8 @@ export class FeeDiscountsComponent implements OnInit {
           this.allFamilies = families.map(f => ({
             familyId: f.familyId!,
             fatherName: f.fatherName,
-            motherName: f.motherName
+            motherName: f.motherName,
+            smsNumber: f.smsNumber
           }));
         },
         error: () => {}
@@ -916,12 +917,13 @@ export class FeeDiscountsComponent implements OnInit {
     );
     const t = term.toLowerCase();
 
-    const addStudents = (students: { studentId: number; name: string; roll?: string }[]) => {
+    const addStudents = (students: { studentId?: number; userId?: number; name: string; roll?: string }[]) => {
       students.forEach(s => {
-        if (!assignedStudentIds.has(s.studentId)) {
+        const sid = s.studentId ?? s.userId;
+        if (sid != null && !assignedStudentIds.has(sid)) {
           results.push({
             type: 'student',
-            id: s.studentId,
+            id: sid,
             label: s.name,
             sublabel: s.roll ? `Roll: ${s.roll}` : undefined
           });
@@ -929,8 +931,13 @@ export class FeeDiscountsComponent implements OnInit {
       });
     };
 
-    const addFamilies = (families: { familyId: number; fatherName: string; motherName?: string }[]) => {
-      families.forEach(f => {
+    const filterAndAddFamilies = (families: { familyId: number; fatherName: string; motherName?: string; smsNumber?: string }[]) => {
+      const fams = families.filter(f =>
+        (f.fatherName || '').toLowerCase().includes(t) ||
+        (f.motherName || '').toLowerCase().includes(t) ||
+        (f.smsNumber || '').toLowerCase().includes(t)
+      );
+      fams.forEach(f => {
         if (!assignedFamilyIds.has(f.familyId)) {
           const label = f.fatherName + (f.motherName ? ` / ${f.motherName}` : '');
           results.push({ type: 'family', id: f.familyId, label, sublabel: 'Family' });
@@ -938,30 +945,59 @@ export class FeeDiscountsComponent implements OnInit {
       });
     };
 
+    const finishSearch = () => {
+      this.assignSearchResults = results.slice(0, 30);
+      this.assignSearching = false;
+    };
+
     if (scope === 'student' || scope === 'both') {
       this.assignSearching = true;
-      this.studentService.searchActiveStudents(term).subscribe({
-        next: (students) => {
-          addStudents(students);
-          if (scope === 'both') {
-            const fams = this.allFamilies.filter(f =>
-              (f.fatherName || '').toLowerCase().includes(t) ||
-              (f.motherName || '').toLowerCase().includes(t)
-            );
-            addFamilies(fams);
-          }
-          this.assignSearchResults = results.slice(0, 30);
-          this.assignSearching = false;
-        },
-        error: () => { this.assignSearching = false; this.assignSearchResults = []; }
-      });
+      const runStudentAndFamilySearch = () => {
+        this.studentService.searchActiveStudents(term).subscribe({
+          next: (students) => {
+            addStudents(students);
+            if (scope === 'both') filterAndAddFamilies(this.allFamilies);
+            finishSearch();
+          },
+          error: () => { this.assignSearching = false; this.assignSearchResults = []; }
+        });
+      };
+      if (scope === 'both' && this.allFamilies.length === 0) {
+        this.familyService.getAllFamilies().subscribe({
+          next: (families) => {
+            this.allFamilies = families.map(f => ({
+              familyId: f.familyId!,
+              fatherName: f.fatherName,
+              motherName: f.motherName,
+              smsNumber: f.smsNumber
+            }));
+            runStudentAndFamilySearch();
+          },
+          error: () => runStudentAndFamilySearch()
+        });
+      } else {
+        runStudentAndFamilySearch();
+      }
     } else {
-      const fams = this.allFamilies.filter(f =>
-        (f.fatherName || '').toLowerCase().includes(t) ||
-        (f.motherName || '').toLowerCase().includes(t)
-      );
-      addFamilies(fams);
-      this.assignSearchResults = results.slice(0, 30);
+      if (this.allFamilies.length === 0) {
+        this.assignSearching = true;
+        this.familyService.getAllFamilies().subscribe({
+          next: (families) => {
+            this.allFamilies = families.map(f => ({
+              familyId: f.familyId!,
+              fatherName: f.fatherName,
+              motherName: f.motherName,
+              smsNumber: f.smsNumber
+            }));
+            filterAndAddFamilies(this.allFamilies);
+            finishSearch();
+          },
+          error: () => finishSearch()
+        });
+      } else {
+        filterAndAddFamilies(this.allFamilies);
+        finishSearch();
+      }
     }
   }
 

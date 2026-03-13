@@ -106,16 +106,23 @@ public class StudentService : IStudentService
         {
             status = status.ToLower();
             query = query.Where(u =>
-                (u.StudentProfile!.Status ?? u.Status ?? "Active").ToLower() == status);
+                (u.StudentProfile!.Status ?? "Active").ToLower() == status);
         }
 
         var list = await query.ToListAsync();
 
         return list
             .Where(u =>
-                (!string.IsNullOrEmpty(u.Name) && u.Name.ToLower().Contains(term)) ||
-                (!string.IsNullOrEmpty(u.Roll) && u.Roll.ToLower().Contains(term)) ||
-                (!string.IsNullOrEmpty(u.Class?.Name) && u.Class.Name.ToLower().Contains(term)))
+            {
+                var name = u.StudentProfile?.Name ?? u.Name ?? "";
+                var roll = u.StudentProfile?.Roll ?? u.Roll ?? "";
+                var className = u.StudentProfile?.Class?.Name ?? u.Class?.Name ?? "";
+                var email = u.Email ?? "";
+                return (name.Length > 0 && name.ToLower().Contains(term)) ||
+                       (roll.Length > 0 && roll.ToLower().Contains(term)) ||
+                       (className.Length > 0 && className.ToLower().Contains(term)) ||
+                       (email.Length > 0 && email.ToLower().Contains(term));
+            })
             .Select(MergeStudentProfileIntoUser)
             .ToList();
     }

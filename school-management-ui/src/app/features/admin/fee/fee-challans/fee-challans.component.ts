@@ -164,6 +164,7 @@ const MONTH_NAMES = [
                 <th>Amount</th>
                 <th>Paid</th>
                 <th>Balance</th>
+                <th>Waived</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -186,6 +187,7 @@ const MONTH_NAMES = [
                 <td class="amount-cell">{{ c.totalAmount | number:'1.2-2' }}</td>
                 <td class="amount-paid">{{ c.paidAmount | number:'1.2-2' }}</td>
                 <td class="amount-balance">{{ c.balance | number:'1.2-2' }}</td>
+                <td class="amount-waived">{{ getWaivedAmount(c) }}</td>
                 <td>
                   <span class="status-badge" [ngClass]="'badge-' + (c.status || '').toLowerCase()">
                     {{ c.status | titlecase }}
@@ -214,6 +216,12 @@ const MONTH_NAMES = [
                             title="Waive"
                             (click)="waive(c)">
                       <i class="fa fa-ban"></i>
+                    </button>
+                    <button class="modern-btn-icon modern-btn-delete"
+                            *ngIf="canDelete(c)"
+                            title="Delete & Regenerate"
+                            (click)="deleteChallan(c)">
+                      <i class="fa fa-trash"></i>
                     </button>
                   </div>
                 </td>
@@ -682,6 +690,7 @@ const MONTH_NAMES = [
     .amount-cell { font-weight: 700; color: #0f2744; }
     .amount-paid { font-weight: 600; color: #059669; }
     .amount-balance { font-weight: 600; color: #dc2626; }
+    .amount-waived { font-weight: 600; color: #d97706; }
 
     .status-badge {
       display: inline-flex; padding: 0.25rem 0.7rem; border-radius: 20px;
@@ -708,6 +717,8 @@ const MONTH_NAMES = [
     .modern-btn-print:hover { background: #4b5563; }
     .modern-btn-waive { background: #d97706; }
     .modern-btn-waive:hover { background: #b45309; }
+    .modern-btn-delete { background: #dc2626; color: #fff; }
+    .modern-btn-delete:hover { background: #b91c1c; }
 
     /* ─── Table Empty ─────────────────────────────────────── */
     .academy-table-empty {
@@ -1088,9 +1099,21 @@ export class FeeChallansComponent implements OnInit {
     return c.studentName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
   }
 
+  getWaivedAmount(c: FeeChallan): string {
+    const s = (c.status || '').toLowerCase();
+    if (s !== 'waived') return '—';
+    const waived = (c.totalAmount ?? 0) - (c.paidAmount ?? 0);
+    return waived > 0 ? waived.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
+  }
+
   canPayOrWaive(c: FeeChallan): boolean {
     const s = (c.status || '').toLowerCase();
     return s !== 'paid' && s !== 'waived';
+  }
+
+  canDelete(c: FeeChallan): boolean {
+    const s = (c.status || '').toLowerCase();
+    return s === 'unpaid' || s === 'overdue';
   }
 
   // ─── Generate ──────────────────────────────────────────
@@ -1227,6 +1250,25 @@ export class FeeChallansComponent implements OnInit {
 
   submitWaive() {
     // kept for backward compatibility if referenced elsewhere
+  }
+
+  deleteChallan(c: FeeChallan) {
+    this.confirmTitle = 'Delete Challan';
+    this.confirmMessage = `Delete challan ${c.challanNumber}? You can regenerate it after assigning a discount.`;
+    this.pendingAction = () => this.doDeleteChallan(c);
+    this.confirmVisible = true;
+  }
+
+  private doDeleteChallan(c: FeeChallan) {
+    this.feeService.deleteChallan(c.feeChallanId).subscribe({
+      next: () => {
+        this.notify.success('Challan deleted');
+        this.loadData();
+      },
+      error: (err) => {
+        this.notify.error(err?.error?.message || 'Failed to delete challan');
+      }
+    });
   }
 
   onWaiveConfirmed(payload: { reason: string; authorizedBy: string }) {

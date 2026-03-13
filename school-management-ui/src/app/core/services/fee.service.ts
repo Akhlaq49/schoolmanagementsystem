@@ -86,6 +86,10 @@ export class FeeService {
     return this.http.post<FeeChallan>(`${this.base}/challans/${challanId}/waive`, { reason });
   }
 
+  deleteChallan(challanId: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/challans/${challanId}`);
+  }
+
   // ─── Collection Register ───────────────────────────────
 
   getCollectionPayments(start?: string, end?: string): Observable<CollectionPayment[]> {

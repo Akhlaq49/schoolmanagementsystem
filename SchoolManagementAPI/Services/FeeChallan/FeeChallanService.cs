@@ -689,6 +689,16 @@ public class FeeChallanService : IFeeChallanService
         return MapToResponse(updated!);
     }
 
+    public async Task<bool> DeleteChallanAsync(int challanId)
+    {
+        var challan = await _context.FeeChallans.FindAsync(challanId);
+        if (challan is null) return false;
+
+        _context.FeeChallans.Remove(challan);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
     private static decimal CalculateLateFine(decimal finePerDay, int month, int year, int dueDay)
     {
         var dueDate = new DateTime(year, month, Math.Min(dueDay, DateTime.DaysInMonth(year, month)));
