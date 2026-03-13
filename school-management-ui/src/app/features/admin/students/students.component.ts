@@ -92,13 +92,14 @@ import { DropdownComponent, DropdownOption } from '../../../shared/components/dr
               <div class="form-group">
                 <label>Family</label>
                 <app-dropdown
+                  name="familyId"
                   [(ngModel)]="studentForm.familyId"
                   [options]="familyOptions"
                   placeholder="-- Select Family --"
                   [searchable]="true"
                   [showPlaceholderOption]="true"
                   [placeholderValue]="undefined"
-                  (changed)="onFamilySelect()">
+                  (changed)="onFamilySelect($event)">
                 </app-dropdown>
               </div>
             </div>
@@ -110,24 +111,24 @@ import { DropdownComponent, DropdownOption } from '../../../shared/components/dr
               <div class="form-group"><label>Name (English) *</label><input type="text" [(ngModel)]="studentForm.name" name="name" required class="form-control" placeholder="Name in English" [class.is-invalid]="submitted && !studentForm.name"></div>
               <div class="form-group"><label>Roll Num</label><input type="text" [(ngModel)]="studentForm.roll" name="roll" class="form-control"></div>
             </div>
-            <div class="form-row">
+              <div class="form-row">
               <div class="form-group"><label>School/College Reg Num</label><input type="text" [(ngModel)]="studentForm.schoolRegNum" name="schoolRegNum" class="form-control"></div>
               <div class="form-group"><label>B-Form / CNIC</label><input type="text" [(ngModel)]="studentForm.bFormCnic" name="bFormCnic" class="form-control"></div>
             </div>
             <div class="form-row">
-              <div class="form-group"><label>Class *</label><app-dropdown [(ngModel)]="studentForm.classId" [options]="classOptions" placeholder="-- Select Class --" [searchable]="true" [showPlaceholderOption]="true" [placeholderValue]="undefined" (changed)="onClassChange()" [class.is-invalid]="submitted && !studentForm.classId"></app-dropdown></div>
-              <div class="form-group"><label>Section</label><app-dropdown [(ngModel)]="studentForm.sectionId" [options]="sectionOptions" placeholder="-- Select Section --" [searchable]="true" [showPlaceholderOption]="true" [placeholderValue]="undefined"></app-dropdown></div>
-              <div class="form-group"><label>Session</label><app-dropdown [(ngModel)]="studentForm.session" [options]="sessionOptions" placeholder="-- Select Session --" [searchable]="true" [showPlaceholderOption]="true" [placeholderValue]="''"></app-dropdown></div>
-              <div class="form-group"><label>Fee Type</label><app-dropdown [(ngModel)]="studentForm.feeType" [options]="feeTypeOptions" [searchable]="false" [showPlaceholderOption]="false"></app-dropdown></div>
+              <div class="form-group"><label>Class *</label><app-dropdown name="classId" [(ngModel)]="studentForm.classId" [options]="classOptions" placeholder="-- Select Class --" [searchable]="true" [showPlaceholderOption]="true" [placeholderValue]="undefined" (changed)="onClassChange($event)" [class.is-invalid]="submitted && !studentForm.classId"></app-dropdown></div>
+              <div class="form-group"><label>Section</label><app-dropdown name="sectionId" [(ngModel)]="studentForm.sectionId" [options]="sectionOptions" placeholder="-- Select Section --" [searchable]="true" [showPlaceholderOption]="true" [placeholderValue]="undefined"></app-dropdown></div>
+              <div class="form-group"><label>Session</label><app-dropdown name="session" [(ngModel)]="studentForm.session" [options]="sessionOptions" placeholder="-- Select Session --" [searchable]="true" [showPlaceholderOption]="true" [placeholderValue]="''"></app-dropdown></div>
+              <div class="form-group"><label>Fee Type</label><app-dropdown name="feeType" [(ngModel)]="studentForm.feeType" [options]="feeTypeOptions" [searchable]="false" [showPlaceholderOption]="false"></app-dropdown></div>
             </div>
             <div class="form-row">
               <div class="form-group">
                 <label>Date Of Birth</label>
                 <input type="text" [(ngModel)]="displayBirthday" name="birthday" class="form-control" placeholder="dd/mm/yyyy" maxlength="10" (ngModelChange)="onDateInputChange($event, 'birthday')" (blur)="parseAndFormatDate('birthday')">
               </div>
-              <div class="form-group"><label>Gender</label><app-dropdown [(ngModel)]="studentForm.sex" [options]="genderOptions" [searchable]="false" [showPlaceholderOption]="false"></app-dropdown></div>
-              <div class="form-group"><label>Religion</label><app-dropdown [(ngModel)]="studentForm.religion" [options]="religionOptions" placeholder="-- Select Religion --" [searchable]="false" [showPlaceholderOption]="true" [placeholderValue]="''"></app-dropdown></div>
-              <div class="form-group"><label>Blood Group</label><app-dropdown [(ngModel)]="studentForm.bloodGroup" [options]="bloodGroupOptions" placeholder="-- Select Blood Group --" [searchable]="true" [showPlaceholderOption]="true" [placeholderValue]="''"></app-dropdown></div>
+              <div class="form-group"><label>Gender</label><app-dropdown name="sex" [(ngModel)]="studentForm.sex" [options]="genderOptions" [searchable]="false" [showPlaceholderOption]="false"></app-dropdown></div>
+              <div class="form-group"><label>Religion</label><app-dropdown name="religion" [(ngModel)]="studentForm.religion" [options]="religionOptions" placeholder="-- Select Religion --" [searchable]="false" [showPlaceholderOption]="true" [placeholderValue]="''"></app-dropdown></div>
+              <div class="form-group"><label>Blood Group</label><app-dropdown name="bloodGroup" [(ngModel)]="studentForm.bloodGroup" [options]="bloodGroupOptions" placeholder="-- Select Blood Group --" [searchable]="true" [showPlaceholderOption]="true" [placeholderValue]="''"></app-dropdown></div>
             </div>
           </div>
 
@@ -1234,10 +1235,12 @@ export class StudentsComponent implements OnInit {
     });
   }
 
-  onFamilySelect() {
-    const fid = this.studentForm.familyId;
-    if (!fid) return;
-    const fam = this.families.find(f => f.familyId === fid);
+  onFamilySelect(familyId?: number) {
+    const fid = familyId ?? this.studentForm.familyId;
+    if (fid == null || fid === undefined) return;
+    const fidNum = typeof fid === 'string' ? parseInt(fid, 10) : Number(fid);
+    if (isNaN(fidNum)) return;
+    const fam = this.families.find(f => f.familyId === fidNum || f.familyId === fid);
     if (fam) {
       this.studentForm.fatherName = fam.fatherName;
       this.studentForm.fatherGuardianCnic = fam.fatherCnic;
@@ -1251,21 +1254,26 @@ export class StudentsComponent implements OnInit {
     }
   }
 
-  onClassChange() {
+  onClassChange(classId?: number) {
     this.studentForm.sectionId = undefined;
-    const cid = this.studentForm.classId;
-    if (!cid) {
+    const cid = classId ?? this.studentForm.classId;
+    if (cid == null || cid === undefined) {
       this.sectionsByClass = [];
       this.studentForm.fee = undefined;
       return;
     }
-    const cls = this.classes.find(c => c.classId === cid);
+    const cidNum = typeof cid === 'string' ? parseInt(cid, 10) : Number(cid);
+    if (isNaN(cidNum)) {
+      this.sectionsByClass = [];
+      return;
+    }
+    const cls = this.classes.find(c => c.classId === cidNum || c.classId === cid);
     if (cls?.fee != null) {
       this.studentForm.fee = cls.fee;
     }
-    this.sectionService.getSectionsByClass(cid).subscribe({
-      next: (sections) => { this.sectionsByClass = sections; },
-      error: () => { this.sectionsByClass = []; }
+    this.sectionService.getSectionsByClass(cidNum).subscribe({
+      next: (sections) => { this.sectionsByClass = sections; this.cdr.markForCheck(); },
+      error: () => { this.sectionsByClass = []; this.cdr.markForCheck(); }
     });
   }
 

@@ -328,7 +328,6 @@ public class StudentService : IStudentService
             .Include(u => u.UserRoles)
             .Include(u => u.StudentProfile)
             .Include(u => u.Admission)
-            .Include(u => u.Family)
             .Include(u => u.PreviousInstitute)
             .FirstOrDefaultAsync(u => u.UserId == id && u.UserRoles.Any(ur => ur.Role == UserRole.Student));
         if (existing == null) return null;

@@ -42,61 +42,117 @@ import { Student } from '../../../../core/models/student.model';
           </div>
         </div>
 
-        <div class="details-grid">
-          <div class="detail-card">
-            <h3 class="card-title"><i class="fa fa-user"></i> Personal Information</h3>
-            <div class="detail-list">
-              <div class="detail-row"><span class="label">Date of Birth</span><span class="value">{{ formatDate(student.birthday) }}</span></div>
-              <div class="detail-row"><span class="label">Gender</span><span class="value">{{ student.sex || '-' }}</span></div>
-              <div class="detail-row"><span class="label">Religion</span><span class="value">{{ student.religion || '-' }}</span></div>
-              <div class="detail-row"><span class="label">Blood Group</span><span class="value">{{ student.bloodGroup || '-' }}</span></div>
-              <div class="detail-row"><span class="label">Email</span><span class="value">{{ student.email || '-' }}</span></div>
-              <div class="detail-row"><span class="label">Phone</span><span class="value">{{ student.phone || student.smsNumber || '-' }}</span></div>
-              <div class="detail-row"><span class="label">Address</span><span class="value">{{ student.address || '-' }}</span></div>
+        <div class="tabs">
+          <button
+            type="button"
+            class="tab-button"
+            [class.active]="activeTab === 'personal'"
+            (click)="activeTab = 'personal'">
+            <i class="fa fa-user"></i>
+            <span>Personal</span>
+          </button>
+          <button
+            type="button"
+            class="tab-button"
+            [class.active]="activeTab === 'admission'"
+            (click)="activeTab = 'admission'">
+            <i class="fa fa-graduation-cap"></i>
+            <span>Admission & Fee</span>
+          </button>
+          <button
+            type="button"
+            class="tab-button"
+            [class.active]="activeTab === 'family'"
+            (click)="activeTab = 'family'">
+            <i class="fa fa-users"></i>
+            <span>Family</span>
+          </button>
+          <button
+            type="button"
+            class="tab-button"
+            [class.active]="activeTab === 'previous'"
+            (click)="activeTab = 'previous'">
+            <i class="fa fa-school"></i>
+            <span>Previous Institute</span>
+          </button>
+        </div>
+
+        <div class="tab-panels">
+          <div *ngIf="activeTab === 'personal'" class="details-grid">
+            <div class="detail-card">
+              <h3 class="card-title"><i class="fa fa-user"></i> Personal Information</h3>
+              <div class="detail-list">
+                <div class="detail-row"><span class="label">Date of Birth</span><span class="value">{{ formatDate(student.birthday) }}</span></div>
+                <div class="detail-row"><span class="label">Gender</span><span class="value">{{ student.sex || '-' }}</span></div>
+                <div class="detail-row"><span class="label">Religion</span><span class="value">{{ student.religion || '-' }}</span></div>
+                <div class="detail-row"><span class="label">Blood Group</span><span class="value">{{ student.bloodGroup || '-' }}</span></div>
+                <div class="detail-row"><span class="label">Email</span><span class="value">{{ student.email || '-' }}</span></div>
+                <div class="detail-row"><span class="label">Phone</span><span class="value">{{ student.phone || student.smsNumber || '-' }}</span></div>
+                <div class="detail-row"><span class="label">Address</span><span class="value">{{ student.address || '-' }}</span></div>
+              </div>
+            </div>
+
+            <div class="detail-card">
+              <h3 class="card-title"><i class="fa fa-id-card"></i> Registration & Documents</h3>
+              <div class="detail-list">
+                <div class="detail-row"><span class="label">School Reg No.</span><span class="value">{{ student.schoolRegNum || '-' }}</span></div>
+                <div class="detail-row"><span class="label">B-Form / CNIC</span><span class="value">{{ student.bFormCnic || '-' }}</span></div>
+              </div>
             </div>
           </div>
 
-          <div class="detail-card">
-            <h3 class="card-title"><i class="fa fa-id-card"></i> Registration & Documents</h3>
-            <div class="detail-list">
-              <div class="detail-row"><span class="label">School Reg No.</span><span class="value">{{ student.schoolRegNum || '-' }}</span></div>
-              <div class="detail-row"><span class="label">B-Form / CNIC</span><span class="value">{{ student.bFormCnic || '-' }}</span></div>
+          <div *ngIf="activeTab === 'admission'" class="details-grid">
+            <div class="detail-card">
+              <h3 class="card-title"><i class="fa fa-graduation-cap"></i> Admission & Fee Details</h3>
+              <div class="detail-list">
+                <div class="detail-row"><span class="label">Admission Date</span><span class="value">{{ formatDate(student.admissionDate) }}</span></div>
+                <div class="detail-row"><span class="label">Fee</span><span class="value">{{ student.fee != null ? (student.fee | currency:'PKR') : '-' }}</span></div>
+                <div class="detail-row">
+                  <span class="label">Fee Type</span>
+                  <span class="value">
+                    <span class="fee-badge" [class.fee-paid]="student.feeType === 'Paid'" [class.fee-unpaid]="student.feeType !== 'Paid'">
+                      {{ student.feeType || 'Unpaid' }}
+                    </span>
+                  </span>
+                </div>
+                <div class="detail-row"><span class="label">Fee Discount</span><span class="value">{{ student.feeDiscount != null ? (student.feeDiscount | currency:'PKR') : '-' }}</span></div>
+                <div class="detail-row"><span class="label">Transport Charges</span><span class="value">{{ student.transportCharges != null ? (student.transportCharges | currency:'PKR') : '-' }}</span></div>
+              </div>
             </div>
           </div>
 
-          <div class="detail-card">
-            <h3 class="card-title"><i class="fa fa-graduation-cap"></i> Admission Details</h3>
-            <div class="detail-list">
-              <div class="detail-row"><span class="label">Admission Date</span><span class="value">{{ formatDate(student.admissionDate) }}</span></div>
-              <div class="detail-row"><span class="label">Fee</span><span class="value">{{ student.fee != null ? (student.fee | currency:'PKR') : '-' }}</span></div>
-              <div class="detail-row"><span class="label">Fee Type</span><span class="value"><span class="fee-badge" [class.fee-paid]="student.feeType === 'Paid'" [class.fee-unpaid]="student.feeType !== 'Paid'">{{ student.feeType || 'Unpaid' }}</span></span></div>
-              <div class="detail-row"><span class="label">Fee Discount</span><span class="value">{{ student.feeDiscount != null ? (student.feeDiscount | currency:'PKR') : '-' }}</span></div>
-              <div class="detail-row"><span class="label">Transport Charges</span><span class="value">{{ student.transportCharges != null ? (student.transportCharges | currency:'PKR') : '-' }}</span></div>
+          <div *ngIf="activeTab === 'family'" class="details-grid">
+            <div class="detail-card">
+              <h3 class="card-title"><i class="fa fa-users"></i> Guardian / Family Information</h3>
+              <div class="detail-list">
+                <div class="detail-row"><span class="label">Father Name</span><span class="value">{{ student.fatherName || '-' }}</span></div>
+                <div class="detail-row"><span class="label">Guardian Name</span><span class="value">{{ student.guardianName || '-' }}</span></div>
+                <div class="detail-row"><span class="label">Father/Guardian CNIC</span><span class="value">{{ student.fatherGuardianCnic || '-' }}</span></div>
+                <div class="detail-row"><span class="label">Father Occupation</span><span class="value">{{ student.fatherOccupation || '-' }}</span></div>
+                <div class="detail-row"><span class="label">Contact</span><span class="value">{{ student.smsNumber || student.fatherGuardianPhone || '-' }}</span></div>
+                <div class="detail-row"><span class="label">Mother Name</span><span class="value">{{ student.motherName || '-' }}</span></div>
+                <div class="detail-row"><span class="label">Mother Phone</span><span class="value">{{ student.motherPhone || '-' }}</span></div>
+                <div class="detail-row"><span class="label">Mother CNIC</span><span class="value">{{ student.motherCnic || '-' }}</span></div>
+              </div>
             </div>
           </div>
 
-          <div class="detail-card">
-            <h3 class="card-title"><i class="fa fa-users"></i> Guardian / Family Information</h3>
-            <div class="detail-list">
-              <div class="detail-row"><span class="label">Father Name</span><span class="value">{{ student.fatherName || '-' }}</span></div>
-              <div class="detail-row"><span class="label">Guardian Name</span><span class="value">{{ student.guardianName || '-' }}</span></div>
-              <div class="detail-row"><span class="label">Father/Guardian CNIC</span><span class="value">{{ student.fatherGuardianCnic || '-' }}</span></div>
-              <div class="detail-row"><span class="label">Father Occupation</span><span class="value">{{ student.fatherOccupation || '-' }}</span></div>
-              <div class="detail-row"><span class="label">Contact</span><span class="value">{{ student.smsNumber || student.fatherGuardianPhone || '-' }}</span></div>
-              <div class="detail-row"><span class="label">Mother Name</span><span class="value">{{ student.motherName || '-' }}</span></div>
-              <div class="detail-row"><span class="label">Mother Phone</span><span class="value">{{ student.motherPhone || '-' }}</span></div>
-              <div class="detail-row"><span class="label">Mother CNIC</span><span class="value">{{ student.motherCnic || '-' }}</span></div>
+          <div *ngIf="activeTab === 'previous'">
+            <div class="details-grid" *ngIf="hasPreviousInstitute(student)">
+              <div class="detail-card detail-card-full">
+                <h3 class="card-title"><i class="fa fa-school"></i> Previous Institute</h3>
+                <div class="detail-list">
+                  <div class="detail-row"><span class="label">Institute Name</span><span class="value">{{ student.previousInstituteName || '-' }}</span></div>
+                  <div class="detail-row"><span class="label">Passing Class</span><span class="value">{{ student.passingClass || '-' }}</span></div>
+                  <div class="detail-row"><span class="label">Passing Year</span><span class="value">{{ student.passingYear || '-' }}</span></div>
+                  <div class="detail-row"><span class="label">Passing Percentage</span><span class="value">{{ student.passingPercentage != null ? student.passingPercentage + '%' : '-' }}</span></div>
+                  <div class="detail-row"><span class="label">Institute Address</span><span class="value">{{ student.instituteAddress || '-' }}</span></div>
+                </div>
+              </div>
             </div>
-          </div>
-
-          <div class="detail-card detail-card-full" *ngIf="hasPreviousInstitute(student)">
-            <h3 class="card-title"><i class="fa fa-school"></i> Previous Institute</h3>
-            <div class="detail-list">
-              <div class="detail-row"><span class="label">Institute Name</span><span class="value">{{ student.previousInstituteName || '-' }}</span></div>
-              <div class="detail-row"><span class="label">Passing Class</span><span class="value">{{ student.passingClass || '-' }}</span></div>
-              <div class="detail-row"><span class="label">Passing Year</span><span class="value">{{ student.passingYear || '-' }}</span></div>
-              <div class="detail-row"><span class="label">Passing Percentage</span><span class="value">{{ student.passingPercentage != null ? student.passingPercentage + '%' : '-' }}</span></div>
-              <div class="detail-row"><span class="label">Institute Address</span><span class="value">{{ student.instituteAddress || '-' }}</span></div>
+            <div class="no-data" *ngIf="!hasPreviousInstitute(student)">
+              <i class="fa fa-info-circle"></i>
+              <p>No previous institute information recorded for this student.</p>
             </div>
           </div>
         </div>
@@ -245,6 +301,50 @@ import { Student } from '../../../../core/models/student.model';
       font-size: 0.875rem;
     }
 
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid #e2e8f0;
+      overflow-x: auto;
+      padding-bottom: 0.25rem;
+    }
+
+    .tab-button {
+      border: none;
+      background: transparent;
+      padding: 0.5rem 0.9rem;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      white-space: nowrap;
+    }
+
+    .tab-button i {
+      font-size: 0.8rem;
+    }
+
+    .tab-button.active {
+      background: var(--primary-gradient);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(79,70,229,0.35);
+    }
+
+    .tab-button:not(.active):hover {
+      background: #f1f5f9;
+      color: var(--text-secondary);
+    }
+
+    .tab-panels {
+      margin-top: 0.5rem;
+    }
+
     .details-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -329,6 +429,19 @@ import { Student } from '../../../../core/models/student.model';
       color: #92400e;
     }
 
+    .no-data {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--text-tertiary);
+      font-size: 0.9rem;
+    }
+
+    .no-data i {
+      font-size: 1.4rem;
+      margin-bottom: 0.4rem;
+      display: block;
+    }
+
     .loading-state, .error-state {
       text-align: center;
       padding: 4rem 2rem;
@@ -350,6 +463,7 @@ export class StudentViewComponent implements OnInit {
   student: Student | null = null;
   loading = true;
   error = false;
+  activeTab: 'personal' | 'admission' | 'family' | 'previous' = 'personal';
 
   constructor(
     private route: ActivatedRoute,

@@ -37,75 +37,78 @@ public class User
     [Column("level")]
     public string? Level { get; set; }
 
-    // Teacher-specific fields
-    [Column("department_id")]
+    // NOTE: Profile and relationship fields (department_id, designation_id, birthday, age, sex,
+    // class_id, section_id, parent_id, roll, session, family_id, school_reg_num, b_form_cnic,
+    // religion, blood_group, status, profession) have been moved off the users table in the
+    // database. We keep the CLR properties only for backward-compatible code paths, but mark
+    // them as [NotMapped] so EF Core does not expect matching columns.
+
+    [NotMapped]
     public int? DepartmentId { get; set; }
 
-    [Column("designation_id")]
+    [NotMapped]
     public int? DesignationId { get; set; }
 
-    // Student-specific fields
-    [Column("birthday")]
+    [NotMapped]
     public DateTime? Birthday { get; set; }
 
-    [Column("age")]
+    [NotMapped]
     public int? Age { get; set; }
 
-    [Column("sex")]
+    [NotMapped]
     public string? Sex { get; set; }
 
-    [Column("class_id")]
+    [NotMapped]
     public int? ClassId { get; set; }
 
-    [Column("section_id")]
+    [NotMapped]
     public int? SectionId { get; set; }
 
-    [Column("parent_id")]
+    [NotMapped]
     public int? ParentId { get; set; }
 
-    [Column("roll")]
+    [NotMapped]
     public string? Roll { get; set; }
 
-    [Column("session")]
+    [NotMapped]
     public string? Session { get; set; }
 
-    [Column("family_id")]
+    [NotMapped]
     public int? FamilyId { get; set; }
 
-    [Column("school_reg_num")]
+    [NotMapped]
     public string? SchoolRegNum { get; set; }
 
-    [Column("b_form_cnic")]
+    [NotMapped]
     public string? BFormCnic { get; set; }
 
-    [Column("religion")]
+    [NotMapped]
     public string? Religion { get; set; }
 
-    [Column("blood_group")]
+    [NotMapped]
     public string? BloodGroup { get; set; }
 
-    [Column("status")]
+    [NotMapped]
     public string Status { get; set; } = "Active"; // Active, Dropped
 
-    // Parent-specific fields
-    [Column("profession")]
+    [NotMapped]
     public string? Profession { get; set; }
 
-    // Navigation Properties
-    [ForeignKey("DepartmentId")]
+    // Navigation properties that depended on the removed FK columns are also not mapped.
+    [NotMapped]
     public virtual Department? Department { get; set; }
 
-    [ForeignKey("ClassId")]
+    [NotMapped]
     public virtual Class? Class { get; set; }
 
-    [ForeignKey("SectionId")]
+    [NotMapped]
     public virtual Section? Section { get; set; }
 
-    [ForeignKey("ParentId")]
-    [JsonIgnore] // Prevent circular reference in JSON serialization
+    [NotMapped]
+    [JsonIgnore]
     public virtual User? Parent { get; set; }
 
-    [ForeignKey("FamilyId")]
+    [NotMapped]
     public virtual Family? Family { get; set; }
 
     public virtual StudentPreviousInstitute? PreviousInstitute { get; set; }

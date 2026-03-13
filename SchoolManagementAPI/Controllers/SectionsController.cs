@@ -24,19 +24,19 @@ public class SectionsController : ControllerBase
         return Ok(sections);
     }
 
+    [HttpGet("class/{classId}")]
+    public async Task<ActionResult<List<Section>>> GetSectionsByClass(int classId)
+    {
+        var sections = await _sectionService.GetSectionsByClassIdAsync(classId);
+        return Ok(sections);
+    }
+
     [HttpGet("{id}")]
     public async Task<ActionResult<Section>> GetSection(int id)
     {
         var section = await _sectionService.GetSectionByIdAsync(id);
         if (section == null) return NotFound();
         return Ok(section);
-    }
-
-    [HttpGet("class/{classId}")]
-    public async Task<ActionResult<List<Section>>> GetSectionsByClass(int classId)
-    {
-        var sections = await _sectionService.GetSectionsByClassIdAsync(classId);
-        return Ok(sections);
     }
 
     [HttpPost]

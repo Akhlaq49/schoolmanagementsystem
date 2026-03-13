@@ -66,35 +66,9 @@ public class ApplicationDbContext : DbContext
         base.OnModelCreating(modelBuilder);
 
         // Configure relationships and constraints
-        modelBuilder.Entity<User>()
-            .HasOne(u => u.Class)
-            .WithMany()
-            .HasForeignKey(u => u.ClassId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<User>()
-            .HasOne(u => u.Section)
-            .WithMany()
-            .HasForeignKey(u => u.SectionId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<User>()
-            .HasOne(u => u.Parent)
-            .WithMany()
-            .HasForeignKey(u => u.ParentId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<User>()
-            .HasOne(u => u.Department)
-            .WithMany()
-            .HasForeignKey(u => u.DepartmentId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<User>()
-            .HasOne(u => u.Family)
-            .WithMany()
-            .HasForeignKey(u => u.FamilyId)
-            .OnDelete(DeleteBehavior.Restrict);
+        // NOTE: User no longer carries class/section/parent/department/family FKs in the database.
+        // Those relationships are now modeled via normalized tables (Student, Parent, etc.),
+        // so we deliberately do NOT configure User -> Class/Section/Parent/Department/Family here.
 
         modelBuilder.Entity<StudentPreviousInstitute>()
             .HasOne(spi => spi.User)

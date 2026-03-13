@@ -83,7 +83,7 @@ public static class DatabaseSeeder
             await context.SaveChangesAsync();
         }
 
-        // Seed Teachers
+        // Seed Teachers (only core identity fields now; profile data lives in normalized tables)
         if (!await context.UserRoleMappings.AnyAsync(urm => urm.Role == UserRole.Teacher))
         {
             var departments = await context.Departments.Take(6).ToListAsync();
@@ -96,7 +96,6 @@ public static class DatabaseSeeder
                     Phone = "1234567891",
                     Password = BCrypt.Net.BCrypt.HashPassword("teacher123"),
                     Address = "123 Teacher Street",
-                    DepartmentId = departments[0]?.DepartmentId,
                     LoginStatus = "0",
                     UserRoles = new List<UserRoleMapping>
                     {
@@ -110,7 +109,6 @@ public static class DatabaseSeeder
                     Phone = "1234567892",
                     Password = BCrypt.Net.BCrypt.HashPassword("teacher123"),
                     Address = "456 Teacher Avenue",
-                    DepartmentId = departments[1]?.DepartmentId,
                     LoginStatus = "0",
                     UserRoles = new List<UserRoleMapping>
                     {
@@ -124,7 +122,6 @@ public static class DatabaseSeeder
                     Phone = "1234567893",
                     Password = BCrypt.Net.BCrypt.HashPassword("teacher123"),
                     Address = "789 Teacher Road",
-                    DepartmentId = departments[2]?.DepartmentId,
                     LoginStatus = "0",
                     UserRoles = new List<UserRoleMapping>
                     {
@@ -140,7 +137,6 @@ public static class DatabaseSeeder
         var adminTeacherEmail = "admin.teacher@school.com";
         if (!await context.Users.AnyAsync(u => u.Email == adminTeacherEmail))
         {
-            var departments = await context.Departments.FirstOrDefaultAsync();
             var adminTeacher = new User
             {
                 Name = "Admin Teacher",
@@ -148,7 +144,6 @@ public static class DatabaseSeeder
                 Phone = "1234567898",
                 Password = BCrypt.Net.BCrypt.HashPassword("adminteacher123"),
                 Address = "123 Admin Teacher Street",
-                DepartmentId = departments?.DepartmentId,
                 Level = "1",
                 LoginStatus = "0",
                 UserRoles = new List<UserRoleMapping>
@@ -205,7 +200,6 @@ public static class DatabaseSeeder
                     Phone = "1234567894",
                     Password = BCrypt.Net.BCrypt.HashPassword("parent123"),
                     Address = "123 Parent Street",
-                    Profession = "Engineer",
                     LoginStatus = "0",
                     UserRoles = new List<UserRoleMapping>
                     {
@@ -219,7 +213,6 @@ public static class DatabaseSeeder
                     Phone = "1234567895",
                     Password = BCrypt.Net.BCrypt.HashPassword("parent123"),
                     Address = "456 Parent Avenue",
-                    Profession = "Doctor",
                     LoginStatus = "0",
                     UserRoles = new List<UserRoleMapping>
                     {
@@ -231,7 +224,7 @@ public static class DatabaseSeeder
             await context.SaveChangesAsync();
         }
 
-        // Seed Students
+        // Seed Students (minimal user info; detailed profile now stored in student-related tables)
         if (!await context.UserRoleMappings.AnyAsync(urm => urm.Role == UserRole.Student))
         {
             var classes = await context.Classes.FirstOrDefaultAsync();
@@ -252,15 +245,7 @@ public static class DatabaseSeeder
                     Email = "alice.brown@school.com",
                     Phone = "1234567896",
                     Password = BCrypt.Net.BCrypt.HashPassword("student123"),
-                    Birthday = DateTime.Parse("2010-05-15"),
-                    Age = 13,
-                    Sex = "Female",
                     Address = "123 Student Street",
-                    ClassId = classes?.ClassId,
-                    SectionId = sections?.SectionId,
-                    ParentId = parents.Count > 0 ? parents[0].UserId : null,
-                    Roll = "001",
-                    Session = "2024-2025",
                     LoginStatus = "0",
                     UserRoles = new List<UserRoleMapping>
                     {
@@ -273,15 +258,7 @@ public static class DatabaseSeeder
                     Email = "bob.wilson@school.com",
                     Phone = "1234567897",
                     Password = BCrypt.Net.BCrypt.HashPassword("student123"),
-                    Birthday = DateTime.Parse("2010-08-20"),
-                    Age = 13,
-                    Sex = "Male",
                     Address = "456 Student Avenue",
-                    ClassId = classes?.ClassId,
-                    SectionId = sections?.SectionId,
-                    ParentId = parents.Count > 1 ? parents[1].UserId : null,
-                    Roll = "002",
-                    Session = "2024-2025",
                     LoginStatus = "0",
                     UserRoles = new List<UserRoleMapping>
                     {
