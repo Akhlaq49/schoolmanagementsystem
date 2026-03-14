@@ -411,6 +411,18 @@ export class LayoutComponent implements OnInit, OnDestroy {
       ],
       student: [
         { route: '/student/dashboard', label: 'Dashboard', icon: 'fa fa-home', exact: true, role: 'student' },
+        {
+          label: 'Attendance',
+          icon: 'fa fa-check-square',
+          role: 'student',
+          expanded: false,
+          children: [
+            { route: '/student/attendance/checkin', label: 'Check In', role: 'student' },
+            { route: '/student/attendance/edit', label: 'Edit Attendance', role: 'student' },
+            { route: '/student/attendance/report', label: 'Attendance Report', role: 'student' }
+          ]
+        },
+        { route: '/student/leave', label: 'Leave', icon: 'fa fa-calendar-plus-o', role: 'student' },
         { route: '/student/subjects', label: 'Subjects', icon: 'fa fa-bookmark', role: 'student' },
         { route: '/student/assignments', label: 'Assignments', icon: 'fa fa-tasks', role: 'student' },
         { route: '/student/study-materials', label: 'Study Materials', icon: 'fa fa-file', role: 'student' },

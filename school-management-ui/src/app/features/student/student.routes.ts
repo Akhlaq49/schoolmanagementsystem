@@ -36,6 +36,28 @@ export const STUDENT_ROUTES: Routes = [
         loadComponent: () => import('../admin/invoices/invoices.component').then(m => m.InvoicesComponent)
       },
       {
+        path: 'attendance',
+        children: [
+          { path: '', redirectTo: 'checkin', pathMatch: 'full' },
+          {
+            path: 'checkin',
+            loadComponent: () => import('./attendance/attendance-checkin/attendance-checkin.component').then(m => m.AttendanceCheckinComponent)
+          },
+          {
+            path: 'edit',
+            loadComponent: () => import('./attendance/attendance-edit/attendance-edit.component').then(m => m.AttendanceEditComponent)
+          },
+          {
+            path: 'report',
+            loadComponent: () => import('./attendance/attendance-report/attendance-report.component').then(m => m.AttendanceReportComponent)
+          }
+        ]
+      },
+      {
+        path: 'leave',
+        loadComponent: () => import('./attendance/attendance-leave/attendance-leave.component').then(m => m.AttendanceLeaveComponent)
+      },
+      {
         path: 'profile',
         loadComponent: () => import('../admin/profile/profile.component').then(m => m.ProfileComponent)
       }

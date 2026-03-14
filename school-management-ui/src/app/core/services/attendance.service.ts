@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Attendance } from '../models/attendance.model';
+import { Attendance, CheckInRequest, CheckOutRequest, LeaveApplication } from '../models/attendance.model';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -16,7 +16,7 @@ export class AttendanceService {
     let params = new HttpParams().set('date', date);
     if (classId) params = params.set('classId', classId.toString());
     if (sectionId) params = params.set('sectionId', sectionId.toString());
-    
+
     return this.http.get<Attendance[]>(this.apiUrl, { params });
   }
 
@@ -28,6 +28,44 @@ export class AttendanceService {
     return this.http.get<Attendance[]>(`${this.apiUrl}/report/${studentId}`, {
       params: { month: month.toString(), year: year.toString() }
     });
+  }
+
+  /** Student: today's attendance status */
+  getTodayAttendance(studentId: number): Observable<Attendance | null> {
+    return this.http.get<Attendance | null>(`${this.apiUrl}/today/${studentId}`);
+  }
+
+  /** Student: check-in (PP or PO) */
+  checkIn(req: CheckInRequest): Observable<Attendance> {
+    return this.http.post<Attendance>(`${this.apiUrl}/checkin`, req);
+  }
+
+  /** Student: check-out */
+  checkOut(req: CheckOutRequest): Observable<Attendance> {
+    return this.http.patch<Attendance>(`${this.apiUrl}/checkout`, req);
+  }
+
+  /** Leave applications: list own */
+  getMyLeaves(applicantType: 'student' | 'teacher' | 'staff', applicantId: number): Observable<LeaveApplication[]> {
+    const params = new HttpParams()
+      .set('applicantType', applicantType)
+      .set('applicantId', applicantId.toString());
+    return this.http.get<LeaveApplication[]>(`${this.apiUrl}/leaves`, { params });
+  }
+
+  /** Apply leave */
+  applyLeave(dto: Partial<LeaveApplication>): Observable<LeaveApplication> {
+    return this.http.post<LeaveApplication>(`${this.apiUrl}/leaves`, dto);
+  }
+
+  /** Update pending leave */
+  updateLeave(id: number, dto: Partial<LeaveApplication>): Observable<LeaveApplication> {
+    return this.http.put<LeaveApplication>(`${this.apiUrl}/leaves/${id}`, dto);
+  }
+
+  /** Cancel pending leave */
+  cancelLeave(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/leaves/${id}`);
   }
 
   createAttendance(attendance: Attendance): Observable<Attendance> {
