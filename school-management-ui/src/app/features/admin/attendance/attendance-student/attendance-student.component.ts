@@ -22,15 +22,16 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
               <i class="fa fa-arrow-left"></i> Back to Class Attendance
             </a>
             <h2><i class="fa fa-user"></i> Student Attendance History</h2>
-            <p class="page-subtitle" *ngIf="student">{{ student.name }} — {{ className }}</p>
+            <p class="page-subtitle" *ngIf="student">{{ student?.name }} — {{ student?.roll }} — {{ className }}</p>
           </div>
         </div>
       </div>
-      <div class="content-card" *ngIf="student && reportData.length > 0">
+      <div class="content-card" *ngIf="student">
         <div class="summary-row">
           <div class="s-item"><span class="val">{{ totalDays }}</span><span class="lbl">Total</span></div>
           <div class="s-item present"><span class="val">{{ presentCount }}</span><span class="lbl">Present</span></div>
           <div class="s-item absent"><span class="val">{{ absentCount }}</span><span class="lbl">Absent</span></div>
+          <div class="s-item leave"><span class="val">{{ leaveCount }}</span><span class="lbl">Leave</span></div>
           <div class="s-item"><span class="val">{{ attendancePercent }}%</span><span class="lbl">Attendance</span></div>
         </div>
         <div class="filter-row">
@@ -41,7 +42,31 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
             <option *ngFor="let y of yearOptions" [value]="y">{{ y }}</option>
           </select>
         </div>
-        <table class="data-table">
+        <div class="monthly-calendar" *ngIf="reportData.length > 0">
+          <h4>Monthly calendar — {{ getMonthName(selectedMonth) }} {{ selectedYear }}</h4>
+          <div class="calendar-weekdays">
+            <span *ngFor="let d of weekdayLabels">{{ d }}</span>
+          </div>
+          <div class="calendar-grid">
+            <div *ngFor="let cell of calendarCells" class="cal-cell"
+              [class.empty]="!cell.date"
+              [class.present]="cell.status === 1 || cell.status === 2 || cell.status === 7"
+              [class.absent]="cell.status === 3"
+              [class.leave]="cell.status === 4 || cell.status === 5"
+              [class.holiday]="cell.status === 6">
+              <span class="day-num">{{ cell.day }}</span>
+              <span class="day-status" *ngIf="cell.status !== undefined && cell.status !== 6">{{ getStatusLabel(cell.status) }}</span>
+            </div>
+          </div>
+          <div class="calendar-legend">
+            <span class="leg"><span class="dot present"></span> PP/PO</span>
+            <span class="leg"><span class="dot absent"></span> Absent</span>
+            <span class="leg"><span class="dot leave"></span> Leave</span>
+            <span class="leg"><span class="dot holiday"></span> Holiday</span>
+          </div>
+        </div>
+        <h4 class="history-title">History</h4>
+        <table class="data-table" *ngIf="reportData.length > 0">
           <thead>
             <tr>
               <th>Date</th>
@@ -73,9 +98,13 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
           </div>
         </div>
       </div>
-      <div class="empty-state" *ngIf="!loading && (!student || reportData.length === 0)">
+      <div class="empty-state" *ngIf="!loading && student && reportData.length === 0">
         <i class="fa fa-inbox"></i>
-        <p>No attendance data for this student</p>
+        <p>No attendance data for {{ selectedMonth }}/{{ selectedYear }}</p>
+      </div>
+      <div class="empty-state" *ngIf="!loading && !student">
+        <i class="fa fa-user-times"></i>
+        <p>Student not found</p>
       </div>
     </div>
   `,
@@ -92,9 +121,34 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
     .s-item .val { display: block; font-size: 1.25rem; font-weight: 700; color: #0f2744; }
     .s-item.present .val { color: #059669; }
     .s-item.absent .val { color: #dc2626; }
+    .s-item.leave .val { color: #2563eb; }
     .s-item .lbl { font-size: 0.75rem; color: #6a8cad; }
     .filter-row { display: flex; gap: 0.75rem; margin-bottom: 1rem; }
     .form-select { padding: 0.5rem 0.75rem; border: 2px solid #d9e2ec; border-radius: 8px; }
+    .monthly-calendar { margin-bottom: 1.5rem; padding: 1rem; background: #fafbfc; border-radius: 12px; border: 1px solid #e2e8f0; }
+    .monthly-calendar h4 { margin: 0 0 0.75rem 0; font-size: 0.9375rem; color: #0f2744; }
+    .calendar-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 0.5rem; text-align: center; font-size: 0.7rem; color: #6a8cad; font-weight: 600; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .cal-cell {
+      aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-size: 0.75rem; border-radius: 6px; min-height: 32px;
+    }
+    .cal-cell.empty { background: transparent; }
+    .cal-cell:not(.empty) { background: #e2e8f0; color: #6b7280; }
+    .cal-cell.present { background: #d1fae5; color: #059669; }
+    .cal-cell.absent { background: #fee2e2; color: #dc2626; }
+    .cal-cell.leave { background: #dbeafe; color: #2563eb; }
+    .cal-cell.holiday { background: #e5e7eb; color: #9ca3af; }
+    .day-num { font-weight: 600; }
+    .day-status { font-size: 0.6rem; }
+    .calendar-legend { display: flex; gap: 1rem; margin-top: 0.75rem; font-size: 0.75rem; color: #6a8cad; flex-wrap: wrap; }
+    .leg { display: flex; align-items: center; gap: 0.35rem; }
+    .dot { width: 10px; height: 10px; border-radius: 3px; }
+    .dot.present { background: #059669; }
+    .dot.absent { background: #dc2626; }
+    .dot.leave { background: #2563eb; }
+    .dot.holiday { background: #9ca3af; }
+    .history-title { margin: 1rem 0 0.75rem 0; font-size: 0.9375rem; color: #0f2744; }
     .data-table { width: 100%; border-collapse: collapse; }
     .data-table th, .data-table td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
     .data-table th { background: #f7f9fc; font-size: 0.8125rem; color: #6a8cad; font-weight: 600; }
@@ -102,6 +156,8 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
     .badge-pp { background: #d1fae5; color: #059669; }
     .badge-po { background: #dbeafe; color: #2563eb; }
     .badge-absent { background: #fee2e2; color: #dc2626; }
+    .badge-sl { background: #fef3c7; color: #d97706; }
+    .badge-fl { background: #ede9fe; color: #7c3aed; }
     .empty-state { text-align: center; padding: 3rem; color: #9ca3af; }
     .empty-state i { font-size: 3rem; margin-bottom: 0.5rem; display: block; }
     .pagination-bar {
@@ -148,6 +204,32 @@ export class AdminAttendanceStudentComponent implements OnInit {
     this.currentPage = p;
   }
 
+  readonly weekdayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  get calendarCells(): { day?: number; date?: Date; status?: number }[] {
+    const first = new Date(this.selectedYear, this.selectedMonth - 1, 1);
+    const last = new Date(this.selectedYear, this.selectedMonth, 0);
+    const startPad = first.getDay();
+    const daysInMonth = last.getDate();
+    const dateMap = new Map<number, number>();
+    this.reportData.forEach(r => {
+      const d = new Date(r.date);
+      if (d.getMonth() === this.selectedMonth - 1 && d.getFullYear() === this.selectedYear) {
+        dateMap.set(d.getDate(), r.status);
+      }
+    });
+    const cells: { day?: number; date?: Date; status?: number }[] = [];
+    for (let i = 0; i < startPad; i++) cells.push({});
+    for (let d = 1; d <= daysInMonth; d++) {
+      cells.push({ day: d, date: new Date(this.selectedYear, this.selectedMonth - 1, d), status: dateMap.get(d) });
+    }
+    return cells;
+  }
+
+  getMonthName(m: number): string {
+    return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m - 1] || '';
+  }
+
   constructor(
     private route: ActivatedRoute,
     private studentService: StudentService,
@@ -170,6 +252,10 @@ export class AdminAttendanceStudentComponent implements OnInit {
 
   get absentCount(): number {
     return this.reportData.filter(r => r.status === 3).length;
+  }
+
+  get leaveCount(): number {
+    return this.reportData.filter(r => r.status === 4 || r.status === 5).length;
   }
 
   get attendancePercent(): number {
@@ -232,7 +318,7 @@ export class AdminAttendanceStudentComponent implements OnInit {
 
   private getMockReport(): Attendance[] {
     const base = new Date(this.selectedYear, this.selectedMonth - 1, 1);
-    const statuses = [1, 2, 3, 4, 1];
+    const statuses = [1, 2, 3, 4, 5];
     return [1, 3, 5, 7, 10].map((d, i) => ({
       attendanceId: i + 1,
       studentId: this.student?.studentId ?? 0,
@@ -252,6 +338,9 @@ export class AdminAttendanceStudentComponent implements OnInit {
     if (s === 1 || s === 7) return 'pp';
     if (s === 2) return 'po';
     if (s === 3) return 'absent';
+    if (s === 4) return 'sl';
+    if (s === 5) return 'fl';
+    if (s === 6) return 'holiday';
     return 'absent';
   }
 }
