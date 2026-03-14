@@ -42,7 +42,7 @@ After the API starts, check:
 
 1. **Admin User:**
    - Email: `admin@school.com`
-   - Password: `admin123`
+   - Password: `Sign@1236`
    - Roles: Admin
 
 2. **Teacher Users:**
