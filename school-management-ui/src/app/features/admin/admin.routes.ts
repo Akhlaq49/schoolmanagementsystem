@@ -58,7 +58,14 @@ export const ADMIN_ROUTES: Routes = [
       },
       {
         path: 'attendance',
-        loadComponent: () => import('./attendance/attendance.component').then(m => m.AttendanceComponent)
+        loadComponent: () => import('./attendance/attendance-layout/attendance-layout.component').then(m => m.AttendanceLayoutComponent),
+        children: [
+          { path: '', redirectTo: 'class', pathMatch: 'full' },
+          { path: 'class', loadComponent: () => import('./attendance/attendance-class/attendance-class.component').then(m => m.AdminAttendanceClassComponent) },
+          { path: 'staff', loadComponent: () => import('./attendance/attendance-staff/attendance-staff.component').then(m => m.AdminAttendanceStaffComponent) },
+          { path: 'student/:id', loadComponent: () => import('./attendance/attendance-student/attendance-student.component').then(m => m.AdminAttendanceStudentComponent) },
+          { path: 'staff-history/:id', loadComponent: () => import('./attendance/attendance-staff-history/attendance-staff-history.component').then(m => m.AdminAttendanceStaffHistoryComponent) }
+        ]
       },
       {
         path: 'exams',

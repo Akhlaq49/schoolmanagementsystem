@@ -366,7 +366,16 @@ export class LayoutComponent implements OnInit, OnDestroy {
             { route: '/admin/sessions', label: 'Session', role: 'admin' }
           ]
         },
-        { route: '/admin/attendance', label: 'Attendance', icon: 'fa fa-check-square', role: 'admin' },
+        {
+          label: 'Attendance',
+          icon: 'fa fa-check-square',
+          role: 'admin',
+          expanded: false,
+          children: [
+            { route: '/admin/attendance/class', label: 'Class Attendance', role: 'admin' },
+            { route: '/admin/attendance/staff', label: 'Staff Attendance', role: 'admin' }
+          ]
+        },
         { route: '/admin/exams', label: 'Exams', icon: 'fa fa-file-text', role: 'admin' },
         { route: '/admin/marks', label: 'Marks', icon: 'fa fa-star', role: 'admin' },
         { route: '/admin/assignments', label: 'Assignments', icon: 'fa fa-tasks', role: 'admin' },
@@ -400,7 +409,18 @@ export class LayoutComponent implements OnInit, OnDestroy {
       ],
       teacher: [
         { route: '/teacher/dashboard', label: 'Dashboard', icon: 'fa fa-home', exact: true, role: 'teacher' },
-        { route: '/teacher/attendance', label: 'Attendance', icon: 'fa fa-check-square', role: 'teacher' },
+        {
+          label: 'Attendance',
+          icon: 'fa fa-check-square',
+          role: 'teacher',
+          expanded: false,
+          children: [
+            { route: '/teacher/attendance/self', label: 'My Attendance', role: 'teacher' },
+            { route: '/teacher/attendance/month', label: 'This Month', role: 'teacher' },
+            { route: '/teacher/attendance/class', label: 'Class Attendance', role: 'teacher' },
+            { route: '/teacher/attendance/leave', label: 'Leave', role: 'teacher' }
+          ]
+        },
         { route: '/teacher/marks', label: 'Marks', icon: 'fa fa-star', role: 'teacher' },
         { route: '/teacher/assignments', label: 'Assignments', icon: 'fa fa-tasks', role: 'teacher' },
         { route: '/teacher/study-materials', label: 'Study Materials', icon: 'fa fa-file', role: 'teacher' },

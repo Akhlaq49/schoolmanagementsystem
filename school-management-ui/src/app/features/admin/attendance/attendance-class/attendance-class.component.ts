@@ -107,11 +107,12 @@ interface RowData {
                 <th>Time In</th>
                 <th>Time Out</th>
                 <th>Remarks</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let r of rows; let i = index">
-                <td>{{ i + 1 }}</td>
+              <tr *ngFor="let r of paginatedRows; let i = index">
+                <td>{{ (currentPage - 1) * pageSize + i + 1 }}</td>
                 <td>{{ r.student.roll || '—' }}</td>
                 <td>
                   <div class="student-cell">
@@ -137,9 +138,33 @@ interface RowData {
                 <td>
                   <input type="text" [(ngModel)]="r.remarks" class="remarks-input" placeholder="Remarks" [disabled]="isLocked">
                 </td>
+                <td>
+                  <div class="row-actions">
+                    <button type="button" class="btn-icon" (click)="openEdit(r)" [disabled]="isLocked" title="Edit">
+                      <i class="fa fa-pencil"></i>
+                    </button>
+                    <a [routerLink]="['/admin/attendance/student', r.student.studentId]" class="btn-icon" title="View History">
+                      <i class="fa fa-history"></i>
+                    </a>
+                    <button type="button" class="btn-icon btn-clear" (click)="clearRow(r)" [disabled]="isLocked" title="Clear row">
+                      <i class="fa fa-eraser"></i>
+                    </button>
+                  </div>
+                </td>
               </tr>
             </tbody>
           </table>
+        </div>
+        <div class="pagination-bar" *ngIf="totalPages > 1">
+          <span class="pagination-info">Showing {{ (currentPage - 1) * pageSize + 1 }} to {{ endIndex }} of {{ rows.length }}</span>
+          <div class="pagination-controls">
+            <button type="button" class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">
+              <i class="fa fa-chevron-left"></i>
+            </button>
+            <button type="button" class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">
+              <i class="fa fa-chevron-right"></i>
+            </button>
+          </div>
         </div>
         <div class="legend-row">
           <span class="leg pp">PP</span>
@@ -153,6 +178,44 @@ interface RowData {
       <div class="empty-state" *ngIf="!loading && selectedClassId && rows.length === 0">
         <i class="fa fa-users"></i>
         <p>No students in this class. Load a class to continue.</p>
+      </div>
+
+      <div *ngIf="editRowData" class="edit-overlay" (click)="closeEdit()">
+        <div class="edit-modal" (click)="$event.stopPropagation()">
+          <h3>Edit Attendance — {{ editRowData.student.name }}</h3>
+          <div class="edit-form">
+            <div class="edit-field">
+              <label>Status</label>
+              <div class="status-btns">
+                <button type="button" class="status-btn pp" [class.active]="editRowData.status === 1" (click)="editRowData.status = 1">PP</button>
+                <button type="button" class="status-btn po" [class.active]="editRowData.status === 2" (click)="editRowData.status = 2">PO</button>
+                <button type="button" class="status-btn a" [class.active]="editRowData.status === 3" (click)="editRowData.status = 3">A</button>
+                <button type="button" class="status-btn sl" [class.active]="editRowData.status === 4" (click)="editRowData.status = 4">SL</button>
+                <button type="button" class="status-btn fl" [class.active]="editRowData.status === 5" (click)="editRowData.status = 5">FL</button>
+              </div>
+            </div>
+            <div class="edit-row">
+              <div class="edit-field">
+                <label>Time In</label>
+                <input type="time" [(ngModel)]="editRowData.timeIn" class="form-control">
+              </div>
+              <div class="edit-field">
+                <label>Time Out</label>
+                <input type="time" [(ngModel)]="editRowData.timeOut" class="form-control">
+              </div>
+            </div>
+            <div class="edit-field">
+              <label>Remarks</label>
+              <input type="text" [(ngModel)]="editRowData.remarks" class="form-control" placeholder="Remarks">
+            </div>
+          </div>
+          <div class="edit-actions">
+            <button type="button" class="btn btn-secondary" (click)="closeEdit()">Cancel</button>
+            <button type="button" class="btn btn-primary" (click)="saveEdit()">
+              <i class="fa fa-check"></i> Save
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   `,
@@ -291,6 +354,41 @@ interface RowData {
       width: 90px;
     }
     .remarks-input { width: 120px; }
+    .pagination-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      border-top: 1px solid #e2e8f0;
+    }
+    .pagination-info { font-size: 0.875rem; color: #6a8cad; }
+    .pagination-controls { display: flex; gap: 0.5rem; }
+    .page-btn {
+      padding: 0.4rem 0.75rem;
+      border: 2px solid #e2e8f0;
+      background: #fff;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .row-actions { display: flex; gap: 0.5rem; }
+    .btn-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border: none;
+      border-radius: 8px;
+      background: #f0f4f8;
+      color: #1e3a5f;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-icon:hover { background: #e2e8f0; }
+    .btn-icon.btn-clear:hover { background: #fee2e2; color: #dc2626; }
     .legend-row {
       display: flex;
       gap: 1rem;
@@ -308,6 +406,15 @@ interface RowData {
     .leg.fl { background: #ede9fe; color: #7c3aed; }
     .empty-state { text-align: center; padding: 3rem; color: #9ca3af; }
     .empty-state i { font-size: 3rem; margin-bottom: 0.5rem; display: block; }
+    .edit-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000; }
+    .edit-modal { background: #fff; border-radius: 16px; padding: 1.5rem 2rem; min-width: 360px; max-width: 95%; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+    .edit-modal h3 { margin: 0 0 1rem 0; font-size: 1.125rem; color: #0f2744; }
+    .edit-form { margin-bottom: 1.5rem; }
+    .edit-field { margin-bottom: 1rem; }
+    .edit-field label { display: block; font-size: 0.8125rem; color: #6a8cad; margin-bottom: 0.35rem; font-weight: 500; }
+    .edit-row { display: flex; gap: 1rem; }
+    .edit-actions { display: flex; justify-content: flex-end; gap: 0.75rem; }
+    .btn-secondary { background: #e2e8f0; color: #374151; }
   `]
 })
 export class AdminAttendanceClassComponent implements OnInit {
@@ -320,8 +427,28 @@ export class AdminAttendanceClassComponent implements OnInit {
   loading = false;
   saving = false;
   isLocked = false;
+  pageSize = 15;
+  currentPage = 1;
 
   readonly uiDemoMode = true;
+
+  get totalPages(): number {
+    return Math.ceil(this.rows.length / this.pageSize) || 1;
+  }
+
+  get paginatedRows(): RowData[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.rows.slice(start, start + this.pageSize);
+  }
+
+  get endIndex(): number {
+    return Math.min(this.currentPage * this.pageSize, this.rows.length);
+  }
+
+  goToPage(p: number): void {
+    if (p < 1 || p > this.totalPages) return;
+    this.currentPage = p;
+  }
 
   constructor(
     private classService: ClassService,
@@ -396,6 +523,7 @@ export class AdminAttendanceClassComponent implements OnInit {
         remarks: ''
       }
     ];
+    this.currentPage = 1;
   }
 
   loadClasses(): void {
@@ -413,10 +541,11 @@ export class AdminAttendanceClassComponent implements OnInit {
   onClassChange(): void {
     this.sections = [];
     this.selectedSectionId = null;
+    this.rows = [];
+    this.currentPage = 1;
     if (this.selectedClassId) {
       this.sectionService.getSectionsByClass(this.selectedClassId).subscribe(s => (this.sections = s));
     }
-    this.rows = [];
   }
 
   loadStudents(): void {
@@ -439,6 +568,7 @@ export class AdminAttendanceClassComponent implements OnInit {
           timeOut: '',
           remarks: ''
         }));
+        this.currentPage = 1;
         this.loading = false;
       },
       error: () => { this.loading = false; }
@@ -465,6 +595,38 @@ export class AdminAttendanceClassComponent implements OnInit {
       this.saving = false;
       this.notify.success('Attendance saved');
     }, 500);
+  }
+
+  editRowData: RowData | null = null;
+
+  openEdit(r: RowData): void {
+    if (this.isLocked) return;
+    this.editRowData = { student: r.student, status: r.status, timeIn: r.timeIn || '', timeOut: r.timeOut || '', remarks: r.remarks || '' };
+  }
+
+  closeEdit(): void {
+    this.editRowData = null;
+  }
+
+  saveEdit(): void {
+    if (!this.editRowData) return;
+    const r = this.rows.find(x => x.student.studentId === this.editRowData!.student.studentId);
+    if (r) {
+      r.status = this.editRowData.status;
+      r.timeIn = this.editRowData.timeIn;
+      r.timeOut = this.editRowData.timeOut;
+      r.remarks = this.editRowData.remarks;
+    }
+    this.notify.success('Row updated');
+    this.closeEdit();
+  }
+
+  clearRow(r: RowData): void {
+    r.status = 0;
+    r.timeIn = '';
+    r.timeOut = '';
+    r.remarks = '';
+    this.notify.info('Row cleared');
   }
 
   getInitials(name: string): string {

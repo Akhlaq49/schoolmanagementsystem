@@ -17,7 +17,30 @@ export const TEACHER_ROUTES: Routes = [
       },
       {
         path: 'attendance',
-        loadComponent: () => import('../admin/attendance/attendance.component').then(m => m.AttendanceComponent)
+        loadComponent: () => import('./attendance/attendance-layout/attendance-layout.component').then(m => m.TeacherAttendanceLayoutComponent),
+        children: [
+          { path: '', redirectTo: 'self', pathMatch: 'full' },
+          {
+            path: 'self',
+            loadComponent: () => import('./attendance/attendance-self/attendance-self.component').then(m => m.AttendanceSelfComponent)
+          },
+          {
+            path: 'month',
+            loadComponent: () => import('./attendance/attendance-month/attendance-month.component').then(m => m.AttendanceMonthComponent)
+          },
+          {
+            path: 'class',
+            loadComponent: () => import('./attendance/attendance-class/attendance-class.component').then(m => m.AttendanceClassComponent)
+          },
+          {
+            path: 'student/:id',
+            loadComponent: () => import('./attendance/attendance-student/attendance-student.component').then(m => m.AttendanceStudentComponent)
+          },
+          {
+            path: 'leave',
+            loadComponent: () => import('./attendance/attendance-leave/attendance-leave.component').then(m => m.TeacherAttendanceLeaveComponent)
+          }
+        ]
       },
       {
         path: 'marks',
