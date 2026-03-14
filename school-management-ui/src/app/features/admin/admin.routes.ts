@@ -70,7 +70,8 @@ export const ADMIN_ROUTES: Routes = [
           { path: 'monthly', loadComponent: () => import('./attendance/attendance-monthly/attendance-monthly.component').then(m => m.AdminAttendanceMonthlyComponent) },
           { path: 'reports', loadComponent: () => import('./attendance/attendance-reports/attendance-reports.component').then(m => m.AdminAttendanceReportsComponent) },
           { path: 'trends', loadComponent: () => import('./attendance/attendance-trends/attendance-trends.component').then(m => m.AdminAttendanceTrendsComponent) },
-          { path: 'class-summary', loadComponent: () => import('./attendance/attendance-class-summary/attendance-class-summary.component').then(m => m.AdminAttendanceClassSummaryComponent) }
+          { path: 'class-summary', loadComponent: () => import('./attendance/attendance-class-summary/attendance-class-summary.component').then(m => m.AdminAttendanceClassSummaryComponent) },
+          { path: 'low-attendance', loadComponent: () => import('./attendance/attendance-low-attendance/attendance-low-attendance.component').then(m => m.AdminAttendanceLowAttendanceComponent) }
         ]
       },
       {

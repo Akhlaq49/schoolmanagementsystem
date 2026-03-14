@@ -379,7 +379,8 @@ export class LayoutComponent implements OnInit, OnDestroy {
             { route: '/admin/attendance/monthly', label: 'Monthly Grid', role: 'admin' },
             { route: '/admin/attendance/reports', label: 'Reports', role: 'admin' },
             { route: '/admin/attendance/trends', label: 'Trends', role: 'admin' },
-            { route: '/admin/attendance/class-summary', label: 'Class Summary', role: 'admin' }
+            { route: '/admin/attendance/class-summary', label: 'Class Summary', role: 'admin' },
+            { route: '/admin/attendance/low-attendance', label: 'Low Attendance', role: 'admin' }
           ]
         },
         { route: '/admin/exams', label: 'Exams', icon: 'fa fa-file-text', role: 'admin' },
