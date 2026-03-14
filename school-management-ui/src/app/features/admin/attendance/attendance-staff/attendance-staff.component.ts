@@ -29,7 +29,7 @@ interface StaffRow {
               <i class="fa fa-arrow-left"></i> Back to Dashboard
             </a>
             <h2><i class="fa fa-chalkboard-teacher"></i> Staff Attendance</h2>
-            <p class="page-subtitle">Mark teacher/staff attendance</p>
+            <p class="page-subtitle">Mark teacher/staff attendance &amp; punctuality (check-in/out, late/early)</p>
           </div>
         </div>
       </div>
@@ -41,7 +41,22 @@ interface StaffRow {
             <label>Date</label>
             <input type="date" [(ngModel)]="selectedDate" class="form-control">
           </div>
+          <div class="filter-group">
+            <label>Punctuality filter</label>
+            <select [(ngModel)]="punctualityFilter" (ngModelChange)="currentPage = 1" class="form-control">
+              <option value="all">All</option>
+              <option value="late">Late only</option>
+              <option value="early">Early leave only</option>
+            </select>
+          </div>
         </div>
+      </div>
+
+      <div class="analytics-row" *ngIf="rows.length > 0">
+        <div class="analytics-card"><span class="val">{{ onTimeCount }}</span><span class="lbl">On time</span></div>
+        <div class="analytics-card late"><span class="val">{{ lateCount }}</span><span class="lbl">Late</span></div>
+        <div class="analytics-card early"><span class="val">{{ earlyLeaveCount }}</span><span class="lbl">Early leave</span></div>
+        <div class="analytics-card absent"><span class="val">{{ absentCount }}</span><span class="lbl">Absent</span></div>
       </div>
 
       <div class="table-card" *ngIf="rows.length > 0">
@@ -72,7 +87,7 @@ interface StaffRow {
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let r of paginatedRows; let i = index">
+            <tr *ngFor="let r of paginatedRows; let i = index" [class.late-row]="isLate(r)" [class.early-row]="isEarlyLeave(r)">
               <td>{{ (currentPage - 1) * pageSize + i + 1 }}</td>
               <td>{{ r.name }}</td>
               <td>{{ r.department }}</td>
@@ -84,10 +99,16 @@ interface StaffRow {
                 </div>
               </td>
               <td>
-                <input type="time" [(ngModel)]="r.timeIn" class="time-input" *ngIf="r.status === 1 || r.status === 2 || r.timeIn" [disabled]="r.status === 3">
+                <div class="time-cell">
+                  <input type="time" [(ngModel)]="r.timeIn" class="time-input" *ngIf="r.status === 1 || r.status === 2 || r.timeIn" [disabled]="r.status === 3">
+                  <span class="badge badge-late" *ngIf="isLate(r)" title="Arrived after {{ expectedTimeIn }}">Late</span>
+                </div>
               </td>
               <td>
-                <input type="time" [(ngModel)]="r.timeOut" class="time-input" *ngIf="r.status === 1 || r.status === 2 || r.timeOut" [disabled]="r.status === 3">
+                <div class="time-cell">
+                  <input type="time" [(ngModel)]="r.timeOut" class="time-input" *ngIf="r.status === 1 || r.status === 2 || r.timeOut" [disabled]="r.status === 3">
+                  <span class="badge badge-early" *ngIf="isEarlyLeave(r)" title="Left before {{ expectedTimeOut }}">Early</span>
+                </div>
               </td>
               <td>
                 <div class="row-actions">
@@ -106,7 +127,7 @@ interface StaffRow {
           </tbody>
         </table>
         <div class="pagination-bar" *ngIf="totalPages > 1">
-          <span class="pagination-info">Showing {{ (currentPage - 1) * pageSize + 1 }} to {{ endIndex }} of {{ rows.length }}</span>
+          <span class="pagination-info">Showing {{ (currentPage - 1) * pageSize + 1 }} to {{ endIndex }} of {{ filteredRows.length }}</span>
           <div class="pagination-controls">
             <button type="button" class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">
               <i class="fa fa-chevron-left"></i>
@@ -156,7 +177,7 @@ interface StaffRow {
       border: 1px solid #e2e8f0;
     }
     .filters-card h3 { margin: 0 0 1rem 0; font-size: 1rem; color: #0f2744; }
-    .filter-row { display: flex; gap: 1rem; align-items: flex-end; }
+    .filter-row { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; }
     .filter-group label { font-size: 0.8125rem; margin-bottom: 0.35rem; color: #6a8cad; font-weight: 500; display: block; }
     .form-control {
       padding: 0.5rem 0.75rem;
@@ -165,6 +186,21 @@ interface StaffRow {
       font-size: 0.9375rem;
       min-width: 160px;
     }
+    .analytics-row { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .analytics-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      min-width: 100px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      border: 1px solid #e2e8f0;
+    }
+    .analytics-card .val { display: block; font-size: 1.25rem; font-weight: 700; color: #0f2744; }
+    .analytics-card .lbl { font-size: 0.75rem; color: #6a8cad; }
+    .analytics-card.late .val { color: #dc2626; }
+    .analytics-card.early .val { color: #d97706; }
+    .analytics-card.absent .val { color: #6b7280; }
     .table-card {
       background: #fff;
       border-radius: 16px;
@@ -218,6 +254,7 @@ interface StaffRow {
     .status-btn.pp.active { background: #d1fae5; border-color: #059669; color: #059669; }
     .status-btn.po.active { background: #dbeafe; border-color: #2563eb; color: #2563eb; }
     .status-btn.a.active { background: #fee2e2; border-color: #dc2626; color: #dc2626; }
+    .time-cell { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
     .time-input {
       padding: 0.4rem 0.5rem;
       border: 2px solid #d9e2ec;
@@ -225,6 +262,11 @@ interface StaffRow {
       font-size: 0.875rem;
       width: 90px;
     }
+    .badge { padding: 0.2rem 0.4rem; border-radius: 6px; font-size: 0.7rem; font-weight: 600; }
+    .badge-late { background: #fee2e2; color: #dc2626; }
+    .badge-early { background: #fef3c7; color: #d97706; }
+    .late-row { background: #fef2f2; }
+    .early-row { background: #fffbeb; }
     .row-actions { display: flex; gap: 0.5rem; }
     .btn-icon {
       display: inline-flex;
@@ -282,18 +324,53 @@ export class AdminAttendanceStaffComponent implements OnInit {
   saving = false;
   pageSize = 15;
   currentPage = 1;
+  punctualityFilter: 'all' | 'late' | 'early' = 'all';
+  readonly expectedTimeIn = '08:15';
+  readonly expectedTimeOut = '14:00';
+
+  get filteredRows(): StaffRow[] {
+    if (this.punctualityFilter === 'late') return this.rows.filter(r => this.isLate(r));
+    if (this.punctualityFilter === 'early') return this.rows.filter(r => this.isEarlyLeave(r));
+    return this.rows;
+  }
 
   get totalPages(): number {
-    return Math.ceil(this.rows.length / this.pageSize) || 1;
+    return Math.ceil(this.filteredRows.length / this.pageSize) || 1;
   }
 
   get paginatedRows(): StaffRow[] {
     const start = (this.currentPage - 1) * this.pageSize;
-    return this.rows.slice(start, start + this.pageSize);
+    return this.filteredRows.slice(start, start + this.pageSize);
   }
 
   get endIndex(): number {
-    return Math.min(this.currentPage * this.pageSize, this.rows.length);
+    return Math.min(this.currentPage * this.pageSize, this.filteredRows.length);
+  }
+
+  get onTimeCount(): number {
+    return this.rows.filter(r => (r.status === 1 || r.status === 2) && r.timeIn && !this.isLate(r)).length;
+  }
+
+  get lateCount(): number {
+    return this.rows.filter(r => this.isLate(r)).length;
+  }
+
+  get earlyLeaveCount(): number {
+    return this.rows.filter(r => this.isEarlyLeave(r)).length;
+  }
+
+  get absentCount(): number {
+    return this.rows.filter(r => r.status === 3).length;
+  }
+
+  isLate(r: StaffRow): boolean {
+    if (!r.timeIn || r.status === 3) return false;
+    return r.timeIn > this.expectedTimeIn;
+  }
+
+  isEarlyLeave(r: StaffRow): boolean {
+    if (!r.timeOut || r.status === 3) return false;
+    return r.timeOut < this.expectedTimeOut && r.timeOut.length > 0;
   }
 
   goToPage(p: number): void {
@@ -311,11 +388,11 @@ export class AdminAttendanceStaffComponent implements OnInit {
   private applyMockData(): void {
     this.currentPage = 1;
     this.rows = [
-      { staffId: 1, name: 'John Smith', department: 'Mathematics', status: 1, timeIn: '08:15', timeOut: '' },
-      { staffId: 2, name: 'Jane Doe', department: 'Science', status: 2, timeIn: '08:20', timeOut: '14:00' },
+      { staffId: 1, name: 'John Smith', department: 'Mathematics', status: 1, timeIn: '08:10', timeOut: '14:00' },
+      { staffId: 2, name: 'Jane Doe', department: 'Science', status: 2, timeIn: '08:45', timeOut: '14:00' },
       { staffId: 3, name: 'Robert Johnson', department: 'English', status: 3, timeIn: '', timeOut: '' },
-      { staffId: 4, name: 'Sarah Williams', department: 'Mathematics', status: 1, timeIn: '08:10', timeOut: '' },
-      { staffId: 5, name: 'Michael Brown', department: 'History', status: 0, timeIn: '', timeOut: '' }
+      { staffId: 4, name: 'Sarah Williams', department: 'Mathematics', status: 1, timeIn: '08:00', timeOut: '13:30' },
+      { staffId: 5, name: 'Michael Brown', department: 'History', status: 1, timeIn: '08:30', timeOut: '13:00' }
     ];
   }
 
