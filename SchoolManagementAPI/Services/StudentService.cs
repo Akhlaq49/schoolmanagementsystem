@@ -49,6 +49,23 @@ public class StudentService : IStudentService
         return user == null ? null : MergeStudentProfileIntoUser(user);
     }
 
+    public async Task<User?> GetStudentByStudentIdAsync(int studentId)
+    {
+        var user = await _context.Users
+            .Include(u => u.UserRoles)
+            .Include(u => u.StudentProfile!)
+                .ThenInclude(s => s!.Class)
+            .Include(u => u.StudentProfile!)
+                .ThenInclude(s => s!.Section)
+            .Include(u => u.StudentProfile!)
+                .ThenInclude(s => s!.Family)
+            .Include(u => u.Admission)
+            .Include(u => u.PreviousInstitute)
+            .Where(u => u.StudentProfile != null && u.StudentProfile.StudentId == studentId)
+            .FirstOrDefaultAsync();
+        return user == null ? null : MergeStudentProfileIntoUser(user);
+    }
+
     public async Task<List<User>> GetActiveStudentsAsync()
     {
         var list = await _context.Users

@@ -54,6 +54,14 @@ public class StudentsController : ControllerBase
         return Ok(student);
     }
 
+    [HttpGet("student/{studentId:int}")]
+    public async Task<ActionResult<User>> GetStudentByStudentId(int studentId)
+    {
+        var student = await _studentService.GetStudentByStudentIdAsync(studentId);
+        if (student == null) return NotFound();
+        return Ok(student);
+    }
+
     [HttpGet("class/{classId}")]
     public async Task<ActionResult<List<User>>> GetStudentsByClass(int classId)
     {

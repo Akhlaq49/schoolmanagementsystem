@@ -11,6 +11,7 @@ public interface IStudentService
     Task<List<User>> SearchStudentsAsync(string term, string? status);
     Task<User> CreateStudentFromDtoAsync(CreateStudentDto dto);
     Task<User?> GetStudentByIdAsync(int id);
+    Task<User?> GetStudentByStudentIdAsync(int studentId);
     Task<User> CreateStudentAsync(User student);
     Task<User?> UpdateStudentAsync(int id, User student);
     Task<User?> UpdateStudentFromDtoAsync(int id, UpdateStudentDto dto);
