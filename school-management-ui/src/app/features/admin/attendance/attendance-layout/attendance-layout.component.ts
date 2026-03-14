@@ -39,6 +39,9 @@ import { RouterModule, RouterOutlet } from '@angular/router';
         <a routerLink="/admin/attendance/alerts" routerLinkActive="active" class="nav-tab">
           <i class="fa fa-bell"></i> Alerts
         </a>
+        <a routerLink="/admin/attendance/leave" routerLinkActive="active" class="nav-tab">
+          <i class="fa fa-calendar-plus-o"></i> Leave
+        </a>
       </div>
       <div class="outlet-wrap">
         <router-outlet></router-outlet>
