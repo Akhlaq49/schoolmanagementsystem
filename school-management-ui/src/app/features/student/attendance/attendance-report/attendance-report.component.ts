@@ -7,6 +7,7 @@ import { AttendanceService } from '../../../../core/services/attendance.service'
 import { Student } from '../../../../core/models/student.model';
 import { Attendance } from '../../../../core/models/attendance.model';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
+import { formatTime12h } from '../../../../shared/utils/time.utils';
 
 export type ReportFilter = 'day' | 'weekly' | 'monthly' | 'yearly';
 
@@ -101,8 +102,8 @@ export type ReportFilter = 'day' | 'weekly' | 'monthly' | 'yearly';
               <tr *ngFor="let r of paginatedReportData">
                 <td>{{ r.date | date:'mediumDate' }}</td>
                 <td><span class="status-badge" [ngClass]="'badge-' + getStatusKey(r.status)">{{ getStatusLabel(r.status) }}</span></td>
-                <td>{{ r.timeIn || '—' }}</td>
-                <td>{{ r.timeOut || '—' }}</td>
+                <td>{{ formatTime12h(r.timeIn) }}</td>
+                <td>{{ formatTime12h(r.timeOut) }}</td>
                 <td>{{ r.remarks || '—' }}</td>
               </tr>
             </tbody>
@@ -255,6 +256,7 @@ export type ReportFilter = 'day' | 'weekly' | 'monthly' | 'yearly';
   `]
 })
 export class AttendanceReportComponent implements OnInit {
+  formatTime12h = formatTime12h;
   student: Student | null = null;
   reportData: Attendance[] = [];
   filterType: ReportFilter = 'monthly';

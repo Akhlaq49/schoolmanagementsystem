@@ -8,6 +8,7 @@ import { NotificationService } from '../../../../shared/services/notification.se
 import { Student } from '../../../../core/models/student.model';
 import { Attendance } from '../../../../core/models/attendance.model';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
+import { formatTime12h } from '../../../../shared/utils/time.utils';
 
 @Component({
   selector: 'app-attendance-checkin',
@@ -28,7 +29,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
           </div>
           <div class="time-box">
             <span class="label">Current Time</span>
-            <span class="value live-clock">{{ currentTime }}</span>
+            <span class="value live-clock">{{ currentTimeDisplay }}</span>
           </div>
         </div>
 
@@ -299,9 +300,6 @@ export class AttendanceCheckinComponent implements OnInit, OnDestroy {
   earlyLeaveReason = '';
   approvedLeaveDates: string[] = [];
 
-  /** UI-only demo: Mark PP updates state locally, no backend call */
-  readonly uiDemoMode = true;
-
   /** Configurable school hours (defaults; will come from API later) */
   startTime = '08:00';
   endTime = '15:00';
@@ -319,6 +317,10 @@ export class AttendanceCheckinComponent implements OnInit, OnDestroy {
   /** Current time is after start time */
   get isLateArrival(): boolean {
     return this.timeToMinutes(this.currentTime) > this.timeToMinutes(this.startTime);
+  }
+
+  get currentTimeDisplay(): string {
+    return formatTime12h(this.currentTime, '--:--');
   }
 
   /** Current time is before end time */
@@ -380,12 +382,6 @@ export class AttendanceCheckinComponent implements OnInit, OnDestroy {
 
   private loadStudentAndAttendance(): void {
     const userId = this.auth.getUserId();
-    if (this.uiDemoMode && !userId) {
-      this.student = { studentId: 1, name: 'Demo Student', class: { classId: 1, name: 'Class 10' }, section: { sectionId: 1, name: 'A' } } as Student;
-      this.todayAttendance = null;
-      this.loading = false;
-      return;
-    }
     if (!userId) {
       this.loading = false;
       this.notify.error('Please log in');
@@ -396,11 +392,6 @@ export class AttendanceCheckinComponent implements OnInit, OnDestroy {
       next: (s) => {
         this.student = s;
         const studentId = (s as any).studentId ?? s.userId ?? userId;
-        if (this.uiDemoMode) {
-          this.todayAttendance = null;
-          this.loading = false;
-          return;
-        }
         this.attendanceService.getTodayAttendance(studentId).subscribe({
           next: (att) => {
             this.todayAttendance = att ?? null;
@@ -444,7 +435,6 @@ export class AttendanceCheckinComponent implements OnInit, OnDestroy {
   }
 
   canCheckIn(): boolean {
-    if (this.uiDemoMode && this.student) return (this.todayAttendance?.status ?? 0) === 0;
     if (this.hasApprovedLeave || !this.student) return false;
     const s = this.todayAttendance?.status ?? 0;
     return s === 0; // Not marked
@@ -520,21 +510,6 @@ export class AttendanceCheckinComponent implements OnInit, OnDestroy {
     const timeIn = now.toTimeString().split(' ')[0];
     const remarks = [lateReason, platformRemarks].filter(Boolean).join(' | ') || undefined;
 
-    if (this.uiDemoMode) {
-      this.todayAttendance = {
-        attendanceId: 0,
-        studentId: (this.student as any).studentId ?? 0,
-        status: mode === 'PP' ? 1 : 2,
-        date: this.todayDate,
-        timeIn,
-        remarks,
-        student: this.student
-      } as Attendance;
-      this.saving = false;
-      this.notify.success(`Check-in successful (${mode}) [UI demo]`);
-      return;
-    }
-
     const studentId = (this.student as any).studentId ?? this.student.userId ?? this.auth.getUserId()!;
     this.attendanceService.checkIn({
       studentId,
@@ -573,17 +548,6 @@ export class AttendanceCheckinComponent implements OnInit, OnDestroy {
     }
     this.saving = true;
     const timeOut = new Date().toTimeString().split(' ')[0];
-
-    if (this.uiDemoMode) {
-      this.todayAttendance = this.todayAttendance
-        ? { ...this.todayAttendance, timeOut, remarks: (this.todayAttendance.remarks || '') + (this.earlyLeaveReason ? ` | Early: ${this.earlyLeaveReason}` : '') } as Attendance
-        : null;
-      this.saving = false;
-      this.showEarlyLeavePanel = false;
-      this.earlyLeaveReason = '';
-      this.notify.success('Check-out successful [UI demo]');
-      return;
-    }
 
     const studentId = (this.student as any).studentId ?? this.student.userId ?? this.auth.getUserId()!;
     this.attendanceService.checkOut({

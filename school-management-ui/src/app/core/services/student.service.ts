@@ -68,6 +68,13 @@ export class StudentService {
     );
   }
 
+  /** Get student by studentId (for admin links that use studentId) */
+  getStudentByStudentId(studentId: number): Observable<Student> {
+    return this.http.get<any>(`${this.apiUrl}/student/${studentId}`).pipe(
+      map(s => this.mapApiStudentToModel(s))
+    );
+  }
+
   searchActiveStudents(term: string): Observable<Student[]> {
     return this.http.get<any[]>(`${this.apiUrl}/search`, {
       params: { term, status: 'active' }

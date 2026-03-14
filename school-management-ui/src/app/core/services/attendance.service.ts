@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Attendance, CheckInRequest, CheckOutRequest, LeaveApplication } from '../models/attendance.model';
+import { Attendance, AttendanceCorrection, AttendanceReportResponse, CheckInRequest, CheckOutRequest, CreateCorrectionRequest, LeaveApplication, UpdateAttendanceRequest } from '../models/attendance.model';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -76,8 +76,46 @@ export class AttendanceService {
     return this.http.put<Attendance>(`${this.apiUrl}/${id}`, attendance);
   }
 
+  /** Edit attendance (partial update) */
+  editAttendance(id: number, dto: UpdateAttendanceRequest): Observable<Attendance> {
+    return this.http.patch<Attendance>(`${this.apiUrl}/${id}`, dto);
+  }
+
   deleteAttendance(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
+  /** Attendance correction: create request */
+  createCorrection(dto: CreateCorrectionRequest): Observable<AttendanceCorrection> {
+    return this.http.post<AttendanceCorrection>(`${environment.apiUrl}/api/attendance-correction`, dto);
+  }
+
+  /** Attendance correction: get my requests */
+  getMyCorrections(studentId: number): Observable<AttendanceCorrection[]> {
+    return this.http.get<AttendanceCorrection[]>(`${environment.apiUrl}/api/attendance-correction/student/${studentId}`);
+  }
+
+  /** Attendance correction: get pending (admin) */
+  getPendingCorrections(): Observable<AttendanceCorrection[]> {
+    return this.http.get<AttendanceCorrection[]>(`${environment.apiUrl}/api/attendance-correction/pending`);
+  }
+
+  /** Attendance correction: review (approve/reject) */
+  reviewCorrection(id: number, status: 'approved' | 'rejected', reviewerRemarks?: string): Observable<AttendanceCorrection> {
+    return this.http.patch<AttendanceCorrection>(`${environment.apiUrl}/api/attendance-correction/${id}/review`, {
+      status,
+      reviewerRemarks
+    });
+  }
+
+  /** Bulk save class attendance */
+  bulkSaveAttendance(dto: {
+    date: string;
+    classId: number;
+    sectionId?: number;
+    records: { studentId: number; status: number; timeIn?: string; timeOut?: string; remarks?: string; leaveReason?: string }[];
+  }): Observable<Attendance[]> {
+    return this.http.post<Attendance[]>(`${this.apiUrl}/bulk`, dto);
   }
 }
 

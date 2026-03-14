@@ -51,3 +51,65 @@ export interface CheckOutRequest {
   remarks?: string; // Reason for leaving early
 }
 
+/** Edit attendance - partial update */
+export interface UpdateAttendanceRequest {
+  status?: number;
+  timeIn?: string;
+  timeOut?: string;
+  remarks?: string;
+  leaveReason?: string;
+}
+
+/** Attendance report with summary */
+export interface AttendanceReportSummary {
+  totalDays: number;
+  presentCount: number;
+  absentCount: number;
+  leaveCount: number;
+  holidayCount: number;
+  notMarkedCount: number;
+  attendancePercent: number;
+}
+
+export interface AttendanceReportRecord {
+  attendanceId: number;
+  studentId: number;
+  date: string;
+  status: number;
+  timeIn?: string;
+  timeOut?: string;
+  remarks?: string;
+}
+
+export interface AttendanceReportResponse {
+  records: AttendanceReportRecord[];
+  summary: AttendanceReportSummary;
+}
+
+/** Attendance correction request (student submits, admin approves) */
+export interface AttendanceCorrection {
+  attendanceCorrectionId: number;
+  attendanceId: number;
+  studentId: number;
+  reason: string;
+  requestedStatus?: number;
+  requestedTimeIn?: string;
+  requestedTimeOut?: string;
+  requestedRemarks?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewerRemarks?: string;
+  requestedAt: string;
+  reviewedAt?: string;
+  attendance?: Attendance;
+}
+
+export interface CreateCorrectionRequest {
+  attendanceId: number;
+  studentId: number;
+  reason: string;
+  requestedStatus?: number;
+  requestedTimeIn?: string;
+  requestedTimeOut?: string;
+  requestedRemarks?: string;
+}
+
