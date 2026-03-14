@@ -68,6 +68,13 @@ public class AttendanceRecordDto
     public string? Remarks { get; set; }
 }
 
+/// <summary>Review leave (approve/reject).</summary>
+public class ReviewLeaveDto
+{
+    public string Status { get; set; } = string.Empty; // approved | rejected
+    public string? ReviewerRemarks { get; set; }
+}
+
 /// <summary>Attendance summary stats.</summary>
 public class AttendanceReportSummaryDto
 {

@@ -13,10 +13,12 @@ namespace SchoolManagementAPI.Controllers;
 public class AttendanceController : ControllerBase
 {
     private readonly IAttendanceService _attendanceService;
+    private readonly ILeaveService _leaveService;
 
-    public AttendanceController(IAttendanceService attendanceService)
+    public AttendanceController(IAttendanceService attendanceService, ILeaveService leaveService)
     {
         _attendanceService = attendanceService;
+        _leaveService = leaveService;
     }
 
     [HttpGet]
@@ -122,6 +124,68 @@ public class AttendanceController : ControllerBase
         var updated = await _attendanceService.UpdateAttendanceByIdAsync(id, dto);
         if (updated == null) return NotFound();
         return Ok(updated);
+    }
+
+    [HttpGet("leaves")]
+    public async Task<ActionResult<List<LeaveApplication>>> GetLeaves(
+        [FromQuery] string applicantType,
+        [FromQuery] int applicantId)
+    {
+        var list = await _leaveService.GetByApplicantAsync(applicantType, applicantId);
+        return Ok(list);
+    }
+
+    [HttpGet("leaves/all")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<List<LeaveApplication>>> GetAllLeaves(
+        [FromQuery] string? applicantType,
+        [FromQuery] string? status)
+    {
+        var list = await _leaveService.GetAllAsync(applicantType, status);
+        return Ok(list);
+    }
+
+    [HttpPatch("leaves/{id:int}/review")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<LeaveApplication>> ReviewLeave(int id, [FromBody] ReviewLeaveDto dto)
+    {
+        int? reviewerId = null;
+        var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (int.TryParse(claim, out var uid)) reviewerId = uid;
+        var updated = await _leaveService.ReviewAsync(id, dto.Status, reviewerId, dto.ReviewerRemarks);
+        if (updated == null) return NotFound();
+        return Ok(updated);
+    }
+
+    [HttpGet("leaves/{id:int}")]
+    public async Task<ActionResult<LeaveApplication>> GetLeaveById(int id)
+    {
+        var leave = await _leaveService.GetByIdAsync(id);
+        if (leave == null) return NotFound();
+        return Ok(leave);
+    }
+
+    [HttpPost("leaves")]
+    public async Task<ActionResult<LeaveApplication>> CreateLeave([FromBody] LeaveApplication leave)
+    {
+        var created = await _leaveService.CreateAsync(leave);
+        return CreatedAtAction(nameof(GetLeaveById), new { id = created.LeaveApplicationId }, created);
+    }
+
+    [HttpPut("leaves/{id:int}")]
+    public async Task<ActionResult<LeaveApplication>> UpdateLeave(int id, [FromBody] LeaveApplication leave)
+    {
+        var updated = await _leaveService.UpdateAsync(id, leave);
+        if (updated == null) return NotFound();
+        return Ok(updated);
+    }
+
+    [HttpDelete("leaves/{id:int}")]
+    public async Task<IActionResult> DeleteLeave(int id)
+    {
+        var result = await _leaveService.DeleteAsync(id);
+        if (!result) return NotFound();
+        return NoContent();
     }
 
     [HttpDelete("{id}")]
