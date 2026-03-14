@@ -68,7 +68,8 @@ export const ADMIN_ROUTES: Routes = [
           { path: 'calendar', loadComponent: () => import('./attendance/attendance-calendar/attendance-calendar.component').then(m => m.AdminAttendanceCalendarComponent) },
           { path: 'daily', loadComponent: () => import('./attendance/attendance-daily/attendance-daily.component').then(m => m.AdminAttendanceDailyComponent) },
           { path: 'monthly', loadComponent: () => import('./attendance/attendance-monthly/attendance-monthly.component').then(m => m.AdminAttendanceMonthlyComponent) },
-          { path: 'reports', loadComponent: () => import('./attendance/attendance-reports/attendance-reports.component').then(m => m.AdminAttendanceReportsComponent) }
+          { path: 'reports', loadComponent: () => import('./attendance/attendance-reports/attendance-reports.component').then(m => m.AdminAttendanceReportsComponent) },
+          { path: 'trends', loadComponent: () => import('./attendance/attendance-trends/attendance-trends.component').then(m => m.AdminAttendanceTrendsComponent) }
         ]
       },
       {
