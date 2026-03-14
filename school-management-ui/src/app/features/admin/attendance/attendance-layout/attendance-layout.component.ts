@@ -21,6 +21,9 @@ import { RouterModule, RouterOutlet } from '@angular/router';
         <a routerLink="/admin/attendance/daily" routerLinkActive="active" class="nav-tab">
           <i class="fa fa-bar-chart"></i> Daily Summary
         </a>
+        <a routerLink="/admin/attendance/monthly" routerLinkActive="active" class="nav-tab">
+          <i class="fa fa-th"></i> Monthly Grid
+        </a>
       </div>
       <div class="outlet-wrap">
         <router-outlet></router-outlet>
