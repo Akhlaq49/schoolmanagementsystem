@@ -53,6 +53,22 @@ export class AttendanceService {
     return this.http.get<LeaveApplication[]>(`${this.apiUrl}/leaves`, { params });
   }
 
+  /** Admin: list all leave applications */
+  getAllLeaves(applicantType?: string, status?: string): Observable<LeaveApplication[]> {
+    let params = new HttpParams();
+    if (applicantType) params = params.set('applicantType', applicantType);
+    if (status) params = params.set('status', status);
+    return this.http.get<LeaveApplication[]>(`${this.apiUrl}/leaves/all`, { params });
+  }
+
+  /** Admin: approve or reject leave */
+  reviewLeave(id: number, status: 'approved' | 'rejected', reviewerRemarks?: string): Observable<LeaveApplication> {
+    return this.http.patch<LeaveApplication>(`${this.apiUrl}/leaves/${id}/review`, {
+      status,
+      reviewerRemarks
+    });
+  }
+
   /** Apply leave */
   applyLeave(dto: Partial<LeaveApplication>): Observable<LeaveApplication> {
     return this.http.post<LeaveApplication>(`${this.apiUrl}/leaves`, dto);

@@ -154,7 +154,7 @@ import { ConfirmDialogComponent } from '../../../../shared/components/confirm-di
     </div>
   `,
   styles: [`
-    .leave-container { padding: 1.5rem; max-width: 720px; margin: 0 auto; }
+    .leave-container { padding: 2rem; max-width: 960px; margin: 0 auto; width: 100%; }
     .page-header h2 {
       margin: 0 0 0.25rem 0;
       font-size: 1.5rem;
@@ -169,7 +169,7 @@ import { ConfirmDialogComponent } from '../../../../shared/components/confirm-di
     .listing-card {
       background: #fff;
       border-radius: 16px;
-      padding: 1.5rem 2rem;
+      padding: 2rem 2.5rem;
       margin-bottom: 1.5rem;
       box-shadow: 0 2px 12px rgba(0,0,0,0.08);
       border: 1px solid #e2e8f0;
@@ -179,7 +179,7 @@ import { ConfirmDialogComponent } from '../../../../shared/components/confirm-di
     .leaves-table { width: 100%; border-collapse: collapse; }
     .leaves-table th, .leaves-table td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
     .leaves-table th { background: #f7f9fc; font-size: 0.8125rem; color: #6a8cad; font-weight: 600; }
-    .reason-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .reason-cell { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .btn-action {
       padding: 0.35rem 0.75rem;
       font-size: 0.8125rem;
@@ -199,7 +199,7 @@ import { ConfirmDialogComponent } from '../../../../shared/components/confirm-di
     .apply-card, .history-card {
       background: #fff;
       border-radius: 16px;
-      padding: 1.5rem 2rem;
+      padding: 2rem 2.5rem;
       margin-bottom: 1.5rem;
       box-shadow: 0 2px 12px rgba(0,0,0,0.08);
       border: 1px solid #e2e8f0;
@@ -227,7 +227,7 @@ import { ConfirmDialogComponent } from '../../../../shared/components/confirm-di
     }
     .tab:hover { border-color: #1e3a5f; color: #1e3a5f; }
     .tab.active { border-color: #1e3a5f; background: #1e3a5f; color: #fff; }
-    .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+    .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.25rem; margin-bottom: 1.25rem; }
     .form-group { margin-bottom: 1rem; }
     .form-group label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.35rem; color: #374151; }
     .required { color: #dc2626; }

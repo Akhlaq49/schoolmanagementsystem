@@ -2,7 +2,13 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { AttendanceService } from '../../../../core/services/attendance.service';
+import { StudentService } from '../../../../core/services/student.service';
 import { NotificationService } from '../../../../shared/services/notification.service';
+import { LeaveApplication as ApiLeave } from '../../../../core/models/attendance.model';
+import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
 
 type LeaveStatus = 'pending' | 'approved' | 'rejected';
 
@@ -10,7 +16,7 @@ interface LeaveApplication {
   id: number;
   applicantId: number;
   applicantName: string;
-  applicantType: 'student' | 'staff';
+  applicantType: 'student' | 'teacher' | 'staff';
   rollOrDept: string;
   className?: string;
   fromDate: string;
@@ -24,9 +30,10 @@ interface LeaveApplication {
 @Component({
   selector: 'app-admin-attendance-leave',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, LoadingComponent],
   template: `
     <div class="page-container">
+      <app-loading [show]="loading" [message]="'Loading...'"></app-loading>
       <div class="page-header-card">
         <div class="header-content">
           <div>
@@ -268,6 +275,8 @@ export class AdminAttendanceLeaveComponent implements OnInit {
   currentPage = 1;
   selectedIds = new Set<number>();
   bulkRemarks = '';
+  loading = true;
+  submitting = false;
 
   get filteredList(): LeaveApplication[] {
     if (this.filterStatus === 'all') return this.applications;
@@ -305,10 +314,14 @@ export class AdminAttendanceLeaveComponent implements OnInit {
     return pending.every(a => this.selectedIds.has(a.id));
   }
 
-  constructor(private notify: NotificationService) {}
+  constructor(
+    private attendanceService: AttendanceService,
+    private studentService: StudentService,
+    private notify: NotificationService
+  ) {}
 
   ngOnInit(): void {
-    this.loadMockData();
+    this.loadLeaves();
   }
 
   setFilter(s: 'all' | 'pending' | 'approved' | 'rejected'): void {
@@ -339,37 +352,75 @@ export class AdminAttendanceLeaveComponent implements OnInit {
   }
 
   bulkApprove(): void {
-    this.selectedIds.forEach(id => {
-      const a = this.applications.find(x => x.id === id);
-      if (a && a.status === 'pending') {
-        a.status = 'approved';
-        a.remarks = this.bulkRemarks || a.remarks;
+    if (this.submitting) return;
+    const ids = Array.from(this.selectedIds);
+    const remarks = this.bulkRemarks?.trim();
+    this.submitting = true;
+    const calls = ids.map(id => this.attendanceService.reviewLeave(id, 'approved', remarks));
+    forkJoin(calls).subscribe({
+      next: () => {
+        this.submitting = false;
+        this.notify.success(`Approved ${ids.length} leave application(s)`);
+        this.clearSelection();
+        this.loadLeaves();
+      },
+      error: (err) => {
+        this.submitting = false;
+        this.notify.error(err?.error?.message ?? 'Failed to approve');
       }
     });
-    this.notify.success(`Approved ${this.selectedIds.size} leave application(s)`);
-    this.clearSelection();
   }
 
   bulkReject(): void {
-    this.selectedIds.forEach(id => {
-      const a = this.applications.find(x => x.id === id);
-      if (a && a.status === 'pending') {
-        a.status = 'rejected';
-        a.remarks = this.bulkRemarks || a.remarks;
+    if (this.submitting) return;
+    const ids = Array.from(this.selectedIds);
+    const remarks = this.bulkRemarks?.trim();
+    this.submitting = true;
+    const calls = ids.map(id => this.attendanceService.reviewLeave(id, 'rejected', remarks));
+    forkJoin(calls).subscribe({
+      next: () => {
+        this.submitting = false;
+        this.notify.info(`Rejected ${ids.length} leave application(s)`);
+        this.clearSelection();
+        this.loadLeaves();
+      },
+      error: (err) => {
+        this.submitting = false;
+        this.notify.error(err?.error?.message ?? 'Failed to reject');
       }
     });
-    this.notify.info(`Rejected ${this.selectedIds.size} leave application(s)`);
-    this.clearSelection();
   }
 
   approve(a: LeaveApplication): void {
-    a.status = 'approved';
-    this.notify.success(`Leave approved for ${a.applicantName}`);
+    if (this.submitting) return;
+    this.submitting = true;
+    this.attendanceService.reviewLeave(a.id, 'approved', a.remarks).subscribe({
+      next: () => {
+        this.submitting = false;
+        a.status = 'approved';
+        this.notify.success(`Leave approved for ${a.applicantName}`);
+      },
+      error: (err) => {
+        this.submitting = false;
+        this.notify.error(err?.error?.message ?? 'Failed to approve');
+      }
+    });
   }
 
   reject(a: LeaveApplication): void {
-    a.status = 'rejected';
-    this.notify.info(`Leave rejected for ${a.applicantName}`);
+    if (this.submitting) return;
+    this.submitting = true;
+    this.attendanceService.reviewLeave(a.id, 'rejected', a.remarks).subscribe({
+      next: () => {
+        this.submitting = false;
+        a.status = 'rejected';
+        this.notify.info(`Leave rejected for ${a.applicantName}`);
+      },
+      error: (err) => {
+        this.submitting = false;
+        this.notify.error(err?.error?.message ?? 'Failed to reject');
+      }
+    });
   }
 
   goToPrevPage(): void {
@@ -380,13 +431,72 @@ export class AdminAttendanceLeaveComponent implements OnInit {
     if (this.currentPage < this.totalPages) this.currentPage++;
   }
 
-  private loadMockData(): void {
-    this.applications = [
-      { id: 1, applicantId: 1, applicantName: 'Ali Khan', applicantType: 'student', rollOrDept: 'R101', className: 'Grade 10-A', fromDate: '2025-03-15', toDate: '2025-03-16', reason: 'Family function', status: 'pending', appliedAt: 'Mar 10, 2025' },
-      { id: 2, applicantId: 2, applicantName: 'Sara Ahmed', applicantType: 'student', rollOrDept: 'R102', className: 'Grade 10-A', fromDate: '2025-03-18', toDate: '2025-03-18', reason: 'Medical appointment', status: 'pending', appliedAt: 'Mar 11, 2025' },
-      { id: 3, applicantId: 1, applicantName: 'John Smith', applicantType: 'staff', rollOrDept: 'Mathematics', fromDate: '2025-03-12', toDate: '2025-03-13', reason: 'Personal', status: 'approved', appliedAt: 'Mar 8, 2025' },
-      { id: 4, applicantId: 3, applicantName: 'Hamza Shah', applicantType: 'student', rollOrDept: 'R103', className: 'Grade 9-B', fromDate: '2025-03-10', toDate: '2025-03-11', reason: 'Sickness', status: 'approved', appliedAt: 'Mar 7, 2025' },
-      { id: 5, applicantId: 4, applicantName: 'Fatima Hassan', applicantType: 'student', rollOrDept: 'R104', className: 'Grade 9-B', fromDate: '2025-03-20', toDate: '2025-03-22', reason: 'Outstation trip', status: 'rejected', appliedAt: 'Mar 9, 2025' }
-    ];
+  private formatDateStr(s: string): string {
+    if (!s) return '—';
+    const d = new Date(s);
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  private loadLeaves(): void {
+    this.loading = true;
+    this.attendanceService.getAllLeaves().subscribe({
+      next: (apiLeaves) => {
+        const studentIds = [...new Set(
+          apiLeaves.filter(l => l.applicantType === 'student').map(l => l.applicantId)
+        )];
+        if (studentIds.length === 0) {
+          this.applications = apiLeaves.map(l => this.mapLeave(l, null));
+          this.loading = false;
+          return;
+        }
+        const studentCalls = studentIds.map(id =>
+          this.studentService.getStudentByStudentId(id).pipe(
+            catchError(() => of(null))
+          )
+        );
+        forkJoin(studentCalls).subscribe({
+          next: (students) => {
+            const map = new Map<number, { name: string; roll: string; className: string }>();
+            studentIds.forEach((id, i) => {
+              const s = students[i];
+              if (s) {
+                const cn = s.class ? `${s.class.name}${s.section ? '-' + s.section.name : ''}` : '';
+                map.set(id, { name: s.name, roll: s.roll ?? '—', className: cn });
+              } else {
+                map.set(id, { name: `Student #${id}`, roll: '—', className: '' });
+              }
+            });
+            this.applications = apiLeaves.map(l => this.mapLeave(l, map.get(l.applicantId) ?? null));
+            this.loading = false;
+          },
+          error: () => {
+            this.applications = apiLeaves.map(l => this.mapLeave(l, null));
+            this.loading = false;
+          }
+        });
+      },
+      error: (err) => {
+        this.loading = false;
+        this.notify.error(err?.error?.message ?? 'Failed to load leave applications');
+      }
+    });
+  }
+
+  private mapLeave(api: ApiLeave, student: { name: string; roll: string; className: string } | null): LeaveApplication {
+    const isStudent = api.applicantType === 'student';
+    return {
+      id: api.leaveApplicationId,
+      applicantId: api.applicantId,
+      applicantName: isStudent && student ? student.name : `${api.applicantType} #${api.applicantId}`,
+      applicantType: api.applicantType as 'student' | 'teacher' | 'staff',
+      rollOrDept: isStudent && student ? student.roll : '—',
+      className: isStudent && student ? student.className || undefined : undefined,
+      fromDate: this.formatDateStr(api.leaveFrom),
+      toDate: this.formatDateStr(api.leaveTo),
+      reason: api.reason,
+      status: api.status as LeaveStatus,
+      appliedAt: this.formatDateStr(api.createdAt),
+      remarks: api.reviewerRemarks ?? undefined
+    };
   }
 }
