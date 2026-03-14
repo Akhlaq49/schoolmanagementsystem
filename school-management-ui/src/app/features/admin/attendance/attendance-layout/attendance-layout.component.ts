@@ -45,6 +45,9 @@ import { RouterModule, RouterOutlet } from '@angular/router';
         <a routerLink="/admin/attendance/settings" routerLinkActive="active" class="nav-tab">
           <i class="fa fa-cog"></i> Settings
         </a>
+        <a routerLink="/admin/attendance/corrections" routerLinkActive="active" class="nav-tab">
+          <i class="fa fa-edit"></i> Corrections
+        </a>
       </div>
       <div class="outlet-wrap">
         <router-outlet></router-outlet>

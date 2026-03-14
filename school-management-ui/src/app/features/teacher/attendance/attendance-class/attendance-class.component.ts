@@ -354,57 +354,21 @@ export class AttendanceClassComponent implements OnInit {
     return Math.min(this.currentPage * this.pageSize, this.rows.length);
   }
 
-  readonly uiDemoMode = true;
-
   ngOnInit(): void {
     this.selectedDate = new Date().toISOString().split('T')[0];
     this.classService.getAllClasses().subscribe({
       next: (c) => {
         this.classes = c.length > 0 ? c : [];
-        if (this.uiDemoMode) {
-          if (c.length === 0) this.applyMockClasses();
-          else { this.selectedClassId = c[0].classId; this.sections = [{ sectionId: 1, name: 'A', classId: c[0].classId }] as Section[]; this.selectedSectionId = 1; this.applyMockStudents(); }
+        if (c.length > 0 && !this.selectedClassId) {
+          this.selectedClassId = c[0].classId;
+          this.sectionService.getSectionsByClass(c[0].classId).subscribe(s => {
+            this.sections = s;
+            if (s.length > 0) this.selectedSectionId = s[0].sectionId;
+          });
         }
       },
-      error: () => {
-        if (this.uiDemoMode) this.applyMockClasses();
-      }
+      error: () => {}
     });
-  }
-
-  private applyMockClasses(): void {
-    this.classes = [
-      { classId: 1, name: 'Grade 10', session: '2024-25' } as Class,
-      { classId: 2, name: 'Grade 9', session: '2024-25' } as Class
-    ];
-    this.sections = [
-      { sectionId: 1, name: 'A', classId: 1 } as Section,
-      { sectionId: 2, name: 'B', classId: 1 } as Section
-    ];
-    if (!this.selectedClassId) {
-      this.selectedClassId = 1;
-      this.selectedSectionId = 1;
-      this.applyMockStudents();
-    }
-  }
-
-  private applyMockStudents(): void {
-    const names = ['Ali Khan', 'Sara Ahmed', 'Hamza Shah', 'Fatima Hassan', 'Omar Riaz'];
-    this.rows = names.map((n, i) => ({
-      student: {
-        studentId: i + 1,
-        name: n,
-        roll: `R${i + 101}`,
-        classId: this.selectedClassId ?? 1,
-        sectionId: this.selectedSectionId ?? 1,
-        password: ''
-      } as Student,
-      status: ([1, 2, 3, 4, 0] as StatusCode[])[i],
-      timeIn: i < 4 ? '08:15' : '',
-      timeOut: i === 1 ? '14:00' : '',
-      remarks: i === 4 ? 'Sick' : ''
-    }));
-    this.currentPage = 1;
   }
 
   onClassChange(): void {
@@ -416,11 +380,7 @@ export class AttendanceClassComponent implements OnInit {
   }
 
   loadStudents(): void {
-    if (!this.selectedClassId) return;
-    if (this.uiDemoMode) {
-      this.applyMockStudents();
-      return;
-    }
+    if (!this.selectedClassId || !this.selectedDate) return;
     this.loading = true;
     this.studentService.getStudentsByClass(this.selectedClassId).subscribe({
       next: (students) => {
@@ -428,20 +388,43 @@ export class AttendanceClassComponent implements OnInit {
         if (this.selectedSectionId) {
           list = students.filter(s => (s.sectionId ?? s.section?.sectionId) === this.selectedSectionId);
         }
-        this.rows = list.map(s => ({
-          student: s,
-          status: 0 as StatusCode,
-          timeIn: '',
-          timeOut: '',
-          remarks: ''
-        }));
-        this.currentPage = 1;
-        this.loading = false;
+        const rowsMap = new Map<number, RowData>();
+        list.forEach(s => {
+          rowsMap.set(s.studentId, {
+            student: s,
+            status: 0 as StatusCode,
+            timeIn: '',
+            timeOut: '',
+            remarks: ''
+          });
+        });
+        this.attendanceService.getAttendance(
+          this.selectedDate,
+          this.selectedClassId ?? undefined,
+          this.selectedSectionId ?? undefined
+        ).subscribe({
+          next: (attList) => {
+            attList.forEach(a => {
+              const row = rowsMap.get(a.studentId);
+              if (row) {
+                row.status = a.status as StatusCode;
+                row.timeIn = (a.timeIn ?? '').toString().substring(0, 5) || '';
+                row.timeOut = (a.timeOut ?? '').toString().substring(0, 5) || '';
+                row.remarks = a.remarks ?? '';
+              }
+            });
+            this.rows = Array.from(rowsMap.values());
+            this.currentPage = 1;
+            this.loading = false;
+          },
+          error: () => {
+            this.rows = Array.from(rowsMap.values());
+            this.currentPage = 1;
+            this.loading = false;
+          }
+        });
       },
-      error: () => {
-        if (this.uiDemoMode) this.applyMockStudents();
-        this.loading = false;
-      }
+      error: () => { this.loading = false; }
     });
   }
 
@@ -460,9 +443,23 @@ export class AttendanceClassComponent implements OnInit {
   }
 
   saveAttendance(): void {
+    if (!this.selectedDate || !this.selectedClassId || this.rows.length === 0) return;
     this.saving = true;
-    this.saving = false;
-    this.notify.success('Attendance saved');
+    this.attendanceService.bulkSaveAttendance({
+      date: this.selectedDate,
+      classId: this.selectedClassId,
+      sectionId: this.selectedSectionId ?? undefined,
+      records: this.rows.map(r => ({
+        studentId: r.student.studentId,
+        status: r.status,
+        timeIn: r.timeIn || undefined,
+        timeOut: r.timeOut || undefined,
+        remarks: r.remarks || undefined
+      }))
+    }).subscribe({
+      next: () => { this.saving = false; this.notify.success('Attendance saved'); },
+      error: () => { this.saving = false; this.notify.error('Failed to save'); }
+    });
   }
 
   goToPage(p: number): void {

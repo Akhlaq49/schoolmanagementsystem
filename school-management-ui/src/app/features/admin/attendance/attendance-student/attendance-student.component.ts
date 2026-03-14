@@ -7,6 +7,7 @@ import { AttendanceService } from '../../../../core/services/attendance.service'
 import { Student } from '../../../../core/models/student.model';
 import { Attendance } from '../../../../core/models/attendance.model';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
+import { formatTime12h } from '../../../../shared/utils/time.utils';
 
 @Component({
   selector: 'app-admin-attendance-student',
@@ -22,7 +23,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
               <i class="fa fa-arrow-left"></i> Back to Class Attendance
             </a>
             <h2><i class="fa fa-user"></i> Student Attendance History</h2>
-            <p class="page-subtitle" *ngIf="student">{{ student?.name }} — {{ student?.roll }} — {{ className }}</p>
+            <p class="page-subtitle" *ngIf="student">{{ student.name }} — {{ student.roll }} — {{ className }}</p>
           </div>
         </div>
       </div>
@@ -80,8 +81,8 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
             <tr *ngFor="let r of paginatedReportData">
               <td>{{ r.date | date:'mediumDate' }}</td>
               <td><span class="badge" [ngClass]="'badge-' + getStatusKey(r.status)">{{ getStatusLabel(r.status) }}</span></td>
-              <td>{{ r.timeIn || '—' }}</td>
-              <td>{{ r.timeOut || '—' }}</td>
+              <td>{{ formatTime12h(r.timeIn) }}</td>
+              <td>{{ formatTime12h(r.timeOut) }}</td>
               <td>{{ r.remarks || '—' }}</td>
             </tr>
           </tbody>
@@ -175,6 +176,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
   `]
 })
 export class AdminAttendanceStudentComponent implements OnInit {
+  formatTime12h = formatTime12h;
   student: Student | null = null;
   reportData: Attendance[] = [];
   selectedMonth = new Date().getMonth() + 1;
@@ -182,7 +184,6 @@ export class AdminAttendanceStudentComponent implements OnInit {
   loading = false;
   monthOptions: { value: number; label: string }[] = [];
   yearOptions: number[] = [];
-  readonly uiDemoMode = true;
   pageSize = 15;
   currentPage = 1;
 
@@ -271,32 +272,11 @@ export class AdminAttendanceStudentComponent implements OnInit {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.loading = true;
-      this.studentService.getStudentById(+id).subscribe({
+      this.studentService.getStudentByStudentId(+id).subscribe({
         next: (s) => { this.student = s; this.loadReport(); },
-        error: () => {
-          if (this.uiDemoMode) {
-            this.student = this.mockStudent(+id);
-            this.reportData = this.getMockReport();
-          }
-          this.loading = false;
-        }
+        error: () => { this.loading = false; }
       });
     }
-  }
-
-  private mockStudent(id: number): Student {
-    const names: Record<number, string> = { 1: 'Ali Khan', 2: 'Sara Ahmed', 3: 'Hamza Shah', 4: 'Fatima Hassan', 5: 'Omar Riaz' };
-    return {
-      studentId: id,
-      name: names[id] ?? `Student ${id}`,
-      roll: `R${100 + id}`,
-      classId: 1,
-      sectionId: 1,
-      password: '',
-      loginStatus: 'active',
-      class: { classId: 1, name: 'Grade 10' } as any,
-      section: { sectionId: 1, name: 'A' } as any
-    } as Student;
   }
 
   loadReport(): void {
@@ -306,27 +286,11 @@ export class AdminAttendanceStudentComponent implements OnInit {
     this.loading = true;
     this.attendanceService.getAttendanceReport(studentId, this.selectedMonth, this.selectedYear).subscribe({
       next: (list) => {
-        this.reportData = list.length > 0 ? list : (this.uiDemoMode ? this.getMockReport() : []);
+        this.reportData = list;
         this.loading = false;
       },
-      error: () => {
-        if (this.uiDemoMode) this.reportData = this.getMockReport();
-        this.loading = false;
-      }
+      error: () => { this.reportData = []; this.loading = false; }
     });
-  }
-
-  private getMockReport(): Attendance[] {
-    const base = new Date(this.selectedYear, this.selectedMonth - 1, 1);
-    const statuses = [1, 2, 3, 4, 5];
-    return [1, 3, 5, 7, 10].map((d, i) => ({
-      attendanceId: i + 1,
-      studentId: this.student?.studentId ?? 0,
-      date: new Date(base.getFullYear(), base.getMonth(), d).toISOString(),
-      status: statuses[i],
-      timeIn: statuses[i] <= 2 ? '08:15' : undefined,
-      timeOut: statuses[i] === 1 ? '14:00' : undefined
-    })) as Attendance[];
   }
 
   getStatusLabel(s: number): string {

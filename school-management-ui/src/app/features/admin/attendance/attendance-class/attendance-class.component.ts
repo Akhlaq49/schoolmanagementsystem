@@ -22,6 +22,7 @@ interface RowData {
   timeOut: string;
   remarks: string;
   leaveReason?: string;
+  attendanceId?: number;
 }
 
 @Component({
@@ -430,8 +431,6 @@ export class AdminAttendanceClassComponent implements OnInit {
   pageSize = 15;
   currentPage = 1;
 
-  readonly uiDemoMode = true;
-
   get totalPages(): number {
     return Math.ceil(this.rows.length / this.pageSize) || 1;
   }
@@ -468,62 +467,7 @@ export class AdminAttendanceClassComponent implements OnInit {
 
   ngOnInit(): void {
     this.selectedDate = new Date().toISOString().split('T')[0];
-    if (this.uiDemoMode) {
-      this.applyMockData();
-      return;
-    }
     this.loadClasses();
-  }
-
-  private applyMockData(): void {
-    this.classes = [
-      { classId: 1, name: 'Grade 10', session: '2024-25' } as Class,
-      { classId: 2, name: 'Grade 9', session: '2024-25' } as Class
-    ];
-    this.sections = [
-      { sectionId: 1, name: 'A', classId: 1 } as Section,
-      { sectionId: 2, name: 'B', classId: 1 } as Section
-    ];
-    this.selectedClassId = 1;
-    this.selectedSectionId = 1;
-    this.rows = [
-      {
-        student: { studentId: 1, name: 'Ali Khan', roll: 'R101', classId: 1, sectionId: 1, password: '' } as Student,
-        status: 1,
-        timeIn: '08:15',
-        timeOut: '',
-        remarks: ''
-      },
-      {
-        student: { studentId: 2, name: 'Sara Ahmed', roll: 'R102', classId: 1, sectionId: 1, password: '' } as Student,
-        status: 2,
-        timeIn: '08:20',
-        timeOut: '14:00',
-        remarks: ''
-      },
-      {
-        student: { studentId: 3, name: 'Hamza Shah', roll: 'R103', classId: 1, sectionId: 1, password: '' } as Student,
-        status: 3,
-        timeIn: '',
-        timeOut: '',
-        remarks: 'Sick'
-      },
-      {
-        student: { studentId: 4, name: 'Fatima Hassan', roll: 'R104', classId: 1, sectionId: 1, password: '' } as Student,
-        status: 4,
-        timeIn: '',
-        timeOut: '',
-        remarks: 'Doctor appointment'
-      },
-      {
-        student: { studentId: 5, name: 'Omar Riaz', roll: 'R105', classId: 1, sectionId: 1, password: '' } as Student,
-        status: 0,
-        timeIn: '',
-        timeOut: '',
-        remarks: ''
-      }
-    ];
-    this.currentPage = 1;
   }
 
   loadClasses(): void {
@@ -532,9 +476,7 @@ export class AdminAttendanceClassComponent implements OnInit {
         this.classes = c;
         if (c.length > 0 && !this.selectedClassId) this.selectedClassId = c[0].classId;
       },
-      error: () => {
-        if (this.uiDemoMode) this.applyMockData();
-      }
+      error: () => this.notify.error('Failed to load classes')
     });
   }
 
@@ -549,11 +491,7 @@ export class AdminAttendanceClassComponent implements OnInit {
   }
 
   loadStudents(): void {
-    if (!this.selectedClassId) return;
-    if (this.uiDemoMode) {
-      this.applyMockData();
-      return;
-    }
+    if (!this.selectedClassId || !this.selectedDate) return;
     this.loading = true;
     this.studentService.getStudentsByClass(this.selectedClassId).subscribe({
       next: (students) => {
@@ -561,17 +499,48 @@ export class AdminAttendanceClassComponent implements OnInit {
         if (this.selectedSectionId) {
           list = students.filter(s => (s.sectionId ?? s.section?.sectionId) === this.selectedSectionId);
         }
-        this.rows = list.map(s => ({
-          student: s,
-          status: 0 as StatusCode,
-          timeIn: '',
-          timeOut: '',
-          remarks: ''
-        }));
-        this.currentPage = 1;
-        this.loading = false;
+        const rowsMap = new Map<number, RowData>();
+        list.forEach(s => {
+          rowsMap.set(s.studentId, {
+            student: s,
+            status: 0 as StatusCode,
+            timeIn: '',
+            timeOut: '',
+            remarks: ''
+          });
+        });
+        this.attendanceService.getAttendance(
+          this.selectedDate,
+          this.selectedClassId ?? undefined,
+          this.selectedSectionId ?? undefined
+        ).subscribe({
+          next: (attList) => {
+            attList.forEach(a => {
+              const row = rowsMap.get(a.studentId);
+              if (row) {
+                row.attendanceId = a.attendanceId;
+                row.status = a.status as StatusCode;
+                row.timeIn = (a.timeIn ?? '').toString().substring(0, 5) || '';
+                row.timeOut = (a.timeOut ?? '').toString().substring(0, 5) || '';
+                row.remarks = a.remarks ?? '';
+                row.leaveReason = a.leaveReason;
+              }
+            });
+            this.rows = Array.from(rowsMap.values());
+            this.currentPage = 1;
+            this.loading = false;
+          },
+          error: () => {
+            this.rows = Array.from(rowsMap.values());
+            this.currentPage = 1;
+            this.loading = false;
+          }
+        });
       },
-      error: () => { this.loading = false; }
+      error: () => {
+        this.loading = false;
+        this.notify.error('Failed to load students');
+      }
     });
   }
 
@@ -590,18 +559,44 @@ export class AdminAttendanceClassComponent implements OnInit {
   }
 
   saveAttendance(): void {
+    if (!this.selectedDate || !this.selectedClassId || this.rows.length === 0) return;
     this.saving = true;
-    setTimeout(() => {
-      this.saving = false;
-      this.notify.success('Attendance saved');
-    }, 500);
+    this.attendanceService.bulkSaveAttendance({
+      date: this.selectedDate,
+      classId: this.selectedClassId,
+      sectionId: this.selectedSectionId ?? undefined,
+      records: this.rows.map(r => ({
+        studentId: r.student.studentId,
+        status: r.status,
+        timeIn: r.timeIn || undefined,
+        timeOut: r.timeOut || undefined,
+        remarks: r.remarks || undefined,
+        leaveReason: r.leaveReason
+      }))
+    }).subscribe({
+      next: () => {
+        this.saving = false;
+        this.notify.success('Attendance saved');
+      },
+      error: (err) => {
+        this.saving = false;
+        this.notify.error(err?.error?.message ?? 'Failed to save attendance');
+      }
+    });
   }
 
   editRowData: RowData | null = null;
 
   openEdit(r: RowData): void {
     if (this.isLocked) return;
-    this.editRowData = { student: r.student, status: r.status, timeIn: r.timeIn || '', timeOut: r.timeOut || '', remarks: r.remarks || '' };
+    this.editRowData = {
+      student: r.student,
+      status: r.status,
+      timeIn: r.timeIn || '',
+      timeOut: r.timeOut || '',
+      remarks: r.remarks || '',
+      leaveReason: r.leaveReason
+    };
   }
 
   closeEdit(): void {
@@ -611,13 +606,27 @@ export class AdminAttendanceClassComponent implements OnInit {
   saveEdit(): void {
     if (!this.editRowData) return;
     const r = this.rows.find(x => x.student.studentId === this.editRowData!.student.studentId);
-    if (r) {
-      r.status = this.editRowData.status;
-      r.timeIn = this.editRowData.timeIn;
-      r.timeOut = this.editRowData.timeOut;
-      r.remarks = this.editRowData.remarks;
+    if (!r) { this.closeEdit(); return; }
+    r.status = this.editRowData.status;
+    r.timeIn = this.editRowData.timeIn || '';
+    r.timeOut = this.editRowData.timeOut || '';
+    r.remarks = this.editRowData.remarks || '';
+    r.leaveReason = this.editRowData.leaveReason;
+
+    if (r.attendanceId) {
+      this.attendanceService.editAttendance(r.attendanceId, {
+        status: r.status,
+        timeIn: r.timeIn || undefined,
+        timeOut: r.timeOut || undefined,
+        remarks: r.remarks || undefined,
+        leaveReason: r.leaveReason
+      }).subscribe({
+        next: () => this.notify.success('Row updated'),
+        error: () => this.notify.error('Failed to update row')
+      });
+    } else {
+      this.notify.success('Row updated (will save with attendance)');
     }
-    this.notify.success('Row updated');
     this.closeEdit();
   }
 

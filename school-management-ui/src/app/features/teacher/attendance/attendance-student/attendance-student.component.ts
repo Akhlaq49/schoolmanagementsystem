@@ -7,6 +7,7 @@ import { AttendanceService } from '../../../../core/services/attendance.service'
 import { Student } from '../../../../core/models/student.model';
 import { Attendance } from '../../../../core/models/attendance.model';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
+import { formatTime12h } from '../../../../shared/utils/time.utils';
 
 @Component({
   selector: 'app-attendance-student',
@@ -99,8 +100,8 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
               <tr *ngFor="let r of paginatedData">
                 <td>{{ r.date | date:'mediumDate' }}</td>
                 <td><span class="status-badge" [ngClass]="'badge-' + getStatusKey(r.status)">{{ getStatusLabel(r.status) }}</span></td>
-                <td>{{ r.timeIn || '—' }}</td>
-                <td>{{ r.timeOut || '—' }}</td>
+                <td>{{ formatTime12h(r.timeIn) }}</td>
+                <td>{{ formatTime12h(r.timeOut) }}</td>
                 <td>{{ r.remarks || '—' }}</td>
               </tr>
             </tbody>
@@ -246,6 +247,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
   `]
 })
 export class AttendanceStudentComponent implements OnInit {
+  formatTime12h = formatTime12h;
   student: Student | null = null;
   reportData: Attendance[] = [];
   selectedMonth = new Date().getMonth() + 1;

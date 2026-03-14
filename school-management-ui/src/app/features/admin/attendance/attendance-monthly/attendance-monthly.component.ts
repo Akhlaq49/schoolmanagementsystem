@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { NotificationService } from '../../../../shared/services/notification.service';
+import { formatTime12h } from '../../../../shared/utils/time.utils';
 
 interface GridStudent {
   studentId: number;
@@ -141,8 +142,8 @@ interface CellData {
             <div class="popup-row"><strong>Roll:</strong> {{ popupData.roll }}</div>
             <div class="popup-row"><strong>Date:</strong> {{ popupData.date }}</div>
             <div class="popup-row"><strong>Status:</strong> <span class="badge" [ngClass]="'badge-' + (popupData.status || 'na')">{{ popupData.status || 'Not marked' }}</span></div>
-            <div class="popup-row" *ngIf="popupData.timeIn"><strong>Time In:</strong> {{ popupData.timeIn }}</div>
-            <div class="popup-row" *ngIf="popupData.timeOut"><strong>Time Out:</strong> {{ popupData.timeOut }}</div>
+            <div class="popup-row" *ngIf="popupData.timeIn"><strong>Time In:</strong> {{ formatTime12h(popupData.timeIn) }}</div>
+            <div class="popup-row" *ngIf="popupData.timeOut"><strong>Time Out:</strong> {{ formatTime12h(popupData.timeOut) }}</div>
             <div class="popup-row" *ngIf="popupData.remarks"><strong>Remarks:</strong> {{ popupData.remarks }}</div>
           </div>
         </div>
@@ -268,6 +269,7 @@ interface CellData {
   `]
 })
 export class AdminAttendanceMonthlyComponent implements OnInit {
+  formatTime12h = formatTime12h;
   selectedMonth = new Date().getMonth() + 1;
   selectedYear = new Date().getFullYear();
   selectedClassId: number | null = 1;

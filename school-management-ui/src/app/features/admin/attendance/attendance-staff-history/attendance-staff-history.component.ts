@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
+import { formatTime12h } from '../../../../shared/utils/time.utils';
 
 @Component({
   selector: 'app-admin-attendance-staff-history',
@@ -29,8 +30,8 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
             <tr *ngFor="let r of paginatedRows">
               <td>{{ r.date }}</td>
               <td><span class="badge pp">{{ r.status }}</span></td>
-              <td>{{ r.timeIn }}</td>
-              <td>{{ r.timeOut }}</td>
+              <td>{{ formatTime12h(r.timeIn) }}</td>
+              <td>{{ formatTime12h(r.timeOut) }}</td>
             </tr>
           </tbody>
         </table>
@@ -76,6 +77,7 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
   `]
 })
 export class AdminAttendanceStaffHistoryComponent implements OnInit {
+  formatTime12h = formatTime12h;
   staffName = '';
   rows: { date: string; status: string; timeIn: string; timeOut: string }[] = [];
   pageSize = 15;

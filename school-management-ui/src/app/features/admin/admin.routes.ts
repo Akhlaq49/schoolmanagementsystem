@@ -74,7 +74,8 @@ export const ADMIN_ROUTES: Routes = [
           { path: 'low-attendance', loadComponent: () => import('./attendance/attendance-low-attendance/attendance-low-attendance.component').then(m => m.AdminAttendanceLowAttendanceComponent) },
           { path: 'alerts', loadComponent: () => import('./attendance/attendance-alerts/attendance-alerts.component').then(m => m.AdminAttendanceAlertsComponent) },
           { path: 'leave', loadComponent: () => import('./attendance/attendance-leave/attendance-leave.component').then(m => m.AdminAttendanceLeaveComponent) },
-          { path: 'settings', loadComponent: () => import('./attendance/attendance-settings/attendance-settings.component').then(m => m.AdminAttendanceSettingsComponent) }
+          { path: 'settings', loadComponent: () => import('./attendance/attendance-settings/attendance-settings.component').then(m => m.AdminAttendanceSettingsComponent) },
+          { path: 'corrections', loadComponent: () => import('./attendance/attendance-corrections/attendance-corrections.component').then(m => m.AdminAttendanceCorrectionsComponent) }
         ]
       },
       {

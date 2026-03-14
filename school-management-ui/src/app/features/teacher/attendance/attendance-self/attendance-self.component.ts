@@ -7,6 +7,7 @@ import { TeacherService } from '../../../../core/services/teacher.service';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { Teacher } from '../../../../core/models/teacher.model';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
+import { formatTime12h } from '../../../../shared/utils/time.utils';
 
 @Component({
   selector: 'app-attendance-self',
@@ -33,7 +34,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
           </div>
           <div class="info-box">
             <span class="label">Current Time</span>
-            <span class="value live-clock">{{ currentTime }}</span>
+            <span class="value live-clock">{{ currentTimeDisplay }}</span>
           </div>
         </div>
 
@@ -234,6 +235,10 @@ export class AttendanceSelfComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     if (this.clockInterval) clearInterval(this.clockInterval);
+  }
+
+  get currentTimeDisplay(): string {
+    return formatTime12h(this.currentTime, '--:--');
   }
 
   private updateDateAndTime(): void {
