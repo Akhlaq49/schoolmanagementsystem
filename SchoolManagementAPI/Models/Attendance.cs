@@ -11,7 +11,7 @@ public class Attendance
     public int AttendanceId { get; set; }
 
     [Column("status")]
-    public int Status { get; set; } // 0 undefined, 1 present, 2 absent, 3 holiday, 4 half day, 5 late
+    public int Status { get; set; } // 0=Not Marked, 1=PP, 2=PO, 3=Absent, 4=SL, 5=FL, 6=Holiday, 7=Late
 
     [Column("student_id")]
     public int StudentId { get; set; }
@@ -21,6 +21,24 @@ public class Attendance
 
     [Column("session")]
     public string? Session { get; set; }
+
+    [Column("time_in")]
+    public TimeSpan? TimeIn { get; set; }
+
+    [Column("time_out")]
+    public TimeSpan? TimeOut { get; set; }
+
+    [Column("remarks")]
+    public string? Remarks { get; set; }
+
+    [Column("leave_reason")]
+    public string? LeaveReason { get; set; }
+
+    [Column("marked_by")]
+    public int? MarkedBy { get; set; }
+
+    [Column("marked_at")]
+    public DateTime? MarkedAt { get; set; }
 
     // Navigation Properties
     [ForeignKey("StudentId")]

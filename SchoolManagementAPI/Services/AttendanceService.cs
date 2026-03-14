@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SchoolManagementAPI.Data;
+using SchoolManagementAPI.DTOs;
 using SchoolManagementAPI.Models;
 
 namespace SchoolManagementAPI.Services;
@@ -39,6 +40,14 @@ public class AttendanceService : IAttendanceService
             .FirstOrDefaultAsync(a => a.AttendanceId == id);
     }
 
+    public async Task<Attendance?> GetTodayAttendanceAsync(int studentId)
+    {
+        var today = DateTime.Today;
+        return await _context.Attendances
+            .Include(a => a.Student)
+            .FirstOrDefaultAsync(a => a.StudentId == studentId && a.Date.Date == today);
+    }
+
     public async Task<Attendance> CreateAttendanceAsync(Attendance attendance)
     {
         _context.Attendances.Add(attendance);
@@ -54,8 +63,28 @@ public class AttendanceService : IAttendanceService
         existing.Status = attendance.Status;
         existing.Date = attendance.Date;
         existing.Session = attendance.Session;
+        existing.TimeIn = attendance.TimeIn;
+        existing.TimeOut = attendance.TimeOut;
+        existing.Remarks = attendance.Remarks;
+        existing.LeaveReason = attendance.LeaveReason;
 
         await _context.SaveChangesAsync();
+        return existing;
+    }
+
+    public async Task<Attendance?> UpdateAttendanceByIdAsync(int id, UpdateAttendanceDto dto)
+    {
+        var existing = await _context.Attendances.FindAsync(id);
+        if (existing == null) return null;
+
+        if (dto.Status.HasValue) existing.Status = dto.Status.Value;
+        if (dto.TimeIn != null) existing.TimeIn = ParseTimeSpan(dto.TimeIn);
+        if (dto.TimeOut != null) existing.TimeOut = ParseTimeSpan(dto.TimeOut);
+        if (dto.Remarks != null) existing.Remarks = dto.Remarks;
+        if (dto.LeaveReason != null) existing.LeaveReason = dto.LeaveReason;
+
+        await _context.SaveChangesAsync();
+        await _context.Entry(existing).Reference(a => a.Student).LoadAsync();
         return existing;
     }
 
@@ -73,11 +102,180 @@ public class AttendanceService : IAttendanceService
     {
         return await _context.Attendances
             .Include(a => a.Student)
-            .Where(a => a.StudentId == studentId 
-                && a.Date.Month == month 
+            .Where(a => a.StudentId == studentId
+                && a.Date.Month == month
                 && a.Date.Year == year)
             .OrderBy(a => a.Date)
             .ToListAsync();
+    }
+
+    public async Task<AttendanceReportResponseDto> GetAttendanceReportWithSummaryAsync(int studentId, int? month, int? year, DateTime? fromDate, DateTime? toDate)
+    {
+        var query = _context.Attendances
+            .Include(a => a.Student)
+            .Where(a => a.StudentId == studentId);
+
+        if (fromDate.HasValue && toDate.HasValue)
+        {
+            query = query.Where(a => a.Date.Date >= fromDate.Value.Date && a.Date.Date <= toDate.Value.Date);
+        }
+        else if (month.HasValue && year.HasValue)
+        {
+            query = query.Where(a => a.Date.Month == month.Value && a.Date.Year == year.Value);
+        }
+        else
+        {
+            var now = DateTime.Today;
+            query = query.Where(a => a.Date.Month == now.Month && a.Date.Year == now.Year);
+        }
+
+        var list = await query.OrderBy(a => a.Date).ToListAsync();
+
+        var presentCount = list.Count(a => a.Status == 1 || a.Status == 2 || a.Status == 7); // PP, PO, Late
+        var absentCount = list.Count(a => a.Status == 3);
+        var leaveCount = list.Count(a => a.Status == 4 || a.Status == 5); // SL, FL
+        var holidayCount = list.Count(a => a.Status == 6);
+        var notMarkedCount = list.Count(a => a.Status == 0);
+        var totalDays = list.Count;
+        var workingDays = totalDays - holidayCount;
+        var attendancePercent = workingDays > 0 ? Math.Round(100.0 * presentCount / workingDays, 2) : 0;
+
+        return new AttendanceReportResponseDto
+        {
+            Records = list.Select(a => new AttendanceRecordDto
+            {
+                AttendanceId = a.AttendanceId,
+                StudentId = a.StudentId,
+                Date = a.Date,
+                Status = a.Status,
+                TimeIn = a.TimeIn.HasValue ? a.TimeIn.Value.ToString(@"hh\:mm") : null,
+                TimeOut = a.TimeOut.HasValue ? a.TimeOut.Value.ToString(@"hh\:mm") : null,
+                Remarks = a.Remarks
+            }).ToList(),
+            Summary = new AttendanceReportSummaryDto
+            {
+                TotalDays = totalDays,
+                PresentCount = presentCount,
+                AbsentCount = absentCount,
+                LeaveCount = leaveCount,
+                HolidayCount = holidayCount,
+                NotMarkedCount = notMarkedCount,
+                AttendancePercent = attendancePercent
+            }
+        };
+    }
+
+    public async Task<Attendance> CheckInAsync(CheckInRequestDto dto, int? markedByUserId = null)
+    {
+        var date = DateTime.Parse(dto.Date).Date;
+        var status = dto.Mode.ToUpperInvariant() == "PO" ? 2 : 1; // 1=PP, 2=PO
+        var timeIn = ParseTimeSpan(dto.TimeIn);
+
+        var existing = await _context.Attendances
+            .FirstOrDefaultAsync(a => a.StudentId == dto.StudentId && a.Date.Date == date);
+
+        if (existing != null)
+        {
+            existing.Status = status;
+            existing.TimeIn = timeIn ?? existing.TimeIn;
+            existing.Remarks = dto.Remarks ?? existing.Remarks;
+            existing.MarkedBy = markedByUserId ?? existing.MarkedBy;
+            existing.MarkedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            await _context.Entry(existing).Reference(a => a.Student).LoadAsync();
+            return existing;
+        }
+
+        var attendance = new Attendance
+        {
+            StudentId = dto.StudentId,
+            Date = date,
+            Status = status,
+            TimeIn = timeIn,
+            Remarks = dto.Remarks,
+            MarkedBy = markedByUserId,
+            MarkedAt = DateTime.UtcNow
+        };
+        _context.Attendances.Add(attendance);
+        await _context.SaveChangesAsync();
+        await _context.Entry(attendance).Reference(a => a.Student).LoadAsync();
+        return attendance;
+    }
+
+    public async Task<Attendance?> CheckOutAsync(CheckOutRequestDto dto)
+    {
+        var date = DateTime.Parse(dto.Date).Date;
+        var timeOut = ParseTimeSpan(dto.TimeOut);
+
+        var existing = await _context.Attendances
+            .Include(a => a.Student)
+            .FirstOrDefaultAsync(a => a.StudentId == dto.StudentId && a.Date.Date == date);
+
+        if (existing == null) return null;
+
+        existing.TimeOut = timeOut ?? existing.TimeOut;
+        existing.Remarks = dto.Remarks ?? existing.Remarks;
+        await _context.SaveChangesAsync();
+        return existing;
+    }
+
+    public async Task<List<Attendance>> BulkSaveAttendanceAsync(BulkAttendanceRequestDto dto, int? markedByUserId = null)
+    {
+        var date = DateTime.Parse(dto.Date).Date;
+        var now = DateTime.UtcNow;
+        var result = new List<Attendance>();
+
+        foreach (var rec in dto.Records)
+        {
+            var existing = await _context.Attendances
+                .FirstOrDefaultAsync(a => a.StudentId == rec.StudentId && a.Date.Date == date);
+
+            var timeIn = ParseTimeSpan(rec.TimeIn);
+            var timeOut = ParseTimeSpan(rec.TimeOut);
+
+            if (existing != null)
+            {
+                existing.Status = rec.Status;
+                existing.TimeIn = timeIn ?? existing.TimeIn;
+                existing.TimeOut = timeOut ?? existing.TimeOut;
+                existing.Remarks = rec.Remarks;
+                existing.LeaveReason = rec.LeaveReason;
+                existing.MarkedBy = markedByUserId ?? existing.MarkedBy;
+                existing.MarkedAt = now;
+                result.Add(existing);
+            }
+            else
+            {
+                var attendance = new Attendance
+                {
+                    StudentId = rec.StudentId,
+                    Date = date,
+                    Status = rec.Status,
+                    TimeIn = timeIn,
+                    TimeOut = timeOut,
+                    Remarks = rec.Remarks,
+                    LeaveReason = rec.LeaveReason,
+                    MarkedBy = markedByUserId,
+                    MarkedAt = now
+                };
+                _context.Attendances.Add(attendance);
+                result.Add(attendance);
+            }
+        }
+
+        await _context.SaveChangesAsync();
+        foreach (var a in result)
+            await _context.Entry(a).Reference(x => x.Student).LoadAsync();
+        return result;
+    }
+
+    private static TimeSpan? ParseTimeSpan(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        if (TimeSpan.TryParse(value, out var ts)) return ts;
+        if (value.Length == 5 && value[2] == ':') // HH:mm
+            return TimeSpan.TryParse(value + ":00", out ts) ? ts : null;
+        return null;
     }
 }
 

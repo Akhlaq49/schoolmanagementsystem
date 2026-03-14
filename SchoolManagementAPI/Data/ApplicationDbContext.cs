@@ -22,6 +22,7 @@ public class ApplicationDbContext : DbContext
 
     // Attendance
     public DbSet<Attendance> Attendances { get; set; }
+    public DbSet<LeaveApplication> LeaveApplications { get; set; }
 
     // Exam & Marks
     public DbSet<Exam> Exams { get; set; }
