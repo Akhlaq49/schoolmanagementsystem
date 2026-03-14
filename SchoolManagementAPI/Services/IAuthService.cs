@@ -6,5 +6,6 @@ public interface IAuthService
 {
     Task<LoginResponse?> LoginAsync(LoginRequest request);
     Task<bool> LogoutAsync(int userId, string loginType);
+    Task<(bool Success, string? Error)> ChangePasswordAsync(int userId, ChangePasswordDto dto);
 }
 

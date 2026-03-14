@@ -34,6 +34,34 @@ public class AuthController : ControllerBase
         return Ok(response);
     }
 
+    [HttpPost("change-password")]
+    [Authorize]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.CurrentPassword) || string.IsNullOrWhiteSpace(dto.NewPassword))
+        {
+            return BadRequest(new { message = "Current password and new password are required" });
+        }
+        if (dto.NewPassword.Length < 6)
+        {
+            return BadRequest(new { message = "New password must be at least 6 characters" });
+        }
+
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var (success, error) = await _authService.ChangePasswordAsync(userId, dto);
+        if (!success)
+        {
+            return BadRequest(new { message = error ?? "Failed to change password" });
+        }
+
+        return Ok(new { message = "Password changed successfully" });
+    }
+
     [HttpPost("logout")]
     [Authorize]
     public async Task<IActionResult> Logout()

@@ -1,13 +1,15 @@
-import { Component, OnInit, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, OnDestroy } from '@angular/core';
 import { CommonModule, TitleCasePipe } from '@angular/common';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
+import { NotificationService } from '../../../shared/services/notification.service';
+import { UpdatePasswordModalComponent } from '../update-password-modal/update-password-modal.component';
 
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule, TitleCasePipe],
+  imports: [CommonModule, RouterModule, TitleCasePipe, UpdatePasswordModalComponent],
   template: `
     <div class="min-h-screen flex flex-col bg-academy-50">
       <header class="bg-academy-gradient text-white py-3.5 px-7 shadow-academy sticky top-0 z-[1000] backdrop-blur-sm">
@@ -42,6 +44,9 @@ import { AuthService } from '../../../core/services/auth.service';
               <a class="dropdown-item" [routerLink]="getProfileRoute()" (click)="showUserDropdown = false">
                 <i class="fa fa-user-circle"></i> My Profile
               </a>
+              <button class="dropdown-item" (click)="openUpdatePassword()">
+                <i class="fa fa-lock"></i> Update Password
+              </button>
               <div class="dropdown-divider"></div>
               <button class="dropdown-item dropdown-logout" (click)="logout()">
                 <i class="fa fa-sign-out"></i> Logout
@@ -108,6 +113,13 @@ import { AuthService } from '../../../core/services/auth.service';
           </div>
         </main>
       </div>
+
+      <app-update-password-modal
+        [show]="showUpdatePasswordModal"
+        [loading]="passwordModalLoading"
+        (closeModal)="closeUpdatePassword()"
+        (submitForm)="onPasswordSubmit($event)">
+      </app-update-password-modal>
     </div>
   `,
   styles: [`
@@ -250,13 +262,16 @@ export class LayoutComponent implements OnInit, OnDestroy {
   userRoles: string[] = [];
   menuItems: any[] = [];
   showUserDropdown = false;
+  showUpdatePasswordModal = false;
+  passwordModalLoading = false;
 
   @ViewChild('mainContent', { static: false }) mainContent!: ElementRef<HTMLElement>;
   private routerSub?: Subscription;
 
   constructor(
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private notify: NotificationService
   ) {}
 
   ngOnInit() {
@@ -287,6 +302,30 @@ export class LayoutComponent implements OnInit, OnDestroy {
   logout() {
     this.authService.logout().subscribe(() => {
       this.router.navigate(['/login']);
+    });
+  }
+
+  openUpdatePassword() {
+    this.showUserDropdown = false;
+    this.showUpdatePasswordModal = true;
+  }
+
+  closeUpdatePassword() {
+    this.showUpdatePasswordModal = false;
+  }
+
+  onPasswordSubmit(form: { currentPassword: string; newPassword: string }) {
+    this.passwordModalLoading = true;
+    this.authService.changePassword(form.currentPassword, form.newPassword).subscribe({
+      next: () => {
+        this.passwordModalLoading = false;
+        this.showUpdatePasswordModal = false;
+        this.notify.success('Password updated successfully');
+      },
+      error: (err) => {
+        this.passwordModalLoading = false;
+        this.notify.error(err?.error?.message ?? 'Failed to update password');
+      }
     });
   }
 

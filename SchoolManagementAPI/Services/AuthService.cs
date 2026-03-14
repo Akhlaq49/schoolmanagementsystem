@@ -52,6 +52,23 @@ public class AuthService : IAuthService
         return null;
     }
 
+    public async Task<(bool Success, string? Error)> ChangePasswordAsync(int userId, ChangePasswordDto dto)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+            return (false, "User not found");
+
+        if (!VerifyPassword(dto.CurrentPassword, user.Password))
+            return (false, "Current password is incorrect");
+
+        if (string.IsNullOrWhiteSpace(dto.NewPassword) || dto.NewPassword.Length < 6)
+            return (false, "New password must be at least 6 characters");
+
+        user.Password = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+        await _context.SaveChangesAsync();
+        return (true, null);
+    }
+
     public async Task<bool> LogoutAsync(int userId, string loginType)
     {
         try
