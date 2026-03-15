@@ -39,6 +39,24 @@ public class BulkAttendanceRequestDto
     public List<BulkAttendanceRecordDto> Records { get; set; } = new();
 }
 
+/// <summary>One row in the class attendance sheet (student + attendance for a date).</summary>
+public class ClassAttendanceSheetItemDto
+{
+    public int StudentId { get; set; }
+    public string StudentName { get; set; } = string.Empty;
+    public string? RollNumber { get; set; }
+    public int? ClassId { get; set; }
+    public int? SectionId { get; set; }
+    public string? ClassName { get; set; }
+    public string? SectionName { get; set; }
+    public int? AttendanceId { get; set; }
+    public int Status { get; set; }
+    public string? TimeIn { get; set; }
+    public string? TimeOut { get; set; }
+    public string? Remarks { get; set; }
+    public string? LeaveReason { get; set; }
+}
+
 /// <summary>Edit attendance - partial update.</summary>
 public class UpdateAttendanceDto
 {

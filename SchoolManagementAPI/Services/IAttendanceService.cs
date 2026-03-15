@@ -17,6 +17,7 @@ public interface IAttendanceService
     Task<Attendance> CheckInAsync(CheckInRequestDto dto, int? markedByUserId = null);
     Task<Attendance?> CheckOutAsync(CheckOutRequestDto dto);
     Task<List<Attendance>> BulkSaveAttendanceAsync(BulkAttendanceRequestDto dto, int? markedByUserId = null);
+    Task<List<ClassAttendanceSheetItemDto>> GetClassAttendanceSheetAsync(DateTime date, int classId, int? sectionId);
 
     Task<List<Attendance>> GetTeacherThisMonthAsync(int teacherId, int month, int year);
     Task<Attendance?> GetTeacherTodayAsync(int teacherId);

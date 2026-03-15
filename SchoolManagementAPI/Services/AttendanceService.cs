@@ -356,6 +356,41 @@ public class AttendanceService : IAttendanceService
         return existing;
     }
 
+    public async Task<List<ClassAttendanceSheetItemDto>> GetClassAttendanceSheetAsync(DateTime date, int classId, int? sectionId)
+    {
+        var studentQuery = _context.Students
+            .Include(s => s.Class)
+            .Include(s => s.Section)
+            .Where(s => s.ClassId == classId);
+        if (sectionId.HasValue)
+            studentQuery = studentQuery.Where(s => s.SectionId == sectionId.Value);
+        var students = await studentQuery.OrderBy(s => s.Roll).ThenBy(s => s.Name).ToListAsync();
+
+        var attendanceList = await GetAttendanceByDateAsync(date, classId, sectionId);
+        var attendanceByStudent = attendanceList.Where(a => a.StudentId.HasValue).ToDictionary(a => a.StudentId!.Value);
+
+        return students.Select(s =>
+        {
+            var att = attendanceByStudent.GetValueOrDefault(s.StudentId);
+            return new ClassAttendanceSheetItemDto
+            {
+                StudentId = s.StudentId,
+                StudentName = s.Name,
+                RollNumber = s.Roll,
+                ClassId = s.ClassId,
+                SectionId = s.SectionId,
+                ClassName = s.Class?.Name,
+                SectionName = s.Section?.Name,
+                AttendanceId = att?.AttendanceId,
+                Status = att?.Status ?? 0,
+                TimeIn = att?.TimeIn != null ? $"{att.TimeIn.Value.Hours:D2}:{att.TimeIn.Value.Minutes:D2}" : null,
+                TimeOut = att?.TimeOut != null ? $"{att.TimeOut.Value.Hours:D2}:{att.TimeOut.Value.Minutes:D2}" : null,
+                Remarks = att?.Remarks,
+                LeaveReason = att?.LeaveReason
+            };
+        }).ToList();
+    }
+
     private static TimeSpan? ParseTimeSpan(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return null;
