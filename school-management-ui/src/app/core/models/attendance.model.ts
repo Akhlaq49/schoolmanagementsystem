@@ -4,7 +4,8 @@ import { Student } from './student.model';
 export interface Attendance {
   attendanceId: number;
   status: number;
-  studentId: number;
+  studentId?: number;
+  teacherId?: number;
   date: Date | string;
   session?: string;
   timeIn?: string;
@@ -86,11 +87,12 @@ export interface AttendanceReportResponse {
   summary: AttendanceReportSummary;
 }
 
-/** Attendance correction request (student submits, admin approves) */
+/** Attendance correction request (student/teacher submits, admin approves) */
 export interface AttendanceCorrection {
   attendanceCorrectionId: number;
   attendanceId: number;
-  studentId: number;
+  studentId?: number;
+  teacherId?: number;
   reason: string;
   requestedStatus?: number;
   requestedTimeIn?: string;
@@ -105,7 +107,8 @@ export interface AttendanceCorrection {
 
 export interface CreateCorrectionRequest {
   attendanceId: number;
-  studentId: number;
+  studentId?: number;
+  teacherId?: number;
   reason: string;
   requestedStatus?: number;
   requestedTimeIn?: string;

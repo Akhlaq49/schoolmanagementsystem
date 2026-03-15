@@ -19,7 +19,6 @@ public class TeacherService : ITeacherService
         return await _context.Users
             .Include(u => u.UserRoles)
             .Where(u => u.UserRoles.Any(ur => ur.Role == UserRole.Teacher))
-            .Include(t => t.Department)
             .ToListAsync();
     }
 
@@ -28,7 +27,6 @@ public class TeacherService : ITeacherService
         return await _context.Users
             .Include(u => u.UserRoles)
             .Where(u => u.UserId == id && u.UserRoles.Any(ur => ur.Role == UserRole.Teacher))
-            .Include(t => t.Department)
             .FirstOrDefaultAsync();
     }
 

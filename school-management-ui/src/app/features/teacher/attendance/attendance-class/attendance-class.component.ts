@@ -405,12 +405,14 @@ export class AttendanceClassComponent implements OnInit {
         ).subscribe({
           next: (attList) => {
             attList.forEach(a => {
-              const row = rowsMap.get(a.studentId);
+              const sid = a.studentId ?? 0;
+              const row = rowsMap.get(sid);
               if (row) {
                 row.status = a.status as StatusCode;
                 row.timeIn = (a.timeIn ?? '').toString().substring(0, 5) || '';
                 row.timeOut = (a.timeOut ?? '').toString().substring(0, 5) || '';
                 row.remarks = a.remarks ?? '';
+                row.leaveReason = a.leaveReason;
               }
             });
             this.rows = Array.from(rowsMap.values());

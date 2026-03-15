@@ -516,7 +516,7 @@ export class AdminAttendanceClassComponent implements OnInit {
         ).subscribe({
           next: (attList) => {
             attList.forEach(a => {
-              const row = rowsMap.get(a.studentId);
+              const row = rowsMap.get(a.studentId ?? 0);
               if (row) {
                 row.attendanceId = a.attendanceId;
                 row.status = a.status as StatusCode;

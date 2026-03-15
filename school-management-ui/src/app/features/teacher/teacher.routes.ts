@@ -39,6 +39,14 @@ export const TEACHER_ROUTES: Routes = [
           {
             path: 'leave',
             loadComponent: () => import('./attendance/attendance-leave/attendance-leave.component').then(m => m.TeacherAttendanceLeaveComponent)
+          },
+          {
+            path: 'edit',
+            loadComponent: () => import('./attendance/attendance-edit/attendance-edit.component').then(m => m.TeacherAttendanceEditComponent)
+          },
+          {
+            path: 'report',
+            loadComponent: () => import('./attendance/attendance-report/attendance-report.component').then(m => m.TeacherAttendanceReportComponent)
           }
         ]
       },

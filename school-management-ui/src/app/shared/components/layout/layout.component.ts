@@ -468,7 +468,9 @@ export class LayoutComponent implements OnInit, OnDestroy {
             { route: '/teacher/attendance/self', label: 'My Attendance', role: 'teacher' },
             { route: '/teacher/attendance/month', label: 'This Month', role: 'teacher' },
             { route: '/teacher/attendance/class', label: 'Class Attendance', role: 'teacher' },
-            { route: '/teacher/attendance/leave', label: 'Leave', role: 'teacher' }
+            { route: '/teacher/attendance/leave', label: 'Leave', role: 'teacher' },
+            { route: '/teacher/attendance/edit', label: 'Edit Attendance', role: 'teacher' },
+            { route: '/teacher/attendance/report', label: 'Attendance Report', role: 'teacher' }
           ]
         },
         { route: '/teacher/marks', label: 'Marks', icon: 'fa fa-star', role: 'teacher' },

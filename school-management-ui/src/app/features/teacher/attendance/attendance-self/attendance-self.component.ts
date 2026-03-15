@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../../core/services/auth.service';
 import { TeacherService } from '../../../../core/services/teacher.service';
+import { AttendanceService } from '../../../../core/services/attendance.service';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { Teacher } from '../../../../core/models/teacher.model';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
@@ -46,6 +47,17 @@ import { formatTime12h } from '../../../../shared/utils/time.utils';
         <div class="status-section" *ngIf="!loading && teacher">
           <span class="status-label">Today's Status</span>
           <span class="status-badge" [ngClass]="getStatusClass()">{{ getStatusLabel() }}</span>
+        </div>
+
+        <div class="time-in-out-row" *ngIf="!loading && (todayTimeIn || todayTimeOut)">
+          <div class="info-box" *ngIf="todayTimeIn">
+            <span class="label">Time In</span>
+            <span class="value">{{ formatTime12h(todayTimeIn, '—') }}</span>
+          </div>
+          <div class="info-box" *ngIf="todayTimeOut">
+            <span class="label">Time Out</span>
+            <span class="value">{{ formatTime12h(todayTimeOut, '—') }}</span>
+          </div>
         </div>
 
         <div class="actions-row" *ngIf="!loading && teacher && !onLeave">
@@ -119,6 +131,7 @@ import { formatTime12h } from '../../../../shared/utils/time.utils';
       border: 1px solid #e2e8f0;
     }
     .date-time-row { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+    .time-in-out-row { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
     .info-box {
       flex: 1;
       background: #f7f9fc;
@@ -212,14 +225,18 @@ export class AttendanceSelfComponent implements OnInit, OnDestroy {
   currentTime = '--:--:--';
   todayStatus = 0;
   todayTimeIn = '';
+  todayTimeOut = '';
   loading = true;
   saving = false;
   onLeave = false;
   private clockInterval: ReturnType<typeof setInterval> | null = null;
+  /** Expose for template */
+  formatTime12h = formatTime12h;
 
   constructor(
     private auth: AuthService,
     private teacherService: TeacherService,
+    private attendanceService: AttendanceService,
     private notify: NotificationService
   ) {}
 
@@ -251,43 +268,30 @@ export class AttendanceSelfComponent implements OnInit, OnDestroy {
     this.currentTime = new Date().toTimeString().split(' ')[0];
   }
 
-  /** UI demo: use mock data when API fails or not logged in */
-  readonly uiDemoMode = true;
-
   private loadTeacher(): void {
-    const userId = this.auth.getUserId();
-    if (this.uiDemoMode && !userId) {
-      this.teacher = {
-        teacherId: 1,
-        name: 'John Smith',
-        email: 'john.smith@school.com',
-        password: '',
-        loginStatus: 'active',
-        department: { departmentId: 1, name: 'Mathematics' }
-      } as Teacher;
-      this.loading = false;
-      return;
-    }
-    if (!userId) {
-      this.loading = false;
-      return;
-    }
-    this.teacherService.getTeacherById(userId).subscribe({
+    this.teacherService.getCurrentTeacher().subscribe({
       next: (t) => {
         this.teacher = t;
+        this.loadTodayAttendance();
+      },
+      error: () => {
+        this.loading = false;
+        this.notify.error('Could not load teacher profile');
+      }
+    });
+  }
+
+  private loadTodayAttendance(): void {
+    this.attendanceService.getTeacherTodayAttendance().subscribe({
+      next: (a) => {
+        if (a) {
+          this.todayStatus = a.status;
+          this.todayTimeIn = a.timeIn ? String(a.timeIn).substring(0, 5) : '';
+          this.todayTimeOut = a.timeOut ? String(a.timeOut).substring(0, 5) : '';
+        }
         this.loading = false;
       },
       error: () => {
-        if (this.uiDemoMode) {
-          this.teacher = {
-            teacherId: 1,
-            name: 'Demo Teacher',
-            email: 'teacher@school.com',
-            password: '',
-            loginStatus: 'active',
-            department: { departmentId: 1, name: 'Mathematics' }
-          } as Teacher;
-        }
         this.loading = false;
       }
     });
@@ -298,6 +302,7 @@ export class AttendanceSelfComponent implements OnInit, OnDestroy {
   }
 
   canCheckOut(): boolean {
+    if (this.todayTimeOut) return false; // Already checked out
     return this.todayStatus === 1 || this.todayStatus === 2;
   }
 
@@ -318,16 +323,40 @@ export class AttendanceSelfComponent implements OnInit, OnDestroy {
   }
 
   checkIn(mode: 'PP' | 'PO'): void {
+    if (this.saving || !this.teacher) return;
     this.saving = true;
-    this.todayStatus = mode === 'PP' ? 1 : 2;
-    this.todayTimeIn = this.currentTime;
-    this.saving = false;
-    this.notify.success(`Check-in (${mode}) recorded`);
+    const date = new Date().toISOString().split('T')[0];
+    const timeIn = this.currentTime.substring(0, 5);
+    this.attendanceService.teacherCheckIn({ date, timeIn }).subscribe({
+      next: (a) => {
+        this.todayStatus = a.status ?? 1;
+        this.todayTimeIn = timeIn;
+        this.saving = false;
+        this.notify.success(`Check-in (${mode}) recorded`);
+      },
+      error: (err) => {
+        this.saving = false;
+        this.notify.error(err?.error?.message ?? 'Check-in failed');
+      }
+    });
   }
 
   checkOut(): void {
+    if (this.saving || !this.teacher) return;
     this.saving = true;
-    this.saving = false;
-    this.notify.success('Check-out recorded');
+    const date = new Date().toISOString().split('T')[0];
+    const timeOut = this.currentTime.substring(0, 5);
+    this.attendanceService.teacherCheckOut({ date, timeOut }).subscribe({
+      next: () => {
+        this.todayTimeOut = timeOut;
+        this.saving = false;
+        this.notify.success('Check-out recorded');
+        this.loadTodayAttendance();
+      },
+      error: (err) => {
+        this.saving = false;
+        this.notify.error(err?.error?.message ?? 'Check-out failed');
+      }
+    });
   }
 }

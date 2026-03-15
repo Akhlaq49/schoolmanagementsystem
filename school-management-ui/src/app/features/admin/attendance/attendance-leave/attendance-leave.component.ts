@@ -155,7 +155,7 @@ interface LeaveApplication {
     </div>
   `,
   styles: [`
-    .page-container { max-width: 1100px; }
+    .page-container { max-width: 1400px; }
     .page-header-card {
       background: #fff;
       border-radius: 16px;

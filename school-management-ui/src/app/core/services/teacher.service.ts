@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { Teacher } from '../models/teacher.model';
 import { environment } from '../../../environments/environment';
 
@@ -14,6 +15,23 @@ export class TeacherService {
 
   getAllTeachers(): Observable<Teacher[]> {
     return this.http.get<Teacher[]>(this.apiUrl);
+  }
+
+  /** Current logged-in teacher (teacher role only). Maps API User to Teacher. */
+  getCurrentTeacher(): Observable<Teacher> {
+    return this.http.get<any>(`${this.apiUrl}/me`).pipe(
+      map(u => ({
+        teacherId: u.userId ?? u.teacherId,
+        name: u.name ?? '',
+        email: u.email,
+        phone: u.phone,
+        address: u.address,
+        password: '',
+        loginStatus: u.loginStatus ?? '0',
+        departmentId: u.departmentId,
+        department: u.department
+      }))
+    );
   }
 
   getTeacherById(id: number): Observable<Teacher> {

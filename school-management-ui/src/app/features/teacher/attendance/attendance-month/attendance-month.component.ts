@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../../core/services/auth.service';
 import { TeacherService } from '../../../../core/services/teacher.service';
+import { AttendanceService } from '../../../../core/services/attendance.service';
 import { Teacher } from '../../../../core/models/teacher.model';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
 
@@ -219,51 +220,37 @@ export class AttendanceMonthComponent implements OnInit {
 
   constructor(
     private auth: AuthService,
-    private teacherService: TeacherService
+    private teacherService: TeacherService,
+    private attendanceService: AttendanceService
   ) {}
 
-  readonly uiDemoMode = true;
-
   ngOnInit(): void {
-    const userId = this.auth.getUserId();
-    if (this.uiDemoMode && !userId) {
-      this.teacher = { teacherId: 1, name: 'Demo Teacher', department: { departmentId: 1, name: 'Mathematics' } } as Teacher;
-      this.applyMockMonthData();
-      this.loading = false;
-      return;
-    }
-    if (!userId) {
-      this.loading = false;
-      return;
-    }
-    this.teacherService.getTeacherById(userId).subscribe({
+    this.loading = true;
+    this.teacherService.getCurrentTeacher().subscribe({
       next: (t) => {
         this.teacher = t;
-        // TODO: Load month data from API
-        if (this.uiDemoMode && Object.keys(this.monthData).length === 0) {
-          this.applyMockMonthData();
-        }
-        this.loading = false;
+        this.loadMonthData();
       },
       error: () => {
-        if (this.uiDemoMode) {
-          this.teacher = { teacherId: 1, name: 'Demo Teacher', department: { departmentId: 1, name: 'Mathematics' } } as Teacher;
-          this.applyMockMonthData();
-        }
         this.loading = false;
       }
     });
   }
 
-  /** Mock 5 sample days: PP(1), PO(2), Not Marked(0), Leave(4), Absent(3) */
-  private applyMockMonthData(): void {
-    const today = new Date().getDate();
-    const days = [1, 5, 10, 15, 20];
-    const statuses = [1, 2, 0, 4, 3]; // PP, PO, Not Marked, SL, Absent
-    for (let i = 0; i < 5; i++) {
-      const d = days[i] <= 31 ? days[i] : days[i] % 28;
-      this.monthData[d] = statuses[i];
-    }
+  private loadMonthData(): void {
+    this.attendanceService.getTeacherThisMonthAttendance(this.selectedMonth, this.selectedYear).subscribe({
+      next: (list) => {
+        this.monthData = {};
+        list.forEach(a => {
+          const d = new Date(a.date).getDate();
+          this.monthData[d] = a.status;
+        });
+        this.loading = false;
+      },
+      error: () => {
+        this.loading = false;
+      }
+    });
   }
 
   prevMonth(): void {
@@ -273,6 +260,8 @@ export class AttendanceMonthComponent implements OnInit {
     } else {
       this.selectedMonth--;
     }
+    this.loading = true;
+    this.loadMonthData();
   }
 
   nextMonth(): void {
@@ -282,5 +271,7 @@ export class AttendanceMonthComponent implements OnInit {
     } else {
       this.selectedMonth++;
     }
+    this.loading = true;
+    this.loadMonthData();
   }
 }

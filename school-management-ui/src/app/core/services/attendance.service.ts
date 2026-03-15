@@ -106,9 +106,14 @@ export class AttendanceService {
     return this.http.post<AttendanceCorrection>(`${environment.apiUrl}/api/attendance-correction`, dto);
   }
 
-  /** Attendance correction: get my requests */
+  /** Attendance correction: get my requests (student) */
   getMyCorrections(studentId: number): Observable<AttendanceCorrection[]> {
     return this.http.get<AttendanceCorrection[]>(`${environment.apiUrl}/api/attendance-correction/student/${studentId}`);
+  }
+
+  /** Attendance correction: get my requests (teacher) */
+  getMyTeacherCorrections(): Observable<AttendanceCorrection[]> {
+    return this.http.get<AttendanceCorrection[]>(`${environment.apiUrl}/api/attendance-correction/teacher/me`);
   }
 
   /** Attendance correction: get pending (admin) */
@@ -122,6 +127,29 @@ export class AttendanceService {
       status,
       reviewerRemarks
     });
+  }
+
+  /** Teacher: get today's attendance */
+  getTeacherTodayAttendance(): Observable<Attendance | null> {
+    return this.http.get<Attendance | null>(`${environment.apiUrl}/api/teacher-attendance/today`);
+  }
+
+  /** Teacher: get this month's attendance */
+  getTeacherThisMonthAttendance(month?: number, year?: number): Observable<Attendance[]> {
+    let params = new HttpParams();
+    if (month != null) params = params.set('month', month.toString());
+    if (year != null) params = params.set('year', year.toString());
+    return this.http.get<Attendance[]>(`${environment.apiUrl}/api/teacher-attendance/this-month`, { params });
+  }
+
+  /** Teacher: check-in */
+  teacherCheckIn(dto: { date: string; timeIn: string; remarks?: string }): Observable<Attendance> {
+    return this.http.post<Attendance>(`${environment.apiUrl}/api/teacher-attendance/checkin`, dto);
+  }
+
+  /** Teacher: check-out */
+  teacherCheckOut(dto: { date: string; timeOut: string; remarks?: string }): Observable<Attendance> {
+    return this.http.patch<Attendance>(`${environment.apiUrl}/api/teacher-attendance/checkout`, dto);
   }
 
   /** Bulk save class attendance */

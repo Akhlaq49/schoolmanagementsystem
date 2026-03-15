@@ -154,7 +154,7 @@ import { ConfirmDialogComponent } from '../../../../shared/components/confirm-di
     </div>
   `,
   styles: [`
-    .leave-container { padding: 2rem; max-width: 960px; margin: 0 auto; width: 100%; }
+    .leave-container { padding: 2rem; max-width: 1200px; margin: 0 auto; width: 100%; }
     .page-header h2 {
       margin: 0 0 0.25rem 0;
       font-size: 1.5rem;

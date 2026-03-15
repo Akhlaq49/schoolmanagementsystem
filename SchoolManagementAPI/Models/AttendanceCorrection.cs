@@ -17,9 +17,11 @@ public class AttendanceCorrection
     [Column("attendance_id")]
     public int AttendanceId { get; set; }
 
-    [Required]
     [Column("student_id")]
-    public int StudentId { get; set; }
+    public int? StudentId { get; set; }
+
+    [Column("teacher_id")]
+    public int? TeacherId { get; set; }
 
     [Required]
     [Column("reason")]
@@ -57,5 +59,8 @@ public class AttendanceCorrection
     public virtual Attendance Attendance { get; set; } = null!;
 
     [ForeignKey("StudentId")]
-    public virtual Student Student { get; set; } = null!;
+    public virtual Student? Student { get; set; }
+
+    [ForeignKey("TeacherId")]
+    public virtual User? Teacher { get; set; }
 }

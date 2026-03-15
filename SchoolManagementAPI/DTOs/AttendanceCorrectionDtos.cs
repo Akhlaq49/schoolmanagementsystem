@@ -3,7 +3,10 @@ namespace SchoolManagementAPI.DTOs;
 public class CreateCorrectionRequestDto
 {
     public int AttendanceId { get; set; }
-    public int StudentId { get; set; }
+    /// <summary>Required for student attendance correction.</summary>
+    public int? StudentId { get; set; }
+    /// <summary>Required for teacher attendance correction.</summary>
+    public int? TeacherId { get; set; }
     public string Reason { get; set; } = string.Empty;
     public int? RequestedStatus { get; set; }
     public string? RequestedTimeIn { get; set; }

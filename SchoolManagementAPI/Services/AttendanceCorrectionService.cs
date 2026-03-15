@@ -26,8 +26,21 @@ public class AttendanceCorrectionService : IAttendanceCorrectionService
     public async Task<AttendanceCorrection> CreateAsync(CreateCorrectionRequestDto dto)
     {
         var attendance = await _context.Attendances.FindAsync(dto.AttendanceId);
-        if (attendance == null || attendance.StudentId != dto.StudentId)
-            throw new InvalidOperationException("Attendance not found or access denied");
+        if (attendance == null)
+            throw new InvalidOperationException("Attendance not found");
+
+        if (dto.TeacherId.HasValue)
+        {
+            if (attendance.TeacherId != dto.TeacherId)
+                throw new InvalidOperationException("Attendance not found or access denied");
+        }
+        else if (dto.StudentId.HasValue)
+        {
+            if (attendance.StudentId != dto.StudentId)
+                throw new InvalidOperationException("Attendance not found or access denied");
+        }
+        else
+            throw new InvalidOperationException("Either StudentId or TeacherId is required");
 
         var existing = await _context.AttendanceCorrections
             .FirstOrDefaultAsync(c => c.AttendanceId == dto.AttendanceId && c.Status == "pending");
@@ -38,6 +51,7 @@ public class AttendanceCorrectionService : IAttendanceCorrectionService
         {
             AttendanceId = dto.AttendanceId,
             StudentId = dto.StudentId,
+            TeacherId = dto.TeacherId,
             Reason = dto.Reason,
             RequestedStatus = dto.RequestedStatus,
             RequestedTimeIn = ParseTime(dto.RequestedTimeIn),
@@ -60,11 +74,22 @@ public class AttendanceCorrectionService : IAttendanceCorrectionService
             .ToListAsync();
     }
 
+    public async Task<List<AttendanceCorrection>> GetByTeacherAsync(int teacherId)
+    {
+        return await _context.AttendanceCorrections
+            .Include(c => c.Attendance)
+            .Where(c => c.TeacherId == teacherId)
+            .OrderByDescending(c => c.RequestedAt)
+            .ToListAsync();
+    }
+
     public async Task<List<AttendanceCorrection>> GetPendingForAdminAsync()
     {
         return await _context.AttendanceCorrections
             .Include(c => c.Attendance)
                 .ThenInclude(a => a!.Student)
+            .Include(c => c.Attendance)
+                .ThenInclude(a => a!.Teacher)
             .Where(c => c.Status == "pending")
             .OrderBy(c => c.RequestedAt)
             .ToListAsync();
@@ -85,10 +110,13 @@ public class AttendanceCorrectionService : IAttendanceCorrectionService
         if (c.Status == "approved")
         {
             var att = c.Attendance;
-            if (c.RequestedStatus.HasValue) att.Status = c.RequestedStatus.Value;
-            if (c.RequestedTimeIn.HasValue) att.TimeIn = c.RequestedTimeIn;
-            if (c.RequestedTimeOut.HasValue) att.TimeOut = c.RequestedTimeOut;
-            if (c.RequestedRemarks != null) att.Remarks = c.RequestedRemarks;
+            if (att != null)
+            {
+                if (c.RequestedStatus.HasValue) att.Status = c.RequestedStatus.Value;
+                if (c.RequestedTimeIn.HasValue) att.TimeIn = c.RequestedTimeIn;
+                if (c.RequestedTimeOut.HasValue) att.TimeOut = c.RequestedTimeOut;
+                if (c.RequestedRemarks != null) att.Remarks = c.RequestedRemarks;
+            }
         }
 
         await _context.SaveChangesAsync();
@@ -107,6 +135,11 @@ public class AttendanceCorrectionService : IAttendanceCorrectionService
     {
         await _context.Entry(c).Reference(x => x.Attendance).LoadAsync();
         if (c.Attendance != null)
-            await _context.Entry(c.Attendance).Reference(a => a.Student).LoadAsync();
+        {
+            if (c.Attendance.StudentId.HasValue)
+                await _context.Entry(c.Attendance).Reference(a => a.Student).LoadAsync();
+            if (c.Attendance.TeacherId.HasValue)
+                await _context.Entry(c.Attendance).Reference(a => a.Teacher).LoadAsync();
+        }
     }
 }

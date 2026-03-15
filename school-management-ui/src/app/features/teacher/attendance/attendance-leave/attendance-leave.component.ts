@@ -146,7 +146,7 @@ import { ConfirmDialogComponent } from '../../../../shared/components/confirm-di
     </div>
   `,
   styles: [`
-    .page-container { padding: 1.5rem; max-width: 800px; margin: 0 auto; }
+    .page-container { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
     .page-header-card {
       background: #fff;
       border-radius: 16px;
@@ -350,22 +350,8 @@ export class TeacherAttendanceLeaveComponent implements OnInit {
     this.currentPage = p;
   }
 
-  readonly uiDemoMode = true;
-
   ngOnInit(): void {
-    const userId = this.auth.getUserId();
-    if (this.uiDemoMode && !userId) {
-      this.teacher = { teacherId: 1, name: 'Demo Teacher', department: { departmentId: 1, name: 'Mathematics' } } as Teacher;
-      this.teacherId = 1;
-      this.applyMockLeaves();
-      this.loading = false;
-      return;
-    }
-    if (!userId) {
-      this.loading = false;
-      return;
-    }
-    this.teacherService.getTeacherById(userId).subscribe({
+    this.teacherService.getCurrentTeacher().subscribe({
       next: (t) => {
         this.teacher = t;
         this.teacherId = t.teacherId;
@@ -373,45 +359,21 @@ export class TeacherAttendanceLeaveComponent implements OnInit {
         this.loading = false;
       },
       error: () => {
-        if (this.uiDemoMode) {
-          this.teacher = { teacherId: 1, name: 'Demo Teacher', department: { departmentId: 1, name: 'Mathematics' } } as Teacher;
-          this.teacherId = 1;
-          this.applyMockLeaves();
-        }
         this.loading = false;
+        this.notify.error('Could not load teacher profile');
       }
     });
-  }
-
-  private applyMockLeaves(): void {
-    const base = new Date();
-    const fmt = (d: Date) => d.toISOString().split('T')[0];
-    this.leaves = [
-      { leaveApplicationId: 1, applicantType: 'teacher', applicantId: 1, leaveType: 'short', leaveFrom: `${fmt(base)}T10:00:00`, leaveTo: `${fmt(base)}T12:00:00`, reason: 'Doctor appointment', status: 'approved', createdAt: '' },
-      { leaveApplicationId: 2, applicantType: 'teacher', applicantId: 1, leaveType: 'full', leaveFrom: fmt(new Date(base.getTime() - 864e5 * 5)), leaveTo: fmt(new Date(base.getTime() - 864e5 * 3)), reason: 'Family wedding', status: 'approved', createdAt: '' },
-      { leaveApplicationId: 3, applicantType: 'teacher', applicantId: 1, leaveType: 'full', leaveFrom: fmt(new Date(base.getTime() + 864e5 * 2)), leaveTo: fmt(new Date(base.getTime() + 864e5 * 3)), reason: 'Personal work', status: 'pending', createdAt: '' },
-      { leaveApplicationId: 4, applicantType: 'teacher', applicantId: 1, leaveType: 'short', leaveFrom: `${fmt(new Date(base.getTime() - 864e5))}T09:00:00`, leaveTo: `${fmt(new Date(base.getTime() - 864e5))}T11:00:00`, reason: 'Bank visit', status: 'rejected', createdAt: '' },
-      { leaveApplicationId: 5, applicantType: 'teacher', applicantId: 1, leaveType: 'full', leaveFrom: fmt(new Date(base.getTime() - 864e5 * 10)), leaveTo: fmt(new Date(base.getTime() - 864e5 * 8)), reason: 'Sick leave', status: 'approved', createdAt: '' }
-    ] as LeaveApplication[];
   }
 
   private loadLeaves(): void {
+    if (!this.teacherId) return;
     this.attendanceService.getMyLeaves('teacher', this.teacherId).subscribe({
       next: (list) => {
-        this.leaves = list.length > 0
-          ? list.sort((a, b) => new Date(b.leaveFrom).getTime() - new Date(a.leaveFrom).getTime())
-          : (this.uiDemoMode ? this.applyMockLeavesReturn() : []);
+        this.leaves = list.sort((a, b) => new Date(b.leaveFrom).getTime() - new Date(a.leaveFrom).getTime());
         this.currentPage = 1;
       },
-      error: () => {
-        if (this.uiDemoMode) this.leaves = this.applyMockLeavesReturn();
-      }
+      error: () => {}
     });
-  }
-
-  private applyMockLeavesReturn(): LeaveApplication[] {
-    this.applyMockLeaves();
-    return this.leaves;
   }
 
   submitLeave(): void {
