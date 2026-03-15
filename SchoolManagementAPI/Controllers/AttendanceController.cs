@@ -31,6 +31,18 @@ public class AttendanceController : ControllerBase
         return Ok(attendance);
     }
 
+    /// <summary>Get class attendance by date, class and optional section (for teacher/admin).</summary>
+    [HttpGet("class")]
+    [Authorize(Roles = "admin,teacher")]
+    public async Task<ActionResult<List<Attendance>>> GetClassAttendance(
+        [FromQuery] DateTime date,
+        [FromQuery] int classId,
+        [FromQuery] int? sectionId)
+    {
+        var attendance = await _attendanceService.GetAttendanceByDateAsync(date, classId, sectionId);
+        return Ok(attendance);
+    }
+
     [HttpGet("{id}")]
     public async Task<ActionResult<Attendance>> GetAttendanceById(int id)
     {

@@ -18,17 +18,12 @@ public class AttendanceService : IAttendanceService
     {
         var query = _context.Attendances
             .Include(a => a.Student)
-            .Where(a => a.Date.Date == date.Date);
+            .Where(a => a.Date.Date == date.Date && a.StudentId != null);
 
         if (classId.HasValue)
-        {
-            query = query.Where(a => a.Student.ClassId == classId.Value);
-        }
-
+            query = query.Where(a => a.Student!.ClassId == classId.Value);
         if (sectionId.HasValue)
-        {
-            query = query.Where(a => a.Student.SectionId == sectionId.Value);
-        }
+            query = query.Where(a => a.Student!.SectionId == sectionId.Value);
 
         return await query.ToListAsync();
     }
@@ -37,6 +32,7 @@ public class AttendanceService : IAttendanceService
     {
         return await _context.Attendances
             .Include(a => a.Student)
+            .Include(a => a.Teacher)
             .FirstOrDefaultAsync(a => a.AttendanceId == id);
     }
 
@@ -69,6 +65,10 @@ public class AttendanceService : IAttendanceService
         existing.LeaveReason = attendance.LeaveReason;
 
         await _context.SaveChangesAsync();
+        if (existing.StudentId.HasValue)
+            await _context.Entry(existing).Reference(a => a.Student).LoadAsync();
+        if (existing.TeacherId.HasValue)
+            await _context.Entry(existing).Reference(a => a.Teacher).LoadAsync();
         return existing;
     }
 
@@ -84,7 +84,10 @@ public class AttendanceService : IAttendanceService
         if (dto.LeaveReason != null) existing.LeaveReason = dto.LeaveReason;
 
         await _context.SaveChangesAsync();
-        await _context.Entry(existing).Reference(a => a.Student).LoadAsync();
+        if (existing.StudentId.HasValue)
+            await _context.Entry(existing).Reference(a => a.Student).LoadAsync();
+        if (existing.TeacherId.HasValue)
+            await _context.Entry(existing).Reference(a => a.Teacher).LoadAsync();
         return existing;
     }
 
@@ -145,7 +148,7 @@ public class AttendanceService : IAttendanceService
             Records = list.Select(a => new AttendanceRecordDto
             {
                 AttendanceId = a.AttendanceId,
-                StudentId = a.StudentId,
+                StudentId = a.StudentId ?? 0,
                 Date = a.Date,
                 Status = a.Status,
                 TimeIn = a.TimeIn.HasValue ? a.TimeIn.Value.ToString(@"hh\:mm") : null,
@@ -172,7 +175,7 @@ public class AttendanceService : IAttendanceService
         var timeIn = ParseTimeSpan(dto.TimeIn);
 
         var existing = await _context.Attendances
-            .FirstOrDefaultAsync(a => a.StudentId == dto.StudentId && a.Date.Date == date);
+            .FirstOrDefaultAsync(a => a.StudentId == dto.StudentId && a.Date.Date == date && a.StudentId != null);
 
         if (existing != null)
         {
@@ -182,7 +185,10 @@ public class AttendanceService : IAttendanceService
             existing.MarkedBy = markedByUserId ?? existing.MarkedBy;
             existing.MarkedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
-            await _context.Entry(existing).Reference(a => a.Student).LoadAsync();
+            if (existing.StudentId.HasValue)
+                await _context.Entry(existing).Reference(a => a.Student).LoadAsync();
+            if (existing.TeacherId.HasValue)
+                await _context.Entry(existing).Reference(a => a.Teacher).LoadAsync();
             return existing;
         }
 
@@ -198,7 +204,10 @@ public class AttendanceService : IAttendanceService
         };
         _context.Attendances.Add(attendance);
         await _context.SaveChangesAsync();
-        await _context.Entry(attendance).Reference(a => a.Student).LoadAsync();
+        if (attendance.StudentId.HasValue)
+            await _context.Entry(attendance).Reference(a => a.Student).LoadAsync();
+        if (attendance.TeacherId.HasValue)
+            await _context.Entry(attendance).Reference(a => a.Teacher).LoadAsync();
         return attendance;
     }
 
@@ -228,7 +237,7 @@ public class AttendanceService : IAttendanceService
         foreach (var rec in dto.Records)
         {
             var existing = await _context.Attendances
-                .FirstOrDefaultAsync(a => a.StudentId == rec.StudentId && a.Date.Date == date);
+                .FirstOrDefaultAsync(a => a.StudentId == rec.StudentId && a.Date.Date == date && a.StudentId != null);
 
             var timeIn = ParseTimeSpan(rec.TimeIn);
             var timeOut = ParseTimeSpan(rec.TimeOut);
@@ -267,6 +276,84 @@ public class AttendanceService : IAttendanceService
         foreach (var a in result)
             await _context.Entry(a).Reference(x => x.Student).LoadAsync();
         return result;
+    }
+
+    public async Task<List<Attendance>> GetTeacherThisMonthAsync(int teacherId, int month, int year)
+    {
+        return await _context.Attendances
+            .Include(a => a.Teacher)
+            .Where(a => a.TeacherId == teacherId && a.Date.Month == month && a.Date.Year == year)
+            .OrderBy(a => a.Date)
+            .ToListAsync();
+    }
+
+    public async Task<Attendance?> GetTeacherTodayAsync(int teacherId)
+    {
+        var today = DateTime.Today;
+        return await _context.Attendances
+            .Include(a => a.Teacher)
+            .FirstOrDefaultAsync(a => a.TeacherId == teacherId && a.Date.Date == today);
+    }
+
+    public async Task<List<Attendance>> GetAllByTeacherAsync(int teacherId)
+    {
+        return await _context.Attendances
+            .Include(a => a.Teacher)
+            .Where(a => a.TeacherId == teacherId)
+            .OrderByDescending(a => a.Date)
+            .ToListAsync();
+    }
+
+    public async Task<Attendance> TeacherCheckInAsync(int teacherId, TeacherCheckInDto dto)
+    {
+        var date = DateTime.Parse(dto.Date).Date;
+        var timeIn = ParseTimeSpan(dto.TimeIn);
+
+        var existing = await _context.Attendances
+            .FirstOrDefaultAsync(a => a.TeacherId == teacherId && a.Date.Date == date);
+
+        if (existing != null)
+        {
+            existing.TimeIn = timeIn ?? existing.TimeIn;
+            existing.Status = 1;
+            existing.Remarks = dto.Remarks ?? existing.Remarks;
+            existing.MarkedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            await _context.Entry(existing).Reference(a => a.Teacher).LoadAsync();
+            return existing;
+        }
+
+        var attendance = new Attendance
+        {
+            TeacherId = teacherId,
+            Date = date,
+            Status = 1,
+            TimeIn = timeIn,
+            Remarks = dto.Remarks,
+            MarkedAt = DateTime.UtcNow
+        };
+        _context.Attendances.Add(attendance);
+        await _context.SaveChangesAsync();
+        await _context.Entry(attendance).Reference(a => a.Teacher).LoadAsync();
+        return attendance;
+    }
+
+    public async Task<Attendance?> TeacherCheckOutAsync(int teacherId, TeacherCheckOutDto dto)
+    {
+        var date = DateTime.Parse(dto.Date).Date;
+        var timeOut = ParseTimeSpan(dto.TimeOut);
+
+        var existing = await _context.Attendances
+            .Include(a => a.Teacher)
+            .FirstOrDefaultAsync(a => a.TeacherId == teacherId && a.Date.Date == date);
+
+        if (existing == null) return null;
+
+        existing.TimeOut = timeOut ?? existing.TimeOut;
+        existing.Remarks = dto.Remarks ?? existing.Remarks;
+        existing.MarkedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+        return existing;
     }
 
     private static TimeSpan? ParseTimeSpan(string? value)

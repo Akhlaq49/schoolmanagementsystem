@@ -75,6 +75,22 @@ public class ReviewLeaveDto
     public string? ReviewerRemarks { get; set; }
 }
 
+/// <summary>Teacher check-in request.</summary>
+public class TeacherCheckInDto
+{
+    public string Date { get; set; } = string.Empty; // yyyy-MM-dd
+    public string TimeIn { get; set; } = string.Empty; // HH:mm
+    public string? Remarks { get; set; }
+}
+
+/// <summary>Teacher check-out request.</summary>
+public class TeacherCheckOutDto
+{
+    public string Date { get; set; } = string.Empty; // yyyy-MM-dd
+    public string TimeOut { get; set; } = string.Empty; // HH:mm
+    public string? Remarks { get; set; }
+}
+
 /// <summary>Attendance summary stats.</summary>
 public class AttendanceReportSummaryDto
 {

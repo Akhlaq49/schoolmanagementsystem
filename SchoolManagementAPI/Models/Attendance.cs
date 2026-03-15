@@ -14,7 +14,10 @@ public class Attendance
     public int Status { get; set; } // 0=Not Marked, 1=PP, 2=PO, 3=Absent, 4=SL, 5=FL, 6=Holiday, 7=Late
 
     [Column("student_id")]
-    public int StudentId { get; set; }
+    public int? StudentId { get; set; }
+
+    [Column("teacher_id")]
+    public int? TeacherId { get; set; }
 
     [Column("date")]
     public DateTime Date { get; set; }
@@ -42,6 +45,9 @@ public class Attendance
 
     // Navigation Properties
     [ForeignKey("StudentId")]
-    public virtual Student Student { get; set; } = null!;
+    public virtual Student? Student { get; set; }
+
+    [ForeignKey("TeacherId")]
+    public virtual User? Teacher { get; set; }
 }
 

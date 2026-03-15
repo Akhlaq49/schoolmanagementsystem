@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SchoolManagementAPI.Models;
@@ -22,6 +23,18 @@ public class TeachersController : ControllerBase
     {
         var teachers = await _teacherService.GetAllTeachersAsync();
         return Ok(teachers);
+    }
+
+    [HttpGet("me")]
+    [Authorize(Roles = "teacher")]
+    public async Task<ActionResult<User>> GetCurrentTeacher()
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+            return Unauthorized();
+        var teacher = await _teacherService.GetTeacherByIdAsync(userId);
+        if (teacher == null) return NotFound();
+        return Ok(teacher);
     }
 
     [HttpGet("{id}")]
