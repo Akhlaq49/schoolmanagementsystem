@@ -245,8 +245,10 @@ public class AttendanceService : IAttendanceService
             if (existing != null)
             {
                 existing.Status = rec.Status;
-                existing.TimeIn = timeIn ?? existing.TimeIn;
-                existing.TimeOut = timeOut ?? existing.TimeOut;
+                // If status isn't PP/PO, we should clear time fields.
+                // This supports "Clear row" -> status=0 and timeIn/timeOut should become NULL.
+                existing.TimeIn = (rec.Status == 1 || rec.Status == 2) ? timeIn : null;
+                existing.TimeOut = (rec.Status == 1 || rec.Status == 2) ? timeOut : null;
                 existing.Remarks = rec.Remarks;
                 existing.LeaveReason = rec.LeaveReason;
                 existing.MarkedBy = markedByUserId ?? existing.MarkedBy;
@@ -260,8 +262,8 @@ public class AttendanceService : IAttendanceService
                     StudentId = rec.StudentId,
                     Date = date,
                     Status = rec.Status,
-                    TimeIn = timeIn,
-                    TimeOut = timeOut,
+                    TimeIn = (rec.Status == 1 || rec.Status == 2) ? timeIn : null,
+                    TimeOut = (rec.Status == 1 || rec.Status == 2) ? timeOut : null,
                     Remarks = rec.Remarks,
                     LeaveReason = rec.LeaveReason,
                     MarkedBy = markedByUserId,
@@ -365,13 +367,27 @@ public class AttendanceService : IAttendanceService
         if (sectionId.HasValue)
             studentQuery = studentQuery.Where(s => s.SectionId == sectionId.Value);
         var students = await studentQuery.OrderBy(s => s.Roll).ThenBy(s => s.Name).ToListAsync();
+        var studentIds = students.Select(s => s.StudentId).ToHashSet();
 
-        var attendanceList = await GetAttendanceByDateAsync(date, classId, sectionId);
+        // Load attendance for this date for these students only (avoids class filter/date timezone issues)
+        var dateOnly = date.Date;
+        var attendanceList = await _context.Attendances
+            .Where(a => a.StudentId != null && a.Date.Date == dateOnly && studentIds.Contains(a.StudentId.Value))
+            .ToListAsync();
         var attendanceByStudent = attendanceList.Where(a => a.StudentId.HasValue).ToDictionary(a => a.StudentId!.Value);
 
         return students.Select(s =>
         {
             var att = attendanceByStudent.GetValueOrDefault(s.StudentId);
+            string? timeInStr = null;
+            string? timeOutStr = null;
+            if (att != null)
+            {
+                if (att.TimeIn.HasValue)
+                    timeInStr = $"{att.TimeIn.Value.Hours:D2}:{att.TimeIn.Value.Minutes:D2}";
+                if (att.TimeOut.HasValue)
+                    timeOutStr = $"{att.TimeOut.Value.Hours:D2}:{att.TimeOut.Value.Minutes:D2}";
+            }
             return new ClassAttendanceSheetItemDto
             {
                 StudentId = s.StudentId,
@@ -383,8 +399,8 @@ public class AttendanceService : IAttendanceService
                 SectionName = s.Section?.Name,
                 AttendanceId = att?.AttendanceId,
                 Status = att?.Status ?? 0,
-                TimeIn = att?.TimeIn != null ? $"{att.TimeIn.Value.Hours:D2}:{att.TimeIn.Value.Minutes:D2}" : null,
-                TimeOut = att?.TimeOut != null ? $"{att.TimeOut.Value.Hours:D2}:{att.TimeOut.Value.Minutes:D2}" : null,
+                TimeIn = timeInStr,
+                TimeOut = timeOutStr,
                 Remarks = att?.Remarks,
                 LeaveReason = att?.LeaveReason
             };

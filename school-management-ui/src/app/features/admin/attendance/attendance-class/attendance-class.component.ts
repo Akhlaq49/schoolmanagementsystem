@@ -4,12 +4,12 @@ import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ClassService } from '../../../../core/services/class.service';
 import { SectionService } from '../../../../core/services/section.service';
-import { StudentService } from '../../../../core/services/student.service';
 import { AttendanceService } from '../../../../core/services/attendance.service';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { Class } from '../../../../core/models/student.model';
 import { Section } from '../../../../core/models/section.model';
 import { Student } from '../../../../core/models/student.model';
+import { ClassAttendanceSheetItem } from '../../../../core/models/attendance.model';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
 import { DropdownComponent, DropdownOption } from '../../../../shared/components/dropdown/dropdown.component';
 
@@ -18,8 +18,8 @@ type StatusCode = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 interface RowData {
   student: Student;
   status: StatusCode;
-  timeIn: string;
-  timeOut: string;
+  timeIn: string | null;
+  timeOut: string | null;
   remarks: string;
   leaveReason?: string;
   attendanceId?: number;
@@ -68,7 +68,8 @@ interface RowData {
               [(ngModel)]="selectedSectionId"
               [options]="sectionOptions"
               placeholder="Select Section"
-              [searchable]="false">
+              [searchable]="false"
+              (changed)="onSectionChange()">
             </app-dropdown>
           </div>
           <div class="filter-group filter-actions">
@@ -105,6 +106,7 @@ interface RowData {
                 <th>Roll</th>
                 <th>Name</th>
                 <th>Status</th>
+                <th>Marked</th>
                 <th>Time In</th>
                 <th>Time Out</th>
                 <th>Remarks</th>
@@ -131,10 +133,18 @@ interface RowData {
                   </div>
                 </td>
                 <td>
+                  <span class="marked-badge" [ngClass]="r.status === 0 ? 'marked-badge--not' : 'marked-badge--yes'">
+                    <i class="fa" [ngClass]="r.status === 0 ? 'fa fa-times-circle-o' : 'fa fa-check-circle'"></i>
+                    {{ r.status === 0 ? 'Not Marked' : 'Marked' }}
+                  </span>
+                </td>
+                <td>
                   <input type="time" [(ngModel)]="r.timeIn" class="time-input" [disabled]="isLocked || (r.status !== 1 && r.status !== 2)" *ngIf="r.status === 1 || r.status === 2 || r.timeIn">
+                  <span *ngIf="(r.status !== 1 && r.status !== 2) && !r.timeIn" class="time-empty">—</span>
                 </td>
                 <td>
                   <input type="time" [(ngModel)]="r.timeOut" class="time-input" [disabled]="isLocked" *ngIf="r.status === 1 || r.status === 2 || r.timeOut">
+                  <span *ngIf="(r.status !== 1 && r.status !== 2) && !r.timeOut" class="time-empty">—</span>
                 </td>
                 <td>
                   <input type="text" [(ngModel)]="r.remarks" class="remarks-input" placeholder="Remarks" [disabled]="isLocked">
@@ -347,6 +357,28 @@ interface RowData {
     .status-btn.a.active { background: #fee2e2; border-color: #dc2626; color: #dc2626; }
     .status-btn.sl.active { background: #fed7aa; border-color: #ea580c; color: #ea580c; }
     .status-btn.fl.active { background: #ede9fe; border-color: #7c3aed; color: #7c3aed; }
+    .marked-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.8125rem;
+      font-weight: 800;
+      border: 1px solid transparent;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .marked-badge--yes {
+      background: linear-gradient(135deg, #d1fae5 0%, #ecfdf5 100%);
+      color: #059669;
+      border-color: #a7f3d0;
+    }
+    .marked-badge--not {
+      background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%);
+      color: #92400e;
+      border-color: #fcd34d;
+    }
     .time-input, .remarks-input {
       padding: 0.4rem 0.5rem;
       border: 2px solid #d9e2ec;
@@ -354,6 +386,7 @@ interface RowData {
       font-size: 0.875rem;
       width: 90px;
     }
+    .time-empty { color: #9ca3af; font-size: 0.875rem; }
     .remarks-input { width: 120px; }
     .pagination-bar {
       display: flex;
@@ -452,7 +485,6 @@ export class AdminAttendanceClassComponent implements OnInit {
   constructor(
     private classService: ClassService,
     private sectionService: SectionService,
-    private studentService: StudentService,
     private attendanceService: AttendanceService,
     private notify: NotificationService
   ) {}
@@ -474,7 +506,6 @@ export class AdminAttendanceClassComponent implements OnInit {
     this.classService.getAllClasses().subscribe({
       next: (c) => {
         this.classes = c;
-        if (c.length > 0 && !this.selectedClassId) this.selectedClassId = c[0].classId;
       },
       error: () => this.notify.error('Failed to load classes')
     });
@@ -486,60 +517,74 @@ export class AdminAttendanceClassComponent implements OnInit {
     this.rows = [];
     this.currentPage = 1;
     if (this.selectedClassId) {
-      this.sectionService.getSectionsByClass(this.selectedClassId).subscribe(s => (this.sections = s));
+      this.sectionService.getSectionsByClass(this.selectedClassId).subscribe({
+        next: (s) => (this.sections = s),
+        error: () => this.notify.error('Failed to load sections')
+      });
     }
+  }
+
+  onSectionChange(): void {
+    this.rows = [];
+    this.currentPage = 1;
+    if (this.selectedClassId && this.selectedDate) this.loadStudents();
+  }
+
+  /** Normalize API time (HH:mm or HH:mm:ss) to HH:mm for input type="time". */
+  private normalizeTime(value: string | null | undefined): string {
+    if (value == null) return '';
+    const s = String(value).trim();
+    if (!s) return '';
+    const parts = s.split(':');
+    if (parts.length >= 2) {
+      const h = parts[0].padStart(2, '0');
+      const m = parts[1].padStart(2, '0');
+      return `${h}:${m}`;
+    }
+    return s.length >= 5 ? s.substring(0, 5) : '';
+  }
+
+  /** Read time from sheet item (API returns camelCase due to JSON settings). */
+  private getSheetTimeIn(item: ClassAttendanceSheetItem): string {
+    return this.normalizeTime(item.timeIn);
+  }
+
+  private getSheetTimeOut(item: ClassAttendanceSheetItem): string {
+    return this.normalizeTime(item.timeOut);
   }
 
   loadStudents(): void {
     if (!this.selectedClassId || !this.selectedDate) return;
     this.loading = true;
-    this.studentService.getStudentsByClass(this.selectedClassId).subscribe({
-      next: (students) => {
-        let list = students;
-        if (this.selectedSectionId) {
-          list = students.filter(s => (s.sectionId ?? s.section?.sectionId) === this.selectedSectionId);
-        }
-        const rowsMap = new Map<number, RowData>();
-        list.forEach(s => {
-          rowsMap.set(s.studentId, {
-            student: s,
-            status: 0 as StatusCode,
-            timeIn: '',
-            timeOut: '',
-            remarks: ''
-          });
-        });
-        this.attendanceService.getAttendance(
-          this.selectedDate,
-          this.selectedClassId ?? undefined,
-          this.selectedSectionId ?? undefined
-        ).subscribe({
-          next: (attList) => {
-            attList.forEach(a => {
-              const row = rowsMap.get(a.studentId ?? 0);
-              if (row) {
-                row.attendanceId = a.attendanceId;
-                row.status = a.status as StatusCode;
-                row.timeIn = (a.timeIn ?? '').toString().substring(0, 5) || '';
-                row.timeOut = (a.timeOut ?? '').toString().substring(0, 5) || '';
-                row.remarks = a.remarks ?? '';
-                row.leaveReason = a.leaveReason;
-              }
-            });
-            this.rows = Array.from(rowsMap.values());
-            this.currentPage = 1;
-            this.loading = false;
-          },
-          error: () => {
-            this.rows = Array.from(rowsMap.values());
-            this.currentPage = 1;
-            this.loading = false;
-          }
-        });
-      },
-      error: () => {
+    this.attendanceService.getAdminClassAttendanceSheet(
+      this.selectedDate,
+      this.selectedClassId,
+      this.selectedSectionId ?? undefined
+    ).subscribe({
+      next: (sheet) => {
+        this.rows = sheet.map((item: ClassAttendanceSheetItem) => ({
+          student: {
+            studentId: item.studentId,
+            name: item.studentName,
+            roll: item.rollNumber,
+            classId: item.classId,
+            sectionId: item.sectionId,
+            password: ''
+          } as Student,
+          status: item.status as StatusCode,
+          timeIn: this.getSheetTimeIn(item) || null,
+          timeOut: this.getSheetTimeOut(item) || null,
+          remarks: item.remarks ?? '',
+          leaveReason: item.leaveReason,
+          attendanceId: item.attendanceId
+        }));
+        this.currentPage = 1;
         this.loading = false;
-        this.notify.error('Failed to load students');
+      },
+      error: (err) => {
+        this.loading = false;
+        this.rows = [];
+        this.notify.error(err?.error?.message ?? 'Failed to load class attendance');
       }
     });
   }
@@ -549,32 +594,37 @@ export class AdminAttendanceClassComponent implements OnInit {
   }
 
   markAllPresent(): void {
-    this.rows.forEach(r => { r.status = 1; r.timeIn = '08:00'; });
+    this.rows.forEach(r => { r.status = 1; r.timeIn = '08:00'; r.timeOut = null; });
     this.notify.success('All marked Present');
   }
 
   markAllAbsent(): void {
-    this.rows.forEach(r => { r.status = 3; r.timeIn = ''; r.timeOut = ''; });
+    this.rows.forEach(r => { r.status = 3; r.timeIn = null; r.timeOut = null; });
     this.notify.success('All marked Absent');
   }
 
   saveAttendance(): void {
     if (!this.selectedDate || !this.selectedClassId || this.rows.length === 0) return;
     this.saving = true;
-    this.attendanceService.bulkSaveAttendance({
+    this.attendanceService.saveAdminClassAttendance({
       date: this.selectedDate,
       classId: this.selectedClassId,
       sectionId: this.selectedSectionId ?? undefined,
       records: this.rows.map(r => ({
         studentId: r.student.studentId,
         status: r.status,
-        timeIn: r.timeIn || undefined,
-        timeOut: r.timeOut || undefined,
+        timeIn: r.timeIn ?? null,
+        timeOut: r.timeOut ?? null,
         remarks: r.remarks || undefined,
         leaveReason: r.leaveReason
       }))
     }).subscribe({
-      next: () => {
+      next: (saved) => {
+        const byStudentId = new Map(saved.map(a => [a.studentId ?? 0, a]));
+        this.rows.forEach(r => {
+          const att = byStudentId.get(r.student.studentId);
+          if (att) r.attendanceId = att.attendanceId;
+        });
         this.saving = false;
         this.notify.success('Attendance saved');
       },
@@ -595,7 +645,8 @@ export class AdminAttendanceClassComponent implements OnInit {
       timeIn: r.timeIn || '',
       timeOut: r.timeOut || '',
       remarks: r.remarks || '',
-      leaveReason: r.leaveReason
+      leaveReason: r.leaveReason,
+      attendanceId: r.attendanceId
     };
   }
 
@@ -632,9 +683,10 @@ export class AdminAttendanceClassComponent implements OnInit {
 
   clearRow(r: RowData): void {
     r.status = 0;
-    r.timeIn = '';
-    r.timeOut = '';
+    r.timeIn = null;
+    r.timeOut = null;
     r.remarks = '';
+    r.leaveReason = undefined;
     this.notify.info('Row cleared');
   }
 

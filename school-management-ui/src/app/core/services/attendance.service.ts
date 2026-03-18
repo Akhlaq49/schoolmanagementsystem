@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Attendance, AttendanceCorrection, AttendanceReportResponse, CheckInRequest, CheckOutRequest, CreateCorrectionRequest, LeaveApplication, UpdateAttendanceRequest } from '../models/attendance.model';
+import { Attendance, AttendanceCorrection, ClassAttendanceSheetItem, CheckInRequest, CheckOutRequest, CreateCorrectionRequest, LeaveApplication, UpdateAttendanceRequest } from '../models/attendance.model';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -9,6 +9,7 @@ import { environment } from '../../../environments/environment';
 })
 export class AttendanceService {
   private apiUrl = `${environment.apiUrl}/api/attendance`;
+  private adminAttendanceUrl = `${environment.apiUrl}/api/admin/attendance`;
 
   constructor(private http: HttpClient) {}
 
@@ -152,14 +153,38 @@ export class AttendanceService {
     return this.http.patch<Attendance>(`${environment.apiUrl}/api/teacher-attendance/checkout`, dto);
   }
 
-  /** Bulk save class attendance */
+  /** Bulk save class attendance (generic – admin or teacher) */
   bulkSaveAttendance(dto: {
     date: string;
     classId: number;
     sectionId?: number;
-    records: { studentId: number; status: number; timeIn?: string; timeOut?: string; remarks?: string; leaveReason?: string }[];
+    records: { studentId: number; status: number; timeIn?: string | null; timeOut?: string | null; remarks?: string; leaveReason?: string }[];
   }): Observable<Attendance[]> {
     return this.http.post<Attendance[]>(`${this.apiUrl}/bulk`, dto);
+  }
+
+  /** Admin: get class attendance for a date (list of attendance records). */
+  getAdminClassAttendance(date: string, classId: number, sectionId?: number): Observable<Attendance[]> {
+    let params = new HttpParams().set('date', date).set('classId', classId.toString());
+    if (sectionId != null) params = params.set('sectionId', sectionId.toString());
+    return this.http.get<Attendance[]>(`${this.adminAttendanceUrl}/class`, { params });
+  }
+
+  /** Admin: get class attendance sheet (one row per student with attendance merged). */
+  getAdminClassAttendanceSheet(date: string, classId: number, sectionId?: number): Observable<ClassAttendanceSheetItem[]> {
+    let params = new HttpParams().set('date', date).set('classId', classId.toString());
+    if (sectionId != null) params = params.set('sectionId', sectionId.toString());
+    return this.http.get<ClassAttendanceSheetItem[]>(`${this.adminAttendanceUrl}/class/sheet`, { params });
+  }
+
+  /** Admin: bulk save class attendance. */
+  saveAdminClassAttendance(dto: {
+    date: string;
+    classId: number;
+    sectionId?: number;
+    records: { studentId: number; status: number; timeIn?: string | null; timeOut?: string | null; remarks?: string; leaveReason?: string }[];
+  }): Observable<Attendance[]> {
+    return this.http.post<Attendance[]>(`${this.adminAttendanceUrl}/class`, dto);
   }
 }
 

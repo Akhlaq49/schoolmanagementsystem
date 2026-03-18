@@ -22,6 +22,23 @@ export interface Attendance {
   student?: Student;
 }
 
+/** One row from admin class attendance sheet API (student + attendance for a date). */
+export interface ClassAttendanceSheetItem {
+  studentId: number;
+  studentName: string;
+  rollNumber?: string;
+  classId?: number;
+  sectionId?: number;
+  className?: string;
+  sectionName?: string;
+  attendanceId?: number;
+  status: number;
+  timeIn?: string;
+  timeOut?: string;
+  remarks?: string;
+  leaveReason?: string;
+}
+
 export interface LeaveApplication {
   leaveApplicationId: number;
   applicantType: 'student' | 'teacher' | 'staff';
