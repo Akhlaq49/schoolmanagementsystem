@@ -24,6 +24,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Attendance> Attendances { get; set; }
     public DbSet<LeaveApplication> LeaveApplications { get; set; }
     public DbSet<AttendanceCorrection> AttendanceCorrections { get; set; }
+    public DbSet<AttendanceCalendarItem> AttendanceCalendarItems { get; set; }
 
     // Exam & Marks
     public DbSet<Exam> Exams { get; set; }
@@ -209,5 +210,10 @@ public class ApplicationDbContext : DbContext
             .WithMany()
             .HasForeignKey(a => a.TeacherId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Attendance calendar: enforce one item per date.
+        modelBuilder.Entity<AttendanceCalendarItem>()
+            .HasIndex(x => x.Date)
+            .IsUnique();
     }
 }
