@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { AdminAttendanceDailySummary, Attendance, AttendanceCalendarItem, AttendanceCorrection, ClassAttendanceSheetItem, CheckInRequest, CheckOutRequest, CreateCorrectionRequest, LeaveApplication, StaffAttendance, StaffAttendanceBulkRequest, StaffAttendanceHistory, UpsertAttendanceCalendarItemRequest, UpdateAttendanceRequest } from '../models/attendance.model';
+import { AdminAttendanceDailySummary, Attendance, AttendanceCalendarItem, AttendanceCorrection, ClassAttendanceSheetItem, CheckInRequest, CheckOutRequest, CreateCorrectionRequest, LeaveApplication, MonthlyGridResponse, StaffAttendance, StaffAttendanceBulkRequest, StaffAttendanceHistory, UpsertAttendanceCalendarItemRequest, UpdateAttendanceRequest } from '../models/attendance.model';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -241,6 +241,29 @@ export class AttendanceService {
   exportAdminAttendanceDailySummaryCsv(date: string): Observable<Blob> {
     const params = new HttpParams().set('date', date);
     return this.http.get(`${this.adminAttendanceUrl}/daily/export`, {
+      params,
+      responseType: 'blob'
+    });
+  }
+
+  /** Admin: monthly attendance grid. */
+  getAdminMonthlyGrid(month: number, year: number, classId?: number | null, sectionId?: number | null): Observable<MonthlyGridResponse> {
+    let params = new HttpParams()
+      .set('month', month.toString())
+      .set('year', year.toString());
+    if (classId != null) params = params.set('classId', classId.toString());
+    if (sectionId != null) params = params.set('sectionId', sectionId.toString());
+    return this.http.get<MonthlyGridResponse>(`${this.adminAttendanceUrl}/monthly/grid`, { params });
+  }
+
+  /** Admin: export monthly grid as CSV. */
+  exportAdminMonthlyGridCsv(month: number, year: number, classId?: number | null, sectionId?: number | null): Observable<Blob> {
+    let params = new HttpParams()
+      .set('month', month.toString())
+      .set('year', year.toString());
+    if (classId != null) params = params.set('classId', classId.toString());
+    if (sectionId != null) params = params.set('sectionId', sectionId.toString());
+    return this.http.get(`${this.adminAttendanceUrl}/monthly/grid/export`, {
       params,
       responseType: 'blob'
     });

@@ -3,29 +3,22 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { NotificationService } from '../../../../shared/services/notification.service';
+import { AttendanceService } from '../../../../core/services/attendance.service';
+import { ClassService } from '../../../../core/services/class.service';
+import { SectionService } from '../../../../core/services/section.service';
+import { MonthlyGridStudent, MonthlyGridCell } from '../../../../core/models/attendance.model';
+import { Class } from '../../../../core/models/student.model';
+import { Section } from '../../../../core/models/section.model';
 import { formatTime12h } from '../../../../shared/utils/time.utils';
-
-interface GridStudent {
-  studentId: number;
-  roll: string;
-  name: string;
-}
-
-type StatusCode = '' | 'P' | 'A' | 'L' | 'H'; // P=Present, A=Absent, L=Leave, H=Holiday
-
-interface CellData {
-  date: string;
-  status: StatusCode;
-  timeIn?: string;
-  timeOut?: string;
-  remarks?: string;
-}
 
 @Component({
   selector: 'app-admin-attendance-monthly',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   template: `
+    <div *ngIf="loading" class="loading-overlay">
+      <i class="fa fa-spinner fa-spin fa-2x"></i>
+    </div>
     <div class="page-container">
       <div class="page-header-card">
         <div class="header-content">
@@ -48,32 +41,33 @@ interface CellData {
           <div class="filter-group">
             <label>Month</label>
             <select [(ngModel)]="selectedMonth" (ngModelChange)="loadGrid()" class="form-control">
-              <option *ngFor="let m of monthOptions" [value]="m.value">{{ m.label }}</option>
+              <option *ngFor="let m of monthOptions" [ngValue]="m.value">{{ m.label }}</option>
             </select>
           </div>
           <div class="filter-group">
             <label>Year</label>
             <select [(ngModel)]="selectedYear" (ngModelChange)="loadGrid()" class="form-control">
-              <option *ngFor="let y of yearOptions" [value]="y">{{ y }}</option>
+              <option *ngFor="let y of yearOptions" [ngValue]="y">{{ y }}</option>
             </select>
           </div>
           <div class="filter-group">
             <label>Class</label>
             <select [(ngModel)]="selectedClassId" (ngModelChange)="onClassChange()" class="form-control">
-              <option [value]="null">All</option>
-              <option *ngFor="let c of classOptions" [value]="c.value">{{ c.label }}</option>
+              <option [ngValue]="null">All Classes</option>
+              <option *ngFor="let c of classOptions" [ngValue]="c.value">{{ c.label }}</option>
             </select>
           </div>
           <div class="filter-group">
             <label>Section</label>
-            <select [(ngModel)]="selectedSectionId" (ngModelChange)="loadGrid()" class="form-control">
-              <option [value]="null">All</option>
-              <option *ngFor="let s of sectionOptions" [value]="s.value">{{ s.label }}</option>
+            <select [(ngModel)]="selectedSectionId" (ngModelChange)="loadGrid()" class="form-control"
+                    [disabled]="!selectedClassId">
+              <option [ngValue]="null">All Sections</option>
+              <option *ngFor="let s of sectionOptions" [ngValue]="s.value">{{ s.label }}</option>
             </select>
           </div>
           <div class="filter-group">
-            <button type="button" class="btn btn-secondary" (click)="loadGrid()">
-              <i class="fa fa-refresh"></i> Load
+            <button type="button" class="btn btn-secondary" (click)="loadGrid()" [disabled]="loading">
+              <i class="fa fa-refresh" [class.fa-spin]="loading"></i> Load
             </button>
           </div>
         </div>
@@ -87,7 +81,12 @@ interface CellData {
         <span class="leg"><i>Click a cell for details</i></span>
       </div>
 
-      <div class="grid-card">
+      <div class="empty-state" *ngIf="!loading && students.length === 0">
+        <i class="fa fa-th"></i>
+        <p>No students found for the selected filters.</p>
+      </div>
+
+      <div class="grid-card" *ngIf="students.length > 0">
         <div class="grid-wrap">
           <table class="grid-table">
             <thead>
@@ -151,6 +150,14 @@ interface CellData {
     </div>
   `,
   styles: [`
+    .loading-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(255,255,255,0.7);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9000; color: #1e3a5f;
+    }
+    .empty-state { text-align: center; padding: 3rem; color: #9ca3af; }
+    .empty-state i { font-size: 3rem; margin-bottom: 0.5rem; display: block; }
     .page-container { max-width: 100%; overflow: hidden; }
     .page-header-card {
       background: #fff;
@@ -270,34 +277,45 @@ interface CellData {
 })
 export class AdminAttendanceMonthlyComponent implements OnInit {
   formatTime12h = formatTime12h;
+
   selectedMonth = new Date().getMonth() + 1;
-  selectedYear = new Date().getFullYear();
-  selectedClassId: number | null = 1;
-  selectedSectionId: number | null = 1;
+  selectedYear  = new Date().getFullYear();
+  selectedClassId:   number | null = null;
+  selectedSectionId: number | null = null;
+
   monthOptions: { value: number; label: string }[] = [];
-  yearOptions: number[] = [];
-  classOptions: { value: number; label: string }[] = [
-    { value: 1, label: 'Grade 10' },
-    { value: 2, label: 'Grade 9' },
-    { value: 3, label: 'Grade 8' }
-  ];
-  sectionOptions: { value: number; label: string }[] = [
-    { value: 1, label: 'A' },
-    { value: 2, label: 'B' }
-  ];
-  students: GridStudent[] = [];
-  gridData: Record<string, CellData> = {}; // 'studentId-day' -> CellData
+  yearOptions:  number[] = [];
+
+  classes:  Class[]   = [];
+  sections: Section[] = [];
+
+  get classOptions(): { value: number; label: string }[] {
+    return this.classes.map(c => ({ value: c.classId, label: c.name }));
+  }
+
+  get sectionOptions(): { value: number; label: string }[] {
+    return this.sections.map(s => ({ value: s.sectionId, label: s.name }));
+  }
+
+  students:  MonthlyGridStudent[] = [];
+  /** Key: `studentId-day` → cell data */
+  cellMap: Map<string, MonthlyGridCell> = new Map();
   dayNumbers: number[] = [];
   dayHeaders: string[] = [];
-  pageSize = 5;
-  currentPage = 1;
-  popupData: { studentName: string; roll: string; date: string; status?: string; timeIn?: string; timeOut?: string; remarks?: string } | null = null;
+  loading = false;
+  pageSize    = 15;
+  currentPage =  1;
+
+  popupData: {
+    studentName: string; roll: string; date: string;
+    status?: string; timeIn?: string; timeOut?: string; remarks?: string;
+  } | null = null;
 
   get totalPages(): number {
     return Math.ceil(this.students.length / this.pageSize) || 1;
   }
 
-  get paginatedStudents(): GridStudent[] {
+  get paginatedStudents(): MonthlyGridStudent[] {
     const start = (this.currentPage - 1) * this.pageSize;
     return this.students.slice(start, start + this.pageSize);
   }
@@ -306,56 +324,86 @@ export class AdminAttendanceMonthlyComponent implements OnInit {
     return Math.min(this.currentPage * this.pageSize, this.students.length);
   }
 
-  constructor(private notify: NotificationService) {}
+  constructor(
+    private notify: NotificationService,
+    private attendanceService: AttendanceService,
+    private classService: ClassService,
+    private sectionService: SectionService
+  ) {}
 
   ngOnInit(): void {
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     this.monthOptions = months.map((l, i) => ({ value: i + 1, label: l }));
     const y = new Date().getFullYear();
-    this.yearOptions = [y - 1, y, y + 1];
+    this.yearOptions  = [y - 1, y, y + 1];
     this.selectedYear = y;
+
+    this.classService.getAllClasses().subscribe({
+      next: (c) => { this.classes = c; },
+      error: () => this.notify.error('Failed to load classes')
+    });
+
     this.buildDayHeaders();
-    this.loadMockData();
+    this.loadGrid();
   }
 
   buildDayHeaders(): void {
-    const daysInMonth = new Date(this.selectedYear, this.selectedMonth, 0).getDate();
-    this.dayNumbers = [];
-    this.dayHeaders = [];
-    for (let d = 1; d <= daysInMonth; d++) {
-      this.dayNumbers.push(d);
-      this.dayHeaders.push(String(d));
-    }
+    const days = new Date(this.selectedYear, this.selectedMonth, 0).getDate();
+    this.dayNumbers = Array.from({ length: days }, (_, i) => i + 1);
+    this.dayHeaders = this.dayNumbers.map(String);
   }
 
   onClassChange(): void {
+    this.sections         = [];
     this.selectedSectionId = null;
+    if (this.selectedClassId) {
+      this.sectionService.getSectionsByClass(this.selectedClassId).subscribe({
+        next: (s) => { this.sections = s; },
+        error: () => this.notify.error('Failed to load sections')
+      });
+    }
     this.loadGrid();
   }
 
   loadGrid(): void {
     this.buildDayHeaders();
-    this.loadMockData();
+    this.loading = true;
+    this.attendanceService.getAdminMonthlyGrid(
+      this.selectedMonth,
+      this.selectedYear,
+      this.selectedClassId,
+      this.selectedSectionId
+    ).subscribe({
+      next: (res) => {
+        this.students = res.students;
+        this.cellMap  = new Map(
+          res.gridCells.map(c => [`${c.studentId}-${c.day}`, c])
+        );
+        this.currentPage = 1;
+        this.loading     = false;
+      },
+      error: (err) => {
+        this.loading = false;
+        this.notify.error(err?.error?.message ?? 'Failed to load monthly grid');
+      }
+    });
   }
 
   getCellStatus(studentId: number, day: number): string {
-    const key = `${studentId}-${day}`;
-    const cell = this.gridData[key];
-    return cell?.status || '';
+    return this.cellMap.get(`${studentId}-${day}`)?.status ?? '';
   }
 
-  openCellPopup(s: GridStudent, day: number): void {
-    const key = `${s.studentId}-${day}`;
-    const cell = this.gridData[key];
+  openCellPopup(s: MonthlyGridStudent, day: number): void {
+    const cell = this.cellMap.get(`${s.studentId}-${day}`);
     const dateStr = `${this.selectedYear}-${String(this.selectedMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     this.popupData = {
       studentName: s.name,
-      roll: s.roll,
-      date: dateStr,
-      status: cell?.status || undefined,
-      timeIn: cell?.timeIn,
-      timeOut: cell?.timeOut,
-      remarks: cell?.remarks
+      roll:        s.roll,
+      date:        dateStr,
+      status:      cell?.status  || undefined,
+      timeIn:      cell?.timeIn  || undefined,
+      timeOut:     cell?.timeOut || undefined,
+      remarks:     cell?.remarks || undefined
     };
   }
 
@@ -364,7 +412,25 @@ export class AdminAttendanceMonthlyComponent implements OnInit {
   }
 
   exportData(): void {
-    this.notify.success('Export started. File will download shortly.');
+    this.attendanceService.exportAdminMonthlyGridCsv(
+      this.selectedMonth,
+      this.selectedYear,
+      this.selectedClassId,
+      this.selectedSectionId
+    ).subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a   = document.createElement('a');
+        a.href     = url;
+        a.download = `attendance_monthly_${this.selectedYear}_${String(this.selectedMonth).padStart(2, '0')}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.notify.success('Export downloaded');
+      },
+      error: (err: any) => {
+        this.notify.error(err?.error?.message ?? 'Export failed');
+      }
+    });
   }
 
   goToPrevPage(): void {
@@ -373,40 +439,5 @@ export class AdminAttendanceMonthlyComponent implements OnInit {
 
   goToNextPage(): void {
     if (this.currentPage < this.totalPages) this.currentPage++;
-  }
-
-  private loadMockData(): void {
-    this.students = [
-      { studentId: 1, roll: 'R101', name: 'Ali Khan' },
-      { studentId: 2, roll: 'R102', name: 'Sara Ahmed' },
-      { studentId: 3, roll: 'R103', name: 'Hamza Shah' },
-      { studentId: 4, roll: 'R104', name: 'Fatima Hassan' },
-      { studentId: 5, roll: 'R105', name: 'Omar Riaz' }
-    ];
-    this.gridData = {};
-    const daysInMonth = this.dayNumbers.length;
-    this.students.forEach(s => {
-      for (let d = 1; d <= daysInMonth; d++) {
-        const r = (s.studentId + d) % 5;
-        let status: StatusCode = '';
-        if (d <= 5) {
-          status = r === 0 ? 'P' : r === 1 ? 'A' : r === 2 ? 'L' : r === 3 ? 'H' : 'P';
-        } else if (d <= 10) {
-          status = ['P', 'P', 'A', 'P', 'L'][d % 5] as StatusCode;
-        } else {
-          status = d % 7 === 0 ? 'H' : d % 5 === 0 ? 'A' : 'P';
-        }
-        if (status) {
-          this.gridData[`${s.studentId}-${d}`] = {
-            date: `${this.selectedYear}-${String(this.selectedMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
-            status,
-            timeIn: status === 'P' ? '08:15' : undefined,
-            timeOut: status === 'P' ? '14:00' : undefined,
-            remarks: status === 'A' ? 'Sick' : undefined
-          };
-        }
-      }
-    });
-    this.currentPage = 1;
   }
 }

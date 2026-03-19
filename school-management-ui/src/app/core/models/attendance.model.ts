@@ -221,3 +221,37 @@ export interface AdminAttendanceDailySummary {
   notMarkedList: AdminAttendanceNotMarkedItem[];
 }
 
+// -----------------------------
+// Admin: Monthly Grid
+// -----------------------------
+
+/** P=Present, A=Absent, L=Leave, H=Holiday, ''=Not Marked */
+export type MonthlyGridStatus = 'P' | 'A' | 'L' | 'H' | '';
+
+export interface MonthlyGridStudent {
+  studentId: number;
+  roll: string;
+  name: string;
+  className?: string;
+  sectionName?: string;
+}
+
+export interface MonthlyGridCell {
+  studentId: number;
+  day: number;
+  status: MonthlyGridStatus;
+  rawStatus: number;
+  timeIn?: string;
+  timeOut?: string;
+  remarks?: string;
+}
+
+export interface MonthlyGridResponse {
+  month: number;
+  year: number;
+  daysInMonth: number;
+  monthLabel: string;
+  students: MonthlyGridStudent[];
+  gridCells: MonthlyGridCell[];
+}
+
