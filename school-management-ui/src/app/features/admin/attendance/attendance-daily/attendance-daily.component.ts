@@ -1,11 +1,15 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { NotificationService } from '../../../../shared/services/notification.service';
+import { AttendanceService } from '../../../../core/services/attendance.service';
+import { AdminAttendanceDailySummary } from '../../../../core/models/attendance.model';
 
 interface ClassBreakdown {
   classId: number;
+  sectionId: number;
   className: string;
   section: string;
   total: number;
@@ -19,8 +23,8 @@ interface ClassBreakdown {
 interface NotMarkedItem {
   id: number;
   className: string;
-  section: string;
-  teacher?: string;
+  section?: string | null;
+  teacher?: string | null;
   type: 'class' | 'staff';
 }
 
@@ -122,7 +126,7 @@ interface NotMarkedItem {
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let c of paginatedBreakdown; let i = index">
+            <tr *ngFor="let c of paginatedBreakdown; let i = index" class="clickable-row" (click)="openClassAttendance(c)">
               <td>{{ (currentPage - 1) * pageSize + i + 1 }}</td>
               <td>{{ c.className }}</td>
               <td>{{ c.section }}</td>
@@ -234,6 +238,8 @@ interface NotMarkedItem {
     .data-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
     .data-table th, .data-table td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
     .data-table th { background: #f7f9fc; font-size: 0.8125rem; color: #6a8cad; font-weight: 600; }
+    .clickable-row { cursor: pointer; }
+    .clickable-row:hover { background: #f8fafc; }
     .col-present { color: #059669; font-weight: 600; }
     .col-absent { color: #dc2626; }
     .col-not-marked { color: #f59e0b; }
@@ -267,6 +273,7 @@ export class AdminAttendanceDailyComponent implements OnInit {
   currentPage = 1;
   notMarkedPage = 1;
   notMarkedPageSize = 5;
+  private attendanceService: AttendanceService;
 
   get totalPages(): number {
     return Math.ceil(this.classBreakdown.length / this.pageSize) || 1;
@@ -294,34 +301,68 @@ export class AdminAttendanceDailyComponent implements OnInit {
     return Math.min(this.notMarkedPage * this.notMarkedPageSize, this.notMarkedList.length);
   }
 
-  constructor(private notify: NotificationService) {}
+  constructor(
+    private notify: NotificationService,
+    attendanceService: AttendanceService,
+    private router: Router
+  ) {
+    this.attendanceService = attendanceService;
+  }
 
   ngOnInit(): void {
     this.selectedDate = new Date().toISOString().split('T')[0];
-    this.loadMockData();
+    this.loadData();
   }
 
   loadData(): void {
-    this.loadMockData();
+    this.loading = true;
+    this.attendanceService.getAdminAttendanceDailySummary(this.selectedDate).subscribe({
+      next: (res: AdminAttendanceDailySummary) => {
+        this.stats = res.stats;
+        this.classBreakdown = res.classBreakdown;
+        this.notMarkedList = res.notMarkedList;
+        this.currentPage = 1;
+        this.notMarkedPage = 1;
+        this.loading = false;
+      },
+      error: (err: any) => {
+        this.loading = false;
+        this.notify.error(err?.error?.message ?? 'Failed to load daily summary');
+      }
+    });
   }
 
   refresh(): void {
-    this.loading = true;
-    setTimeout(() => {
-      this.loadMockData();
-      this.loading = false;
-      this.notify.success('Data refreshed');
-    }, 600);
+    this.loadData();
+    this.notify.success('Loading latest data...');
   }
 
   sendReminder(): void {
-    const count = this.notMarkedList.length;
-    this.notify.success(`Reminder sent to ${count} teacher(s) / coordinator(s)`);
+    this.attendanceService.sendAdminAttendanceDailyReminders(this.selectedDate).subscribe({
+      next: (res: { count: number; message: string }) => {
+        this.notify.success(res.message || `Reminder sent. Count: ${res.count}`);
+      },
+      error: (err: any) => {
+        this.notify.error(err?.error?.message ?? 'Failed to send reminder');
+      }
+    });
   }
 
   exportData(): void {
-    this.notify.success('Export started. File will download shortly.');
-    // In real app: generate CSV/Excel and trigger download
+    this.attendanceService.exportAdminAttendanceDailySummaryCsv(this.selectedDate).subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `attendance_daily_summary_${this.selectedDate}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.notify.success('Export downloaded');
+      },
+      error: (err: any) => {
+        this.notify.error(err?.error?.message ?? 'Export failed');
+      }
+    });
   }
 
   goToPage(p: number): void {
@@ -337,29 +378,15 @@ export class AdminAttendanceDailyComponent implements OnInit {
     if (this.notMarkedPage < this.notMarkedPages) this.notMarkedPage++;
   }
 
-  private loadMockData(): void {
-    this.classBreakdown = [
-      { classId: 1, className: 'Grade 10', section: 'A', total: 35, present: 32, absent: 2, notMarked: 1, percent: 91, status: 'partial' },
-      { classId: 2, className: 'Grade 10', section: 'B', total: 38, present: 36, absent: 2, notMarked: 0, percent: 95, status: 'complete' },
-      { classId: 3, className: 'Grade 9', section: 'A', total: 40, present: 38, absent: 1, notMarked: 1, percent: 95, status: 'partial' },
-      { classId: 4, className: 'Grade 9', section: 'B', total: 42, present: 0, absent: 0, notMarked: 42, percent: 0, status: 'pending' },
-      { classId: 5, className: 'Grade 8', section: 'A', total: 36, present: 34, absent: 2, notMarked: 0, percent: 94, status: 'complete' }
-    ];
-    this.notMarkedList = [
-      { id: 1, className: 'Grade 10', section: 'A', teacher: 'John Smith', type: 'class' },
-      { id: 2, className: 'Grade 9', section: 'A', teacher: 'Jane Doe', type: 'class' },
-      { id: 3, className: 'Grade 9', section: 'B', teacher: 'Robert Johnson', type: 'class' }
-    ];
-    const t = this.classBreakdown.reduce((s, c) => s + c.total, 0);
-    const p = this.classBreakdown.reduce((s, c) => s + c.present, 0);
-    const a = this.classBreakdown.reduce((s, c) => s + c.absent, 0);
-    const nm = this.classBreakdown.reduce((s, c) => s + c.notMarked, 0);
-    this.stats = {
-      total: t,
-      present: p,
-      absent: a,
-      notMarked: nm,
-      percent: t > 0 ? Math.round(((p + a) > 0 ? (p / (p + a)) * 100 : 0)) : 0
-    };
+  openClassAttendance(item: ClassBreakdown): void {
+    this.router.navigate(['/admin/attendance/class'], {
+      queryParams: {
+        date: this.selectedDate,
+        classId: item.classId,
+        sectionId: item.sectionId
+      }
+    });
   }
+
+  // loadMockData removed; screen is now backed by APIs.
 }

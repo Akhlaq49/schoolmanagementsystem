@@ -179,3 +179,45 @@ export interface UpsertAttendanceCalendarItemRequest {
   description?: string;
 }
 
+// -----------------------------
+// Admin: Daily attendance summary
+// -----------------------------
+export interface AdminAttendanceDailyStats {
+  total: number;
+  present: number;
+  absent: number;
+  notMarked: number;
+  percent: number;
+}
+
+export type AdminAttendanceDailyBreakdownStatus = 'complete' | 'partial' | 'pending';
+
+export interface AdminAttendanceClassBreakdown {
+  classId: number;
+  sectionId: number;
+  className: string;
+  section: string;
+  total: number;
+  present: number;
+  absent: number;
+  notMarked: number;
+  percent: number;
+  status: AdminAttendanceDailyBreakdownStatus;
+}
+
+export type AdminAttendanceNotMarkedType = 'class' | 'staff';
+
+export interface AdminAttendanceNotMarkedItem {
+  id: number;
+  className: string;
+  section?: string | null;
+  teacher?: string | null;
+  type: AdminAttendanceNotMarkedType;
+}
+
+export interface AdminAttendanceDailySummary {
+  stats: AdminAttendanceDailyStats;
+  classBreakdown: AdminAttendanceClassBreakdown[];
+  notMarkedList: AdminAttendanceNotMarkedItem[];
+}
+

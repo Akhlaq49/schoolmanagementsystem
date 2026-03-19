@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Attendance, AttendanceCalendarItem, AttendanceCorrection, ClassAttendanceSheetItem, CheckInRequest, CheckOutRequest, CreateCorrectionRequest, LeaveApplication, StaffAttendance, StaffAttendanceBulkRequest, StaffAttendanceHistory, UpsertAttendanceCalendarItemRequest, UpdateAttendanceRequest } from '../models/attendance.model';
+import { AdminAttendanceDailySummary, Attendance, AttendanceCalendarItem, AttendanceCorrection, ClassAttendanceSheetItem, CheckInRequest, CheckOutRequest, CreateCorrectionRequest, LeaveApplication, StaffAttendance, StaffAttendanceBulkRequest, StaffAttendanceHistory, UpsertAttendanceCalendarItemRequest, UpdateAttendanceRequest } from '../models/attendance.model';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -222,6 +222,28 @@ export class AttendanceService {
   /** Admin: delete a calendar item. */
   deleteAdminAttendanceCalendarItem(id: number): Observable<void> {
     return this.http.delete<void>(`${this.adminAttendanceUrl}/calendar/${id}`);
+  }
+
+  /** Admin: daily summary for a date. */
+  getAdminAttendanceDailySummary(date: string): Observable<AdminAttendanceDailySummary> {
+    const params = new HttpParams().set('date', date);
+    return this.http.get<AdminAttendanceDailySummary>(`${this.adminAttendanceUrl}/daily`, { params });
+  }
+
+  /** Admin: send reminders for the selected date. */
+  sendAdminAttendanceDailyReminders(date: string): Observable<{ count: number; message: string }> {
+    return this.http.post<{ count: number; message: string }>(`${this.adminAttendanceUrl}/daily/reminders`, {
+      date
+    });
+  }
+
+  /** Admin: export daily summary CSV. */
+  exportAdminAttendanceDailySummaryCsv(date: string): Observable<Blob> {
+    const params = new HttpParams().set('date', date);
+    return this.http.get(`${this.adminAttendanceUrl}/daily/export`, {
+      params,
+      responseType: 'blob'
+    });
   }
 }
 

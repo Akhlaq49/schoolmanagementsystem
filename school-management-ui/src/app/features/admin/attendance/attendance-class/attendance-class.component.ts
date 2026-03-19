@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ClassService } from '../../../../core/services/class.service';
 import { SectionService } from '../../../../core/services/section.service';
@@ -36,11 +37,23 @@ interface RowData {
       <div class="page-header-card">
         <div class="header-content">
           <div>
-            <a routerLink="/admin/dashboard" class="back-link">
-              <i class="fa fa-arrow-left"></i> Back to Dashboard
+            <a *ngIf="fromDailyDate; else backToDashboard"
+               [routerLink]="['/admin/attendance/daily']"
+               class="back-link">
+              <i class="fa fa-arrow-left"></i> Back to Daily Summary
             </a>
+            <ng-template #backToDashboard>
+              <a routerLink="/admin/dashboard" class="back-link">
+                <i class="fa fa-arrow-left"></i> Back to Dashboard
+              </a>
+            </ng-template>
             <h2><i class="fa fa-users"></i> Class Attendance</h2>
-            <p class="page-subtitle">Mark student attendance for a class</p>
+            <p class="page-subtitle">
+              <ng-container *ngIf="fromDailyDate; else defaultSubtitle">
+                Attendance detail for {{ selectedDate }} &mdash; pre-loaded from daily summary
+              </ng-container>
+              <ng-template #defaultSubtitle>Mark student attendance for a class</ng-template>
+            </p>
           </div>
         </div>
       </div>
@@ -79,9 +92,14 @@ interface RowData {
             </app-dropdown>
           </div>
           <div class="filter-group filter-actions">
-            <button class="btn btn-primary" (click)="loadStudents()" [disabled]="loading || !selectedClassId">
-              <i class="fa fa-refresh"></i> Load
-            </button>
+            <div class="action-btns-row">
+              <button class="btn btn-primary" (click)="loadStudents()" [disabled]="loading || !selectedClassId">
+                <i class="fa fa-refresh"></i> Load
+              </button>
+              <button class="btn btn-warning" (click)="sendReminder()" [disabled]="!selectedDate">
+                <i class="fa fa-bell"></i> Reminder
+              </button>
+            </div>
           </div>
         </div>
         <div class="locked-badge" *ngIf="isLocked">
@@ -291,6 +309,7 @@ interface RowData {
       min-width: 140px;
     }
     .filter-actions { margin-left: auto; }
+    .action-btns-row { display: flex; flex-direction: row; gap: 0.5rem; align-items: center; }
     .locked-badge {
       margin-top: 1rem;
       padding: 0.75rem;
@@ -335,6 +354,7 @@ interface RowData {
     .btn-sm { padding: 0.5rem 0.75rem; font-size: 0.8125rem; }
     .btn-success { background: #059669; color: #fff; }
     .btn-danger { background: #dc2626; color: #fff; }
+    .btn-warning { background: #f59e0b; color: #fff; }
     .data-table { width: 100%; border-collapse: collapse; }
     .data-table th, .data-table td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
     .data-table th { background: #f7f9fc; font-size: 0.8125rem; color: #6a8cad; font-weight: 600; }
@@ -484,6 +504,8 @@ export class AdminAttendanceClassComponent implements OnInit {
   currentPage = 1;
   nameSearch = '';
   readonly todayDate = new Date().toISOString().split('T')[0];
+  /** Set when navigated from the daily summary so the back-link returns there. */
+  fromDailyDate: string | null = null;
 
   get filteredRows(): RowData[] {
     const q = this.nameSearch.trim().toLowerCase();
@@ -513,7 +535,8 @@ export class AdminAttendanceClassComponent implements OnInit {
     private classService: ClassService,
     private sectionService: SectionService,
     private attendanceService: AttendanceService,
-    private notify: NotificationService
+    private notify: NotificationService,
+    private route: ActivatedRoute
   ) {}
 
   onSelectedDateChange(): void {
@@ -542,13 +565,14 @@ export class AdminAttendanceClassComponent implements OnInit {
 
   ngOnInit(): void {
     this.selectedDate = new Date().toISOString().split('T')[0];
-    this.loadClasses();
+    this.loadClasses(() => this.applyRouteFilters());
   }
 
-  loadClasses(): void {
+  loadClasses(onLoaded?: () => void): void {
     this.classService.getAllClasses().subscribe({
       next: (c) => {
         this.classes = c;
+        onLoaded?.();
       },
       error: () => this.notify.error('Failed to load classes')
     });
@@ -629,6 +653,52 @@ export class AdminAttendanceClassComponent implements OnInit {
         this.loading = false;
         this.rows = [];
         this.notify.error(err?.error?.message ?? 'Failed to load class attendance');
+      }
+    });
+  }
+
+  private applyRouteFilters(): void {
+    this.route.queryParamMap.subscribe(params => {
+      const date = params.get('date');
+      const classIdRaw = params.get('classId');
+      const sectionIdRaw = params.get('sectionId');
+
+      if (date) {
+        this.selectedDate = date;
+        this.fromDailyDate = date; // came from daily summary
+      }
+
+      const classId = classIdRaw ? Number(classIdRaw) : null;
+      const sectionId = sectionIdRaw ? Number(sectionIdRaw) : null;
+
+      if (!classId || Number.isNaN(classId)) {
+        return;
+      }
+
+      this.selectedClassId = classId;
+      this.sectionService.getSectionsByClass(classId).subscribe({
+        next: (sections) => {
+          this.sections = sections;
+          if (sectionId && !Number.isNaN(sectionId)) {
+            this.selectedSectionId = sectionId;
+          } else {
+            this.selectedSectionId = null;
+          }
+          this.loadStudents();
+        },
+        error: () => this.notify.error('Failed to load sections')
+      });
+    });
+  }
+
+  sendReminder(): void {
+    if (!this.selectedDate) return;
+    this.attendanceService.sendAdminAttendanceDailyReminders(this.selectedDate).subscribe({
+      next: (res: { count: number; message: string }) => {
+        this.notify.success(res.message || `Reminder sent. Count: ${res.count}`);
+      },
+      error: (err: any) => {
+        this.notify.error(err?.error?.message ?? 'Failed to send reminder');
       }
     });
   }
