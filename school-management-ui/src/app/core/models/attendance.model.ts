@@ -22,6 +22,35 @@ export interface Attendance {
   student?: Student;
 }
 
+/// <summary>Admin: staff attendance row (one per staff member).</summary>
+export interface StaffAttendance {
+  staffId: number;
+  name: string;
+  department: string;
+  status: number; // 0=Not Marked, 1=PP, 2=PO, 3=Absent
+  timeIn: string;  // HH:mm (empty if not set)
+  timeOut: string; // HH:mm (empty if not set)
+}
+
+export interface StaffAttendanceBulkRecord {
+  staffId: number;
+  status: number;
+  timeIn?: string | null;
+  timeOut?: string | null;
+}
+
+export interface StaffAttendanceBulkRequest {
+  date: string;
+  records: StaffAttendanceBulkRecord[];
+}
+
+export interface StaffAttendanceHistory {
+  date: string; // yyyy-MM-dd
+  status: string; // PP/PO/A/Not Marked
+  timeIn: string; // HH:mm
+  timeOut: string; // HH:mm
+}
+
 /** One row from admin class attendance sheet API (student + attendance for a date). */
 export interface ClassAttendanceSheetItem {
   studentId: number;

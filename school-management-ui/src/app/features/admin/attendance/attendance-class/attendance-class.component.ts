@@ -50,7 +50,13 @@ interface RowData {
         <div class="filter-row">
           <div class="filter-group">
             <label>Date</label>
-            <input type="date" [(ngModel)]="selectedDate" class="form-control">
+              <input
+                type="date"
+                [(ngModel)]="selectedDate"
+                [max]="todayDate"
+                (ngModelChange)="onSelectedDateChange()"
+                class="form-control"
+              >
           </div>
           <div class="filter-group">
             <label>Class</label>
@@ -85,8 +91,15 @@ interface RowData {
 
       <div class="table-card" *ngIf="rows.length > 0">
         <div class="table-header">
-          <h3>Students ({{ rows.length }})</h3>
+          <h3>Students ({{ filteredRows.length }})</h3>
           <div class="bulk-actions">
+            <input
+              type="text"
+              [(ngModel)]="nameSearch"
+              (ngModelChange)="currentPage = 1"
+              placeholder="Search by name"
+              class="form-control name-search"
+            >
             <button class="btn btn-sm btn-success" (click)="markAllPresent()" [disabled]="isLocked">
               <i class="fa fa-check"></i> Mark All Present
             </button>
@@ -167,7 +180,7 @@ interface RowData {
           </table>
         </div>
         <div class="pagination-bar" *ngIf="totalPages > 1">
-          <span class="pagination-info">Showing {{ (currentPage - 1) * pageSize + 1 }} to {{ endIndex }} of {{ rows.length }}</span>
+          <span class="pagination-info">Showing {{ (currentPage - 1) * pageSize + 1 }} to {{ endIndex }} of {{ filteredRows.length }}</span>
           <div class="pagination-controls">
             <button type="button" class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">
               <i class="fa fa-chevron-left"></i>
@@ -438,6 +451,12 @@ interface RowData {
     .leg.a { background: #fee2e2; color: #dc2626; }
     .leg.sl { background: #fed7aa; color: #ea580c; }
     .leg.fl { background: #ede9fe; color: #7c3aed; }
+    .name-search { 
+      min-width: 240px; 
+      color: #0f2744 !important;
+      -webkit-text-fill-color: #0f2744;
+    }
+    .name-search::placeholder { color: #6a8cad !important; opacity: 1; }
     .empty-state { text-align: center; padding: 3rem; color: #9ca3af; }
     .empty-state i { font-size: 3rem; margin-bottom: 0.5rem; display: block; }
     .edit-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000; }
@@ -463,18 +482,26 @@ export class AdminAttendanceClassComponent implements OnInit {
   isLocked = false;
   pageSize = 15;
   currentPage = 1;
+  nameSearch = '';
+  readonly todayDate = new Date().toISOString().split('T')[0];
+
+  get filteredRows(): RowData[] {
+    const q = this.nameSearch.trim().toLowerCase();
+    if (!q) return this.rows;
+    return this.rows.filter(r => (r.student?.name || '').toLowerCase().includes(q));
+  }
 
   get totalPages(): number {
-    return Math.ceil(this.rows.length / this.pageSize) || 1;
+    return Math.ceil(this.filteredRows.length / this.pageSize) || 1;
   }
 
   get paginatedRows(): RowData[] {
     const start = (this.currentPage - 1) * this.pageSize;
-    return this.rows.slice(start, start + this.pageSize);
+    return this.filteredRows.slice(start, start + this.pageSize);
   }
 
   get endIndex(): number {
-    return Math.min(this.currentPage * this.pageSize, this.rows.length);
+    return Math.min(this.currentPage * this.pageSize, this.filteredRows.length);
   }
 
   goToPage(p: number): void {
@@ -488,6 +515,22 @@ export class AdminAttendanceClassComponent implements OnInit {
     private attendanceService: AttendanceService,
     private notify: NotificationService
   ) {}
+
+  onSelectedDateChange(): void {
+    // Match existing behavior: fetch only when a class is selected.
+    if (this.selectedClassId) this.loadStudents();
+  }
+
+  private ensureNotFutureSelectedDate(): boolean {
+    // `yyyy-MM-dd` string comparison is safe for dates.
+    if (!this.selectedDate) return false;
+    if (this.selectedDate > this.todayDate) {
+      this.notify.error('Future dates are not allowed.');
+      this.selectedDate = this.todayDate;
+      return false;
+    }
+    return true;
+  }
 
   get classOptions(): DropdownOption[] {
     return this.classes.map(c => ({ value: c.classId, label: c.name }));
@@ -555,6 +598,7 @@ export class AdminAttendanceClassComponent implements OnInit {
 
   loadStudents(): void {
     if (!this.selectedClassId || !this.selectedDate) return;
+    if (!this.ensureNotFutureSelectedDate()) return;
     this.loading = true;
     this.attendanceService.getAdminClassAttendanceSheet(
       this.selectedDate,
@@ -594,17 +638,18 @@ export class AdminAttendanceClassComponent implements OnInit {
   }
 
   markAllPresent(): void {
-    this.rows.forEach(r => { r.status = 1; r.timeIn = '08:00'; r.timeOut = null; });
+    this.filteredRows.forEach(r => { r.status = 1; r.timeIn = '08:00'; r.timeOut = null; });
     this.notify.success('All marked Present');
   }
 
   markAllAbsent(): void {
-    this.rows.forEach(r => { r.status = 3; r.timeIn = null; r.timeOut = null; });
+    this.filteredRows.forEach(r => { r.status = 3; r.timeIn = null; r.timeOut = null; });
     this.notify.success('All marked Absent');
   }
 
   saveAttendance(): void {
     if (!this.selectedDate || !this.selectedClassId || this.rows.length === 0) return;
+    if (!this.ensureNotFutureSelectedDate()) return;
     this.saving = true;
     this.attendanceService.saveAdminClassAttendance({
       date: this.selectedDate,

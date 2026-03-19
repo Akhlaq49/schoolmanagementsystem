@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Attendance, AttendanceCorrection, ClassAttendanceSheetItem, CheckInRequest, CheckOutRequest, CreateCorrectionRequest, LeaveApplication, UpdateAttendanceRequest } from '../models/attendance.model';
+import { Attendance, AttendanceCorrection, ClassAttendanceSheetItem, CheckInRequest, CheckOutRequest, CreateCorrectionRequest, LeaveApplication, StaffAttendance, StaffAttendanceBulkRequest, StaffAttendanceHistory, UpdateAttendanceRequest } from '../models/attendance.model';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -185,6 +185,22 @@ export class AttendanceService {
     records: { studentId: number; status: number; timeIn?: string | null; timeOut?: string | null; remarks?: string; leaveReason?: string }[];
   }): Observable<Attendance[]> {
     return this.http.post<Attendance[]>(`${this.adminAttendanceUrl}/class`, dto);
+  }
+
+  /** Admin: load staff attendance for a date. */
+  getAdminStaffAttendance(date: string): Observable<StaffAttendance[]> {
+    const params = new HttpParams().set('date', date);
+    return this.http.get<StaffAttendance[]>(`${this.adminAttendanceUrl}/staff`, { params });
+  }
+
+  /** Admin: bulk save staff attendance. */
+  saveAdminStaffAttendance(dto: StaffAttendanceBulkRequest): Observable<Attendance[]> {
+    return this.http.post<Attendance[]>(`${this.adminAttendanceUrl}/staff`, dto);
+  }
+
+  /** Admin: staff attendance history. */
+  getAdminStaffAttendanceHistory(staffId: number): Observable<StaffAttendanceHistory[]> {
+    return this.http.get<StaffAttendanceHistory[]>(`${this.adminAttendanceUrl}/staff/history/${staffId}`);
   }
 }
 

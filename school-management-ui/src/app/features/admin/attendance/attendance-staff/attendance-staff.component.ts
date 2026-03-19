@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { NotificationService } from '../../../../shared/services/notification.service';
+import { AttendanceService } from '../../../../core/services/attendance.service';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
 
 type StatusCode = 0 | 1 | 2 | 3; // 0=Not Marked, 1=PP, 2=PO, 3=Absent
@@ -39,7 +40,13 @@ interface StaffRow {
         <div class="filter-row">
           <div class="filter-group">
             <label>Date</label>
-            <input type="date" [(ngModel)]="selectedDate" class="form-control">
+            <input
+              type="date"
+              [(ngModel)]="selectedDate"
+              [max]="todayDate"
+              (ngModelChange)="onSelectedDateChange()"
+              class="form-control"
+            >
           </div>
           <div class="filter-group">
             <label>Punctuality filter</label>
@@ -63,6 +70,13 @@ interface StaffRow {
         <div class="table-header">
           <h3>Staff ({{ rows.length }})</h3>
           <div class="bulk-actions">
+            <input
+              type="text"
+              [(ngModel)]="nameSearch"
+              (ngModelChange)="currentPage = 1"
+              placeholder="Search by name"
+              class="form-control name-search"
+            >
             <button class="btn btn-sm btn-success" (click)="markAllPresent()">
               <i class="fa fa-check"></i> Mark All Present
             </button>
@@ -81,6 +95,7 @@ interface StaffRow {
               <th>Name</th>
               <th>Department</th>
               <th>Status</th>
+              <th>Marked</th>
               <th>Time In</th>
               <th>Time Out</th>
               <th>Actions</th>
@@ -97,6 +112,18 @@ interface StaffRow {
                   <button class="status-btn po" [class.active]="r.status === 2" (click)="setStatus(r, 2)" title="PO">PO</button>
                   <button class="status-btn a" [class.active]="r.status === 3" (click)="setStatus(r, 3)" title="Absent">A</button>
                 </div>
+              </td>
+              <td>
+                <span
+                  class="marked-badge"
+                  [ngClass]="isMarkedStatus(r.status) ? 'marked-badge--yes' : 'marked-badge--not'"
+                >
+                  <i
+                    class="fa"
+                    [ngClass]="isMarkedStatus(r.status) ? 'fa fa-check-circle' : 'fa fa-times-circle-o'"
+                  ></i>
+                  {{ isMarkedStatus(r.status) ? 'Marked' : 'Not Marked' }}
+                </span>
               </td>
               <td>
                 <div class="time-cell">
@@ -134,6 +161,53 @@ interface StaffRow {
             </button>
             <button type="button" class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">
               <i class="fa fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="editRowData" class="edit-overlay" (click)="closeEdit()">
+        <div class="edit-modal" (click)="$event.stopPropagation()">
+          <h3>Edit Attendance — {{ editRowData.name }}</h3>
+          <div class="edit-form">
+            <div class="edit-field">
+              <label>Status</label>
+              <div class="status-btns">
+                <button type="button" class="status-btn pp" [class.active]="editRowData.status === 1" (click)="editRowData.status = 1">PP</button>
+                <button type="button" class="status-btn po" [class.active]="editRowData.status === 2" (click)="editRowData.status = 2">PO</button>
+                <button
+                  type="button"
+                  class="status-btn a"
+                  [class.active]="editRowData.status === 3"
+                  (click)="editRowData.status = 3; editRowData.timeIn = ''; editRowData.timeOut = ''"
+                >A</button>
+              </div>
+            </div>
+            <div class="edit-row">
+              <div class="edit-field">
+                <label>Time In</label>
+                <input
+                  type="time"
+                  [(ngModel)]="editRowData.timeIn"
+                  class="form-control"
+                  [disabled]="editRowData.status !== 1 && editRowData.status !== 2"
+                >
+              </div>
+              <div class="edit-field">
+                <label>Time Out</label>
+                <input
+                  type="time"
+                  [(ngModel)]="editRowData.timeOut"
+                  class="form-control"
+                  [disabled]="editRowData.status !== 1 && editRowData.status !== 2"
+                >
+              </div>
+            </div>
+          </div>
+          <div class="edit-actions">
+            <button type="button" class="btn btn-secondary" (click)="closeEdit()">Cancel</button>
+            <button type="button" class="btn btn-primary" (click)="saveEdit()">
+              <i class="fa fa-check"></i> Save
             </button>
           </div>
         </div>
@@ -220,6 +294,12 @@ interface StaffRow {
     }
     .table-header h3 { margin: 0; font-size: 1.125rem; color: #0f2744; }
     .bulk-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .name-search { 
+      min-width: 240px; 
+      color: #0f2744 !important;
+      -webkit-text-fill-color: #0f2744;
+    }
+    .name-search::placeholder { color: #6a8cad !important; opacity: 1; }
     .btn {
       display: inline-flex;
       align-items: center;
@@ -263,6 +343,28 @@ interface StaffRow {
       width: 90px;
     }
     .badge { padding: 0.2rem 0.4rem; border-radius: 6px; font-size: 0.7rem; font-weight: 600; }
+    .marked-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.8125rem;
+      font-weight: 800;
+      border: 1px solid transparent;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .marked-badge--yes {
+      background: linear-gradient(135deg, #d1fae5 0%, #ecfdf5 100%);
+      color: #059669;
+      border-color: #a7f3d0;
+    }
+    .marked-badge--not {
+      background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%);
+      color: #92400e;
+      border-color: #fcd34d;
+    }
     .badge-late { background: #fee2e2; color: #dc2626; }
     .badge-early { background: #fef3c7; color: #d97706; }
     .late-row { background: #fef2f2; }
@@ -325,13 +427,32 @@ export class AdminAttendanceStaffComponent implements OnInit {
   pageSize = 15;
   currentPage = 1;
   punctualityFilter: 'all' | 'late' | 'early' = 'all';
+  nameSearch = '';
+  readonly todayDate = new Date().toISOString().split('T')[0];
   readonly expectedTimeIn = '08:15';
   readonly expectedTimeOut = '14:00';
 
+  private normalizeStatus(status: number): StatusCode {
+    // Backend model uses `int` for status, but admin staff UI supports 0..3 only.
+    // If anything else comes in, fall back to Not Marked.
+    return (status === 0 || status === 1 || status === 2 || status === 3) ? status : 0;
+  }
+
+  isMarkedStatus(status: StatusCode): boolean {
+    return status !== 0;
+  }
+
   get filteredRows(): StaffRow[] {
-    if (this.punctualityFilter === 'late') return this.rows.filter(r => this.isLate(r));
-    if (this.punctualityFilter === 'early') return this.rows.filter(r => this.isEarlyLeave(r));
-    return this.rows;
+    const base =
+      this.punctualityFilter === 'late'
+        ? this.rows.filter(r => this.isLate(r))
+        : this.punctualityFilter === 'early'
+          ? this.rows.filter(r => this.isEarlyLeave(r))
+          : this.rows;
+
+    const q = this.nameSearch.trim().toLowerCase();
+    if (!q) return base;
+    return base.filter(r => (r.name || '').toLowerCase().includes(q));
   }
 
   get totalPages(): number {
@@ -378,22 +499,43 @@ export class AdminAttendanceStaffComponent implements OnInit {
     this.currentPage = p;
   }
 
-  constructor(private notify: NotificationService) {}
+  constructor(private notify: NotificationService, private attendanceService: AttendanceService) {}
 
   ngOnInit(): void {
     this.selectedDate = new Date().toISOString().split('T')[0];
-    this.applyMockData();
+    this.loadStaffAttendance();
   }
 
-  private applyMockData(): void {
+  onSelectedDateChange(): void {
+    this.loadStaffAttendance();
+  }
+
+  private ensureNotFutureSelectedDate(): boolean {
+    // `yyyy-MM-dd` string comparison is safe for dates.
+    if (!this.selectedDate) return false;
+    if (this.selectedDate > this.todayDate) {
+      this.notify.error('Future dates are not allowed.');
+      this.selectedDate = this.todayDate;
+      return false;
+    }
+    return true;
+  }
+
+  private loadStaffAttendance(): void {
+    if (!this.ensureNotFutureSelectedDate()) return;
+    this.rows = [];
     this.currentPage = 1;
-    this.rows = [
-      { staffId: 1, name: 'John Smith', department: 'Mathematics', status: 1, timeIn: '08:10', timeOut: '14:00' },
-      { staffId: 2, name: 'Jane Doe', department: 'Science', status: 2, timeIn: '08:45', timeOut: '14:00' },
-      { staffId: 3, name: 'Robert Johnson', department: 'English', status: 3, timeIn: '', timeOut: '' },
-      { staffId: 4, name: 'Sarah Williams', department: 'Mathematics', status: 1, timeIn: '08:00', timeOut: '13:30' },
-      { staffId: 5, name: 'Michael Brown', department: 'History', status: 1, timeIn: '08:30', timeOut: '13:00' }
-    ];
+    this.attendanceService.getAdminStaffAttendance(this.selectedDate).subscribe({
+      next: (data) => {
+        // Normalize status into the union type used by this component.
+        this.rows = data.map(d => ({ ...d, status: this.normalizeStatus(d.status) }));
+        this.currentPage = 1;
+      },
+      error: (err) => {
+        this.rows = [];
+        this.notify.error(err?.error?.message ?? 'Failed to load staff attendance');
+      }
+    });
   }
 
   setStatus(r: StaffRow, status: StatusCode): void {
@@ -401,12 +543,12 @@ export class AdminAttendanceStaffComponent implements OnInit {
   }
 
   markAllPresent(): void {
-    this.rows.forEach(r => { r.status = 1; r.timeIn = '08:00'; });
+    this.filteredRows.forEach(r => { r.status = 1; r.timeIn = '08:00'; r.timeOut = this.expectedTimeOut; });
     this.notify.success('All marked Present');
   }
 
   markAllAbsent(): void {
-    this.rows.forEach(r => { r.status = 3; r.timeIn = ''; r.timeOut = ''; });
+    this.filteredRows.forEach(r => { r.status = 3; r.timeIn = ''; r.timeOut = ''; });
     this.notify.success('All marked Absent');
   }
 
@@ -425,8 +567,13 @@ export class AdminAttendanceStaffComponent implements OnInit {
     const r = this.rows.find(x => x.staffId === this.editRowData!.staffId);
     if (r) {
       r.status = this.editRowData.status;
-      r.timeIn = this.editRowData.timeIn;
-      r.timeOut = this.editRowData.timeOut;
+      if (this.editRowData.status === 1 || this.editRowData.status === 2) {
+        r.timeIn = this.editRowData.timeIn;
+        r.timeOut = this.editRowData.timeOut;
+      } else {
+        r.timeIn = '';
+        r.timeOut = '';
+      }
     }
     this.notify.success('Row updated');
     this.closeEdit();
@@ -440,10 +587,26 @@ export class AdminAttendanceStaffComponent implements OnInit {
   }
 
   saveAttendance(): void {
+    if (!this.ensureNotFutureSelectedDate()) return;
     this.saving = true;
-    setTimeout(() => {
-      this.saving = false;
-      this.notify.success('Staff attendance saved');
-    }, 500);
+    this.attendanceService.saveAdminStaffAttendance({
+      date: this.selectedDate,
+      records: this.rows.map(r => ({
+        staffId: r.staffId,
+        status: r.status,
+        timeIn: (r.status === 1 || r.status === 2) ? (r.timeIn || null) : null,
+        timeOut: (r.status === 1 || r.status === 2) ? (r.timeOut || null) : null
+      }))
+    }).subscribe({
+      next: () => {
+        this.saving = false;
+        this.notify.success('Staff attendance saved');
+        this.loadStaffAttendance();
+      },
+      error: (err) => {
+        this.saving = false;
+        this.notify.error(err?.error?.message ?? 'Failed to save staff attendance');
+      }
+    });
   }
 }
