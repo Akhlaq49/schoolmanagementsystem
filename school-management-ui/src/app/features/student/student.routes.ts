@@ -50,6 +50,10 @@ export const STUDENT_ROUTES: Routes = [
           {
             path: 'report',
             loadComponent: () => import('./attendance/attendance-report/attendance-report.component').then(m => m.AttendanceReportComponent)
+          },
+          {
+            path: 'calendar',
+            loadComponent: () => import('../admin/attendance/attendance-calendar/attendance-calendar.component').then(m => m.AdminAttendanceCalendarComponent)
           }
         ]
       },

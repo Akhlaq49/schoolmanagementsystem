@@ -7,6 +7,7 @@ import { TeacherService } from '../../../../core/services/teacher.service';
 import { AttendanceService } from '../../../../core/services/attendance.service';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { Teacher } from '../../../../core/models/teacher.model';
+import { AttendanceCalendarItem } from '../../../../core/models/attendance.model';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
 import { formatTime12h } from '../../../../shared/utils/time.utils';
 
@@ -44,7 +45,7 @@ import { formatTime12h } from '../../../../shared/utils/time.utils';
           <span class="dept">{{ departmentName }}</span>
         </div>
 
-        <div class="status-section" *ngIf="!loading && teacher">
+        <div class="status-section" *ngIf="!loading && teacher && !calendarOffDayLoading">
           <span class="status-label">Today's Status</span>
           <span class="status-badge" [ngClass]="getStatusClass()">{{ getStatusLabel() }}</span>
         </div>
@@ -60,7 +61,7 @@ import { formatTime12h } from '../../../../shared/utils/time.utils';
           </div>
         </div>
 
-        <div class="actions-row" *ngIf="!loading && teacher && !onLeave">
+        <div class="actions-row" *ngIf="!loading && teacher && !onLeave && !calendarOffDayLoading && !calendarOffDay">
           <button class="btn btn-pp" *ngIf="canCheckIn()" (click)="checkIn('PP')" [disabled]="saving">
             <i class="fa fa-user"></i> Mark PP
           </button>
@@ -159,6 +160,7 @@ import { formatTime12h } from '../../../../shared/utils/time.utils';
     .badge-po { background: #dbeafe; color: #2563eb; }
     .badge-not-marked { background: #fef3c7; color: #d97706; }
     .badge-leave { background: #ede9fe; color: #7c3aed; }
+    .badge-holiday { background: #f3f4f6; color: #6b7280; }
     .actions-row { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
     .btn {
       display: inline-flex; align-items: center; gap: 0.5rem;
@@ -227,6 +229,9 @@ export class AttendanceSelfComponent implements OnInit, OnDestroy {
   todayTimeIn = '';
   todayTimeOut = '';
   loading = true;
+  calendarOffDayLoading = true;
+  calendarOffDay = false;
+  offDayLabel = '';
   saving = false;
   onLeave = false;
   private clockInterval: ReturnType<typeof setInterval> | null = null;
@@ -247,6 +252,7 @@ export class AttendanceSelfComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.updateDateAndTime();
     this.clockInterval = setInterval(() => this.updateTime(), 1000);
+    this.loadCalendarOffDay();
     this.loadTeacher();
   }
 
@@ -281,6 +287,41 @@ export class AttendanceSelfComponent implements OnInit, OnDestroy {
     });
   }
 
+  private loadCalendarOffDay(): void {
+    const year = this.todayDate ? new Date(this.todayDate).getFullYear() : new Date().getFullYear();
+    this.calendarOffDayLoading = true;
+    this.attendanceService.getAdminAttendanceCalendarItems(year).subscribe({
+      next: (items: AttendanceCalendarItem[]) => {
+        const item = items.find(i => i.date === this.todayDate);
+        if (item && this.isOffDayType(item.type)) {
+          this.calendarOffDay = true;
+          this.offDayLabel = this.getOffDayLabel(item.type);
+        } else {
+          this.calendarOffDay = false;
+          this.offDayLabel = '';
+        }
+      },
+      error: () => {
+        // If calendar fetch fails, fall back to existing attendance logic.
+        this.calendarOffDay = false;
+        this.offDayLabel = '';
+      },
+      complete: () => {
+        this.calendarOffDayLoading = false;
+      }
+    });
+  }
+
+  private getOffDayLabel(type: string): string {
+    if (type === 'holiday') return 'Holiday';
+    return 'Off Day';
+  }
+
+  private isOffDayType(type: string): boolean {
+    // Hide check-in for actual off days only.
+    return type === 'holiday' || type === 'half-day' || type === 'special';
+  }
+
   private loadTodayAttendance(): void {
     this.attendanceService.getTeacherTodayAttendance().subscribe({
       next: (a) => {
@@ -298,16 +339,18 @@ export class AttendanceSelfComponent implements OnInit, OnDestroy {
   }
 
   canCheckIn(): boolean {
-    return this.todayStatus === 0;
+    return !this.calendarOffDay && this.todayStatus === 0;
   }
 
   canCheckOut(): boolean {
+    if (this.calendarOffDay) return false;
     if (this.todayTimeOut) return false; // Already checked out
     return this.todayStatus === 1 || this.todayStatus === 2;
   }
 
   getStatusLabel(): string {
     if (this.onLeave) return 'On Leave';
+    if (this.calendarOffDay) return this.offDayLabel;
     const m: Record<number, string> = {
       0: 'Not Marked', 1: 'PP', 2: 'PO', 3: 'Absent', 4: 'SL', 5: 'FL', 6: 'Holiday'
     };
@@ -316,6 +359,7 @@ export class AttendanceSelfComponent implements OnInit, OnDestroy {
 
   getStatusClass(): string {
     if (this.onLeave) return 'badge-leave';
+    if (this.calendarOffDay) return 'badge-holiday';
     if (this.todayStatus === 0) return 'badge-not-marked';
     if (this.todayStatus === 1) return 'badge-pp';
     if (this.todayStatus === 2) return 'badge-po';

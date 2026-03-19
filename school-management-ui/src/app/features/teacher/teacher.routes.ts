@@ -41,6 +41,10 @@ export const TEACHER_ROUTES: Routes = [
             loadComponent: () => import('./attendance/attendance-leave/attendance-leave.component').then(m => m.TeacherAttendanceLeaveComponent)
           },
           {
+            path: 'calendar',
+            loadComponent: () => import('../admin/attendance/attendance-calendar/attendance-calendar.component').then(m => m.AdminAttendanceCalendarComponent)
+          },
+          {
             path: 'edit',
             loadComponent: () => import('./attendance/attendance-edit/attendance-edit.component').then(m => m.TeacherAttendanceEditComponent)
           },
