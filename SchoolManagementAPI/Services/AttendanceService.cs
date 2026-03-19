@@ -660,6 +660,196 @@ public class AttendanceService : IAttendanceService
         return Encoding.UTF8.GetBytes(sb.ToString());
     }
 
+    // -----------------------------
+    // Admin: Monthly Grid
+    // -----------------------------
+
+    public async Task<MonthlyGridResponseDto> GetMonthlyGridAsync(int month, int year, int? classId, int? sectionId)
+    {
+        // 1) Load matching students.
+        var studentQuery = _context.Students
+            .Include(s => s.Class)
+            .Include(s => s.Section)
+            .Where(s => s.ClassId != null);
+
+        if (classId.HasValue)
+            studentQuery = studentQuery.Where(s => s.ClassId == classId.Value);
+        if (sectionId.HasValue)
+            studentQuery = studentQuery.Where(s => s.SectionId == sectionId.Value);
+
+        var students = await studentQuery
+            .OrderBy(s => s.ClassId)
+            .ThenBy(s => s.SectionId)
+            .ThenBy(s => s.Roll)
+            .ThenBy(s => s.Name)
+            .ToListAsync();
+
+        var studentIds = students.Select(s => s.StudentId).ToHashSet();
+
+        // 2) Load all attendance records for these students in the given month.
+        var attendanceList = await _context.Attendances
+            .Where(a => a.StudentId != null
+                     && studentIds.Contains(a.StudentId!.Value)
+                     && a.Date.Month == month
+                     && a.Date.Year == year)
+            .ToListAsync();
+
+        // Key: (studentId, day) → attendance row.
+        var attDict = attendanceList
+            .Where(a => a.StudentId.HasValue)
+            .GroupBy(a => (a.StudentId!.Value, a.Date.Day))
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.MarkedAt).First());
+
+        // 3) Load calendar holidays for this month (type = 'holiday').
+        var firstDay = new DateTime(year, month, 1);
+        var lastDay = firstDay.AddMonths(1).AddDays(-1);
+        var holidayDays = await _context.AttendanceCalendarItems
+            .Where(ci => ci.Type == "holiday"
+                      && ci.Date.Date >= firstDay.Date
+                      && ci.Date.Date <= lastDay.Date)
+            .Select(ci => ci.Date.Day)
+            .Distinct()
+            .ToListAsync();
+        var holidayDaySet = holidayDays.ToHashSet();
+
+        // 4) Build grid cells.
+        var daysInMonth = DateTime.DaysInMonth(year, month);
+        var cells = new List<MonthlyGridCellDto>();
+
+        foreach (var s in students)
+        {
+            for (int day = 1; day <= daysInMonth; day++)
+            {
+                attDict.TryGetValue((s.StudentId, day), out var att);
+                int rawStatus = att?.Status ?? 0;
+
+                string gridStatus;
+                if (att != null)
+                {
+                    gridStatus = rawStatus switch
+                    {
+                        1 or 2 or 7 => "P", // PP, PO, Late
+                        3           => "A", // Absent
+                        4 or 5      => "L", // SL, FL
+                        6           => "H", // Holiday (in attendance record)
+                        _           => ""   // 0 = Not Marked
+                    };
+                }
+                else
+                {
+                    // No record: mark H if it's a calendar holiday, else empty.
+                    gridStatus = holidayDaySet.Contains(day) ? "H" : "";
+                }
+
+                // Only emit a cell if there is something to show.
+                if (string.IsNullOrEmpty(gridStatus) && att == null) continue;
+
+                string? timeIn = null, timeOut = null;
+                if (att?.TimeIn.HasValue == true)
+                    timeIn = $"{att.TimeIn.Value.Hours:D2}:{att.TimeIn.Value.Minutes:D2}";
+                if (att?.TimeOut.HasValue == true)
+                    timeOut = $"{att.TimeOut.Value.Hours:D2}:{att.TimeOut.Value.Minutes:D2}";
+
+                cells.Add(new MonthlyGridCellDto
+                {
+                    StudentId = s.StudentId,
+                    Day       = day,
+                    Status    = gridStatus,
+                    RawStatus = rawStatus,
+                    TimeIn    = timeIn,
+                    TimeOut   = timeOut,
+                    Remarks   = att?.Remarks ?? att?.LeaveReason
+                });
+            }
+        }
+
+        // Also emit empty-status Holiday cells for students that have no record on holiday days.
+        foreach (var s in students)
+        {
+            foreach (var day in holidayDaySet)
+            {
+                if (!attDict.ContainsKey((s.StudentId, day)))
+                {
+                    // Avoid duplicates: check cells list.
+                    if (!cells.Any(c => c.StudentId == s.StudentId && c.Day == day))
+                    {
+                        cells.Add(new MonthlyGridCellDto
+                        {
+                            StudentId = s.StudentId,
+                            Day       = day,
+                            Status    = "H",
+                            RawStatus = 0
+                        });
+                    }
+                }
+            }
+        }
+
+        var monthNames = new[] { "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec" };
+
+        return new MonthlyGridResponseDto
+        {
+            Month       = month,
+            Year        = year,
+            DaysInMonth = daysInMonth,
+            MonthLabel  = $"{monthNames[month - 1]} {year}",
+            Students    = students.Select(s => new MonthlyGridStudentDto
+            {
+                StudentId   = s.StudentId,
+                Roll        = s.Roll ?? string.Empty,
+                Name        = s.Name,
+                ClassName   = s.Class?.Name,
+                SectionName = s.Section?.Name
+            }).ToList(),
+            GridCells = cells.OrderBy(c => c.StudentId).ThenBy(c => c.Day).ToList()
+        };
+    }
+
+    public async Task<byte[]> ExportMonthlyGridCsvAsync(int month, int year, int? classId, int? sectionId)
+    {
+        var grid = await GetMonthlyGridAsync(month, year, classId, sectionId);
+
+        var sb = new StringBuilder();
+
+        // Header row: #, Roll, Name, 1..DaysInMonth
+        var header = new List<string> { "#", "Roll", "Name" };
+        for (int d = 1; d <= grid.DaysInMonth; d++)
+            header.Add(d.ToString());
+        header.AddRange(new[] { "P", "A", "L", "H", "NM" });
+        sb.AppendLine(string.Join(",", header));
+
+        // Cell lookup.
+        var cellLookup = grid.GridCells
+            .ToDictionary(c => (c.StudentId, c.Day));
+
+        int rowNum = 0;
+        foreach (var s in grid.Students)
+        {
+            rowNum++;
+            var row = new List<string> { rowNum.ToString(), EscapeCsv(s.Roll), EscapeCsv(s.Name) };
+
+            int pCount = 0, aCount = 0, lCount = 0, hCount = 0, nmCount = 0;
+            for (int d = 1; d <= grid.DaysInMonth; d++)
+            {
+                cellLookup.TryGetValue((s.StudentId, d), out var cell);
+                var st = cell?.Status ?? "";
+                row.Add(string.IsNullOrEmpty(st) ? "—" : st);
+                switch (st)
+                {
+                    case "P": pCount++; break;
+                    case "A": aCount++; break;
+                    case "L": lCount++; break;
+                    case "H": hCount++; break;
+                    default:  nmCount++; break;
+                }
+            }
+            row.AddRange(new[] { pCount.ToString(), aCount.ToString(), lCount.ToString(), hCount.ToString(), nmCount.ToString() });
+            sb.AppendLine(string.Join(",", row));
+        }
+
+        return Encoding.UTF8.GetBytes(sb.ToString());
+    }
+
     private static string EscapeCsv(string? value)
     {
         if (string.IsNullOrEmpty(value)) return "";

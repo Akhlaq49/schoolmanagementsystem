@@ -34,5 +34,9 @@ public interface IAttendanceService
     Task<AdminAttendanceDailySummaryDto> GetAdminAttendanceDailySummaryAsync(DateTime date);
     Task<AdminAttendanceDailyReminderResultDto> SendAdminAttendanceDailyRemindersAsync(DateTime date);
     Task<byte[]> ExportAdminAttendanceDailySummaryCsvAsync(DateTime date);
+
+    // Admin: Monthly grid
+    Task<MonthlyGridResponseDto> GetMonthlyGridAsync(int month, int year, int? classId, int? sectionId);
+    Task<byte[]> ExportMonthlyGridCsvAsync(int month, int year, int? classId, int? sectionId);
 }
 
