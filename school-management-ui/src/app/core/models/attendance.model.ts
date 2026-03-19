@@ -162,3 +162,20 @@ export interface CreateCorrectionRequest {
   requestedRemarks?: string;
 }
 
+export type AttendanceCalendarDayType = 'holiday' | 'event' | 'half-day' | 'special';
+
+export interface AttendanceCalendarItem {
+  id: number;
+  date: string; // yyyy-MM-dd
+  title: string;
+  type: AttendanceCalendarDayType;
+  description?: string;
+}
+
+export interface UpsertAttendanceCalendarItemRequest {
+  date: string; // yyyy-MM-dd
+  title: string;
+  type: AttendanceCalendarDayType;
+  description?: string;
+}
+

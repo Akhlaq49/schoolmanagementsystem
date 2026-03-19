@@ -470,7 +470,8 @@ export class LayoutComponent implements OnInit, OnDestroy {
             { route: '/teacher/attendance/class', label: 'Class Attendance', role: 'teacher' },
             { route: '/teacher/attendance/leave', label: 'Leave', role: 'teacher' },
             { route: '/teacher/attendance/edit', label: 'Edit Attendance', role: 'teacher' },
-            { route: '/teacher/attendance/report', label: 'Attendance Report', role: 'teacher' }
+            { route: '/teacher/attendance/report', label: 'Attendance Report', role: 'teacher' },
+            { route: '/teacher/attendance/calendar', label: 'Calendar', role: 'teacher' }
           ]
         },
         { route: '/teacher/marks', label: 'Marks', icon: 'fa fa-star', role: 'teacher' },
@@ -491,7 +492,8 @@ export class LayoutComponent implements OnInit, OnDestroy {
           children: [
             { route: '/student/attendance/checkin', label: 'Check In', role: 'student' },
             { route: '/student/attendance/edit', label: 'Edit Attendance', role: 'student' },
-            { route: '/student/attendance/report', label: 'Attendance Report', role: 'student' }
+            { route: '/student/attendance/report', label: 'Attendance Report', role: 'student' },
+            { route: '/student/attendance/calendar', label: 'Calendar', role: 'student' }
           ]
         },
         { route: '/student/leave', label: 'Leave', icon: 'fa fa-calendar-plus-o', role: 'student' },

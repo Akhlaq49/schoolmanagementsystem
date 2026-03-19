@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Attendance, AttendanceCorrection, ClassAttendanceSheetItem, CheckInRequest, CheckOutRequest, CreateCorrectionRequest, LeaveApplication, StaffAttendance, StaffAttendanceBulkRequest, StaffAttendanceHistory, UpdateAttendanceRequest } from '../models/attendance.model';
+import { Attendance, AttendanceCalendarItem, AttendanceCorrection, ClassAttendanceSheetItem, CheckInRequest, CheckOutRequest, CreateCorrectionRequest, LeaveApplication, StaffAttendance, StaffAttendanceBulkRequest, StaffAttendanceHistory, UpsertAttendanceCalendarItemRequest, UpdateAttendanceRequest } from '../models/attendance.model';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -201,6 +201,27 @@ export class AttendanceService {
   /** Admin: staff attendance history. */
   getAdminStaffAttendanceHistory(staffId: number): Observable<StaffAttendanceHistory[]> {
     return this.http.get<StaffAttendanceHistory[]>(`${this.adminAttendanceUrl}/staff/history/${staffId}`);
+  }
+
+  /** Admin: shared attendance calendar items by year. */
+  getAdminAttendanceCalendarItems(year: number): Observable<AttendanceCalendarItem[]> {
+    const params = new HttpParams().set('year', year.toString());
+    return this.http.get<AttendanceCalendarItem[]>(`${this.adminAttendanceUrl}/calendar`, { params });
+  }
+
+  /** Admin: create a calendar item. */
+  createAdminAttendanceCalendarItem(dto: UpsertAttendanceCalendarItemRequest): Observable<AttendanceCalendarItem> {
+    return this.http.post<AttendanceCalendarItem>(`${this.adminAttendanceUrl}/calendar`, dto);
+  }
+
+  /** Admin: update a calendar item. */
+  updateAdminAttendanceCalendarItem(id: number, dto: UpsertAttendanceCalendarItemRequest): Observable<AttendanceCalendarItem> {
+    return this.http.put<AttendanceCalendarItem>(`${this.adminAttendanceUrl}/calendar/${id}`, dto);
+  }
+
+  /** Admin: delete a calendar item. */
+  deleteAdminAttendanceCalendarItem(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.adminAttendanceUrl}/calendar/${id}`);
   }
 }
 

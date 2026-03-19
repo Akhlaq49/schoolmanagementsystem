@@ -3,16 +3,11 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { NotificationService } from '../../../../shared/services/notification.service';
+import { AttendanceService } from '../../../../core/services/attendance.service';
+import { AttendanceCalendarItem, UpsertAttendanceCalendarItemRequest } from '../../../../core/models/attendance.model';
+import { AuthService } from '../../../../core/services/auth.service';
 
 type DayType = 'holiday' | 'event' | 'half-day' | 'special';
-
-interface CalendarItem {
-  id: number;
-  date: string;
-  title: string;
-  type: DayType;
-  description?: string;
-}
 
 @Component({
   selector: 'app-admin-attendance-calendar',
@@ -23,7 +18,7 @@ interface CalendarItem {
       <div class="page-header-card">
         <div class="header-content">
           <div>
-            <a routerLink="/admin/dashboard" class="back-link">
+            <a [routerLink]="backLink" class="back-link">
               <i class="fa fa-arrow-left"></i> Back to Dashboard
             </a>
             <h2><i class="fa fa-calendar"></i> Calendar</h2>
@@ -36,7 +31,7 @@ interface CalendarItem {
         <div class="calendar-header">
           <h3><i class="fa fa-calendar-check-o"></i> Shared Calendar</h3>
           <div class="calendar-controls">
-            <select [(ngModel)]="selectedYear" (ngModelChange)="buildCalendar()" class="form-control year-select">
+            <select [(ngModel)]="selectedYear" (ngModelChange)="onYearChange()" class="form-control year-select">
               <option *ngFor="let y of yearOptions" [value]="y">{{ y }}</option>
             </select>
             <div class="month-nav">
@@ -77,11 +72,11 @@ interface CalendarItem {
           <span class="leg-item"><span class="dot halfday"></span> Half-day</span>
           <span class="leg-item"><span class="dot special"></span> Special</span>
           <span class="leg-item"><span class="dot today"></span> Today</span>
-          <span class="leg-item"><i>Click a date to configure</i></span>
+          <span class="leg-item"><i>{{ isAdmin ? 'Click a date to configure' : 'View date details' }}</i></span>
         </div>
       </div>
 
-      <div class="add-card">
+      <div class="add-card" *ngIf="isAdmin">
         <h3><i class="fa fa-plus-circle"></i> Add / Configure Day</h3>
         <div class="config-form">
           <div class="form-group">
@@ -124,7 +119,7 @@ interface CalendarItem {
               <th>Title</th>
               <th>Type</th>
               <th>Description</th>
-              <th>Actions</th>
+              <th *ngIf="isAdmin">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -134,7 +129,7 @@ interface CalendarItem {
               <td>{{ item.title }}</td>
               <td><span class="badge" [ngClass]="'badge-' + item.type">{{ item.type }}</span></td>
               <td class="desc-cell">{{ item.description || '—' }}</td>
-              <td>
+              <td *ngIf="isAdmin">
                 <button type="button" class="btn-icon" (click)="editItem(item)" title="Edit">
                   <i class="fa fa-pencil"></i>
                 </button>
@@ -295,7 +290,9 @@ export class AdminAttendanceCalendarComponent implements OnInit {
   yearOptions: number[] = [];
   weekdayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   calendarDays: (Date | null)[] = [];
-  items: CalendarItem[] = [];
+  items: AttendanceCalendarItem[] = [];
+  isAdmin = false;
+  backLink = '/admin/dashboard';
   configDate = '';
   configTitle = '';
   configType: DayType = 'holiday';
@@ -307,7 +304,7 @@ export class AdminAttendanceCalendarComponent implements OnInit {
     return Math.ceil(this.items.length / this.pageSize) || 1;
   }
 
-  get paginatedItems(): CalendarItem[] {
+  get paginatedItems(): AttendanceCalendarItem[] {
     const start = (this.currentPage - 1) * this.pageSize;
     return this.items.slice(start, start + this.pageSize);
   }
@@ -316,26 +313,45 @@ export class AdminAttendanceCalendarComponent implements OnInit {
     return Math.min(this.currentPage * this.pageSize, this.items.length);
   }
 
-  constructor(private notify: NotificationService) {}
+  constructor(
+    private notify: NotificationService,
+    private attendanceService: AttendanceService,
+    private auth: AuthService
+  ) {}
 
   ngOnInit(): void {
+    this.isAdmin = this.auth.hasRole('admin');
+    if (!this.isAdmin) {
+      if (this.auth.hasRole('teacher')) this.backLink = '/teacher/dashboard';
+      else if (this.auth.hasRole('student')) this.backLink = '/student/dashboard';
+      else this.backLink = '/';
+    }
     const y = new Date().getFullYear();
     this.yearOptions = [y - 1, y, y + 1];
     this.selectedYear = y;
     this.displayMonth = new Date().getMonth();
-    this.loadMockData();
     this.buildCalendar();
+    this.loadCalendarItems();
   }
 
-  loadMockData(): void {
-    const y = this.selectedYear;
-    this.items = [
-      { id: 1, date: `${y}-01-01`, title: 'New Year', type: 'holiday', description: 'Public holiday' },
-      { id: 2, date: `${y}-03-23`, title: 'Pakistan Day', type: 'holiday', description: 'National holiday' },
-      { id: 3, date: `${y}-04-15`, title: 'Sports Day', type: 'event', description: 'Annual sports event' },
-      { id: 4, date: `${y}-06-20`, title: 'Parent-Teacher Meeting', type: 'event', description: 'Scheduled meetings' },
-      { id: 5, date: `${y}-08-14`, title: 'Independence Day (Half-day)', type: 'half-day', description: 'Celebration till noon' }
-    ];
+  private loadCalendarItems(): void {
+    this.attendanceService.getAdminAttendanceCalendarItems(this.selectedYear).subscribe({
+      next: (data) => {
+        // Backend returns `id` + `type` values that match the UI options.
+        this.items = data;
+        this.currentPage = 1;
+      },
+      error: () => {
+        this.items = [];
+        this.currentPage = 1;
+        this.notify.error('Failed to load calendar items');
+      }
+    });
+  }
+
+  onYearChange(): void {
+    this.buildCalendar();
+    this.loadCalendarItems();
   }
 
   buildCalendar(): void {
@@ -357,6 +373,7 @@ export class AdminAttendanceCalendarComponent implements OnInit {
       if (!this.yearOptions.includes(this.selectedYear)) this.yearOptions = [this.selectedYear, ...this.yearOptions].sort((a, b) => a - b);
     } else this.displayMonth--;
     this.buildCalendar();
+    this.loadCalendarItems();
   }
 
   nextMonth(): void {
@@ -366,6 +383,7 @@ export class AdminAttendanceCalendarComponent implements OnInit {
       if (!this.yearOptions.includes(this.selectedYear)) this.yearOptions = [...this.yearOptions, this.selectedYear].sort((a, b) => a - b);
     } else this.displayMonth++;
     this.buildCalendar();
+    this.loadCalendarItems();
   }
 
   getMonthName(m: number): string {
@@ -376,11 +394,11 @@ export class AdminAttendanceCalendarComponent implements OnInit {
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
 
-  getItemForDate(d: Date): CalendarItem | undefined {
+  getItemForDate(d: Date): AttendanceCalendarItem | undefined {
     return this.items.find(i => i.date === this.toDateKey(d));
   }
 
-  getItemForDateKey(key: string): CalendarItem | undefined {
+  getItemForDateKey(key: string): AttendanceCalendarItem | undefined {
     return this.items.find(i => i.date === key);
   }
 
@@ -390,6 +408,7 @@ export class AdminAttendanceCalendarComponent implements OnInit {
   }
 
   openConfigureDay(d: Date | null): void {
+    if (!this.isAdmin) return;
     if (!d) return;
     const key = this.toDateKey(d);
     const existing = this.getItemForDateKey(key);
@@ -401,40 +420,52 @@ export class AdminAttendanceCalendarComponent implements OnInit {
 
   saveConfig(): void {
     if (!this.configDate || !this.configTitle.trim()) return;
-    const existing = this.items.find(i => i.date === this.configDate && i.id !== this.configId);
-    if (existing && !this.configId) {
-      this.notify.warning('This date already has an item. Edit or remove it first.');
-      return;
-    }
-    if (this.configId) {
-      const idx = this.items.findIndex(i => i.id === this.configId);
-      if (idx >= 0) {
-        this.items[idx] = { ...this.items[idx], date: this.configDate, title: this.configTitle.trim(), type: this.configType };
+    const existing = this.getItemForDateKey(this.configDate);
+    const idToUpdate = this.configId ?? existing?.id ?? null;
+
+    const dto: UpsertAttendanceCalendarItemRequest = {
+      date: this.configDate,
+      title: this.configTitle.trim(),
+      type: this.configType,
+      description: undefined
+    };
+
+    const request$ = idToUpdate
+      ? this.attendanceService.updateAdminAttendanceCalendarItem(idToUpdate, dto)
+      : this.attendanceService.createAdminAttendanceCalendarItem(dto);
+
+    request$.subscribe({
+      next: () => {
+        this.notify.success(idToUpdate ? 'Item updated' : 'Item added');
+        this.clearConfigForm();
+        this.loadCalendarItems();
+        this.buildCalendar();
+      },
+      error: (err) => {
+        this.notify.error(err?.error?.message ?? 'Failed to save calendar item');
       }
-      this.notify.success('Item updated');
-    } else {
-      this.items.push({
-        id: Date.now(),
-        date: this.configDate,
-        title: this.configTitle.trim(),
-        type: this.configType
-      });
-      this.items.sort((a, b) => a.date.localeCompare(b.date));
-      this.notify.success('Item added');
-    }
-    this.clearConfigForm();
-    this.buildCalendar();
+    });
   }
 
   clearConfig(): void {
     if (!this.configDate) return;
     const item = this.getItemForDateKey(this.configDate);
-    if (item) {
-      this.items = this.items.filter(i => i.id !== item.id);
-      this.notify.info('Item removed');
-    }
     this.clearConfigForm();
-    this.buildCalendar();
+    if (!item) {
+      this.buildCalendar();
+      return;
+    }
+    this.attendanceService.deleteAdminAttendanceCalendarItem(item.id).subscribe({
+      next: () => {
+        this.notify.info('Item removed');
+        this.loadCalendarItems();
+        this.buildCalendar();
+      },
+      error: () => {
+        this.notify.error('Failed to remove item');
+        this.loadCalendarItems();
+      }
+    });
   }
 
   clearConfigForm(): void {
@@ -445,18 +476,25 @@ export class AdminAttendanceCalendarComponent implements OnInit {
     this.currentPage = 1;
   }
 
-  editItem(item: CalendarItem): void {
+  editItem(item: AttendanceCalendarItem): void {
     this.configDate = item.date;
     this.configTitle = item.title;
     this.configType = item.type;
     this.configId = item.id;
   }
 
-  removeItem(item: CalendarItem): void {
-    this.items = this.items.filter(i => i.id !== item.id);
-    this.notify.info('Item removed');
-    this.currentPage = 1;
-    this.buildCalendar();
+  removeItem(item: AttendanceCalendarItem): void {
+    if (this.configId === item.id) this.clearConfigForm();
+    this.attendanceService.deleteAdminAttendanceCalendarItem(item.id).subscribe({
+      next: () => {
+        this.notify.info('Item removed');
+        this.loadCalendarItems();
+        this.buildCalendar();
+      },
+      error: () => {
+        this.notify.error('Failed to remove item');
+      }
+    });
   }
 
   goToPage(p: number): void {
