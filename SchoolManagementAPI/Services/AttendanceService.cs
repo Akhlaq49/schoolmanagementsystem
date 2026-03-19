@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Text;
 using SchoolManagementAPI.Data;
 using SchoolManagementAPI.DTOs;
 using SchoolManagementAPI.Models;
@@ -400,6 +401,272 @@ public class AttendanceService : IAttendanceService
             TimeIn = formatTime(a.TimeIn),
             TimeOut = formatTime(a.TimeOut)
         }).ToList();
+    }
+
+    // -----------------------------
+    // Admin: Daily summary
+    // -----------------------------
+    public async Task<AdminAttendanceDailySummaryDto> GetAdminAttendanceDailySummaryAsync(DateTime date)
+    {
+        var dateOnly = date.Date;
+
+        // 1) Build class/section list based on existing students.
+        var studentGroups = await _context.Students
+            .Where(s => s.ClassId.HasValue && s.SectionId.HasValue)
+            .GroupBy(s => new { ClassId = s.ClassId!.Value, SectionId = s.SectionId!.Value })
+            .Select(g => new { g.Key.ClassId, g.Key.SectionId, Total = g.Count() })
+            .ToListAsync();
+
+        var classIds = studentGroups.Select(x => x.ClassId).Distinct().ToList();
+        var sectionIds = studentGroups.Select(x => x.SectionId).Distinct().ToList();
+
+        var classes = await _context.Classes
+            .Where(c => classIds.Contains(c.ClassId))
+            .Select(c => new { c.ClassId, c.Name, c.TeacherId })
+            .ToListAsync();
+
+        var sections = await _context.Sections
+            .Where(s => sectionIds.Contains(s.SectionId))
+            .Select(s => new { s.SectionId, s.Name, s.ClassId, s.TeacherId })
+            .ToListAsync();
+
+        var teacherIds = studentGroups
+            .Select(g =>
+            {
+                var classTeacherId = classes.FirstOrDefault(c => c.ClassId == g.ClassId)?.TeacherId;
+                var sectionTeacherId = sections.FirstOrDefault(s => s.SectionId == g.SectionId)?.TeacherId;
+                return sectionTeacherId ?? classTeacherId;
+            })
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
+
+        var teacherNames = await _context.Users
+            .Where(u => teacherIds.Contains(u.UserId))
+            .Select(u => new { u.UserId, u.Name })
+            .ToDictionaryAsync(x => x.UserId, x => x.Name);
+
+        // 2) Load attendance records for the day (student attendance only).
+        //    We join to Student to get ClassId/SectionId for grouping.
+        var attendanceRows = await _context.Attendances
+            .Include(a => a.Student)
+            .Where(a => a.StudentId != null && a.Date.Date == dateOnly && a.Student!.ClassId != null && a.Student!.SectionId != null)
+            .Select(a => new
+            {
+                ClassId = a.Student!.ClassId!.Value,
+                SectionId = a.Student!.SectionId!.Value,
+                Status = a.Status
+            })
+            .ToListAsync();
+
+        var attendanceByClassSection = attendanceRows
+            .GroupBy(x => new { x.ClassId, x.SectionId })
+            .ToDictionary(
+                g => (g.Key.ClassId, g.Key.SectionId),
+                g => new
+                {
+                    Count = g.Count(),
+                    Present = g.Count(r => r.Status == 1 || r.Status == 2 || r.Status == 7), // PP, PO, Late
+                    Absent = g.Count(r => r.Status == 3),
+                    NotMarked = g.Count(r => r.Status == 0)
+                }
+            );
+
+        // 3) Build class-wise breakdown.
+        var classBreakdown = new List<AdminAttendanceClassBreakdownDto>();
+        foreach (var g in studentGroups.OrderBy(x => x.ClassId).ThenBy(x => x.SectionId))
+        {
+            var classInfo = classes.FirstOrDefault(c => c.ClassId == g.ClassId);
+            var sectionInfo = sections.FirstOrDefault(s => s.SectionId == g.SectionId);
+
+            attendanceByClassSection.TryGetValue((g.ClassId, g.SectionId), out var att);
+
+            var total = g.Total;
+            var present = att?.Present ?? 0;
+            var absent = att?.Absent ?? 0;
+
+            // If teacher hasn't submitted anything for this section, treat all students as Not Marked.
+            var notMarked = (att == null || att.Count == 0) ? total : (att.NotMarked);
+
+            string status;
+            if (att == null || att.Count == 0)
+                status = "pending";
+            else if (notMarked == 0)
+                status = "complete";
+            else
+                status = "partial";
+
+            var percentDenom = present + absent;
+            var percent = percentDenom > 0 ? (int)Math.Round((present * 100.0) / percentDenom) : 0;
+
+            classBreakdown.Add(new AdminAttendanceClassBreakdownDto
+            {
+                ClassId = g.ClassId,
+                ClassName = classInfo?.Name ?? $"Class {g.ClassId}",
+                Section = sectionInfo?.Name ?? $"Section {g.SectionId}",
+                Total = total,
+                Present = present,
+                Absent = absent,
+                NotMarked = notMarked,
+                Percent = percent,
+                Status = status
+            });
+        }
+
+        // 4) Totals/stats across all classBreakdown.
+        var stats = new AdminAttendanceDailyStatsDto
+        {
+            Total = classBreakdown.Sum(x => x.Total),
+            Present = classBreakdown.Sum(x => x.Present),
+            Absent = classBreakdown.Sum(x => x.Absent),
+            NotMarked = classBreakdown.Sum(x => x.NotMarked),
+        };
+        var statsDenom = stats.Present + stats.Absent;
+        stats.Percent = statsDenom > 0 ? (int)Math.Round((stats.Present * 100.0) / statsDenom) : 0;
+
+        // 5) Build not-marked list: classes not complete + staff not marked.
+        var notMarkedList = new List<AdminAttendanceNotMarkedItemDto>();
+
+        // Build notMarkedList with stable mapping by using studentGroups and attendance groups again.
+        foreach (var g in studentGroups)
+        {
+            var att = attendanceByClassSection.TryGetValue((g.ClassId, g.SectionId), out var tmp) ? tmp : null;
+
+            var total = g.Total;
+            var present = att?.Present ?? 0;
+            var absent = att?.Absent ?? 0;
+            var notMarked = (att == null || att.Count == 0) ? total : att.NotMarked;
+
+            string status = (att == null || att.Count == 0) ? "pending" : (notMarked == 0 ? "complete" : "partial");
+            if (status == "complete") continue;
+
+            var classInfo = classes.FirstOrDefault(c => c.ClassId == g.ClassId);
+            var sectionInfo = sections.FirstOrDefault(s => s.SectionId == g.SectionId);
+
+            int? teacherId = sectionInfo?.TeacherId ?? classInfo?.TeacherId;
+            teacherNames.TryGetValue(teacherId ?? -1, out var teacherName);
+
+            notMarkedList.Add(new AdminAttendanceNotMarkedItemDto
+            {
+                Id = g.SectionId, // UI doesn't require a specific meaning; just unique.
+                ClassName = classInfo?.Name ?? $"Class {g.ClassId}",
+                Section = sectionInfo?.Name,
+                Teacher = teacherId.HasValue ? (teacherNames.ContainsKey(teacherId.Value) ? teacherNames[teacherId.Value] : null) : null,
+                Type = "class"
+            });
+        }
+
+        // Staff not marked: teacher-role users missing attendance or with status 0.
+        var staffUsers = await _context.Users
+            .Include(u => u.UserRoles)
+            .Where(u => u.UserRoles.Any(ur => ur.Role == UserRole.Teacher))
+            .OrderBy(u => u.Name)
+            .Select(u => new { u.UserId, u.Name })
+            .ToListAsync();
+
+        var staffIds = staffUsers.Select(s => s.UserId).ToHashSet();
+
+        var staffAttendance = await _context.Attendances
+            .Where(a => a.TeacherId != null && a.Date.Date == dateOnly && staffIds.Contains(a.TeacherId.Value))
+            .ToListAsync();
+
+        var staffAttendanceById = staffAttendance
+            .Where(a => a.TeacherId.HasValue)
+            .GroupBy(a => a.TeacherId!.Value)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.MarkedAt).FirstOrDefault());
+
+        foreach (var s in staffUsers)
+        {
+            var att = staffAttendanceById.GetValueOrDefault(s.UserId);
+            var status = att?.Status ?? 0;
+
+            if (att == null || status == 0)
+            {
+                notMarkedList.Add(new AdminAttendanceNotMarkedItemDto
+                {
+                    Id = s.UserId,
+                    ClassName = s.Name,
+                    Section = null,
+                    Teacher = null,
+                    Type = "staff"
+                });
+            }
+        }
+
+        // 6) Return.
+        return new AdminAttendanceDailySummaryDto
+        {
+            Stats = stats,
+            ClassBreakdown = classBreakdown,
+            NotMarkedList = notMarkedList
+        };
+    }
+
+    public async Task<AdminAttendanceDailyReminderResultDto> SendAdminAttendanceDailyRemindersAsync(DateTime date)
+    {
+        var summary = await GetAdminAttendanceDailySummaryAsync(date);
+        // For now, reminders are simulated. Later we can integrate email/notification sending.
+        return new AdminAttendanceDailyReminderResultDto
+        {
+            Count = summary.NotMarkedList.Count,
+            Message = $"Reminder queued for {summary.NotMarkedList.Count} class/staff item(s)."
+        };
+    }
+
+    public async Task<byte[]> ExportAdminAttendanceDailySummaryCsvAsync(DateTime date)
+    {
+        var summary = await GetAdminAttendanceDailySummaryAsync(date);
+
+        var sb = new StringBuilder();
+        sb.AppendLine("date,type,id,className,section,teacher,status,total,present,absent,notMarked,percent");
+
+        foreach (var c in summary.ClassBreakdown.OrderBy(x => x.ClassId))
+        {
+            sb.AppendLine(string.Join(",",
+                date.ToString("yyyy-MM-dd"),
+                "class",
+                c.ClassId,
+                EscapeCsv(c.ClassName),
+                EscapeCsv(c.Section),
+                "", // teacher not included here
+                c.Status,
+                c.Total,
+                c.Present,
+                c.Absent,
+                c.NotMarked,
+                c.Percent
+            ));
+        }
+
+        foreach (var n in summary.NotMarkedList.Where(x => x.Type == "staff"))
+        {
+            sb.AppendLine(string.Join(",",
+                date.ToString("yyyy-MM-dd"),
+                "staff",
+                n.Id,
+                EscapeCsv(n.ClassName),
+                "",
+                EscapeCsv(n.Teacher ?? ""),
+                "pending",
+                "",
+                "",
+                "",
+                "",
+                ""
+            ));
+        }
+
+        return Encoding.UTF8.GetBytes(sb.ToString());
+    }
+
+    private static string EscapeCsv(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return "";
+        var v = value.Replace("\"", "\"\"");
+        if (v.Contains(',') || v.Contains('\n') || v.Contains('\r'))
+            return $"\"{v}\"";
+        return v;
     }
 
     public async Task<List<Attendance>> GetTeacherThisMonthAsync(int teacherId, int month, int year)

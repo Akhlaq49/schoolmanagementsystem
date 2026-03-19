@@ -29,5 +29,10 @@ public interface IAttendanceService
     Task<List<StaffAttendanceDto>> GetStaffAttendanceAsync(DateTime date);
     Task<List<Attendance>> BulkSaveStaffAttendanceAsync(StaffAttendanceBulkRequestDto dto, int? markedByUserId = null);
     Task<List<StaffAttendanceHistoryDto>> GetStaffAttendanceHistoryAsync(int staffId);
+
+    // Admin: Daily summary for attendance monitoring
+    Task<AdminAttendanceDailySummaryDto> GetAdminAttendanceDailySummaryAsync(DateTime date);
+    Task<AdminAttendanceDailyReminderResultDto> SendAdminAttendanceDailyRemindersAsync(DateTime date);
+    Task<byte[]> ExportAdminAttendanceDailySummaryCsvAsync(DateTime date);
 }
 
