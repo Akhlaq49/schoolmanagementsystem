@@ -280,6 +280,128 @@ public class AttendanceService : IAttendanceService
         return result;
     }
 
+    // -----------------------------
+    // Admin: Staff Attendance
+    // -----------------------------
+
+    public async Task<List<StaffAttendanceDto>> GetStaffAttendanceAsync(DateTime date)
+    {
+        var dateOnly = date.Date;
+
+        // Staff are based on Teacher role in the unified users table.
+        var staffUsers = await _context.Users
+            .Include(u => u.UserRoles)
+            .Where(u => u.UserRoles.Any(ur => ur.Role == UserRole.Teacher))
+            .OrderBy(u => u.Name)
+            .Select(u => new { u.UserId, u.Name })
+            .ToListAsync();
+
+        var staffIds = staffUsers.Select(x => x.UserId).ToHashSet();
+
+        var attendanceList = await _context.Attendances
+            .Where(a => a.TeacherId != null && a.Date.Date == dateOnly && staffIds.Contains(a.TeacherId.Value))
+            .ToListAsync();
+
+        var attendanceByStaff = attendanceList
+            .Where(a => a.TeacherId.HasValue)
+            .ToDictionary(a => a.TeacherId!.Value);
+
+        return staffUsers.Select(s =>
+        {
+            var att = attendanceByStaff.GetValueOrDefault(s.UserId);
+            var timeInStr = att?.TimeIn.HasValue == true
+                ? $"{att.TimeIn.Value.Hours:D2}:{att.TimeIn.Value.Minutes:D2}"
+                : string.Empty;
+            var timeOutStr = att?.TimeOut.HasValue == true
+                ? $"{att.TimeOut.Value.Hours:D2}:{att.TimeOut.Value.Minutes:D2}"
+                : string.Empty;
+
+            return new StaffAttendanceDto
+            {
+                StaffId = s.UserId,
+                Name = s.Name,
+                // Department isn't reliably mapped in the current users model.
+                Department = "—",
+                Status = att?.Status ?? 0,
+                TimeIn = timeInStr,
+                TimeOut = timeOutStr
+            };
+        }).ToList();
+    }
+
+    public async Task<List<Attendance>> BulkSaveStaffAttendanceAsync(StaffAttendanceBulkRequestDto dto, int? markedByUserId = null)
+    {
+        var dateOnly = DateTime.Parse(dto.Date).Date;
+        var now = DateTime.UtcNow;
+        var result = new List<Attendance>();
+
+        foreach (var rec in dto.Records)
+        {
+            var existing = await _context.Attendances
+                .FirstOrDefaultAsync(a => a.TeacherId == rec.StaffId && a.Date.Date == dateOnly);
+
+            var timeIn = ParseTimeSpan(rec.TimeIn);
+            var timeOut = ParseTimeSpan(rec.TimeOut);
+
+            if (existing != null)
+            {
+                existing.Status = rec.Status;
+                existing.TimeIn = (rec.Status == 1 || rec.Status == 2) ? timeIn : null;
+                existing.TimeOut = (rec.Status == 1 || rec.Status == 2) ? timeOut : null;
+                existing.MarkedBy = markedByUserId ?? existing.MarkedBy;
+                existing.MarkedAt = now;
+                result.Add(existing);
+            }
+            else
+            {
+                var attendance = new Attendance
+                {
+                    TeacherId = rec.StaffId,
+                    Date = dateOnly,
+                    Status = rec.Status,
+                    TimeIn = (rec.Status == 1 || rec.Status == 2) ? timeIn : null,
+                    TimeOut = (rec.Status == 1 || rec.Status == 2) ? timeOut : null,
+                    MarkedBy = markedByUserId,
+                    MarkedAt = now
+                };
+
+                _context.Attendances.Add(attendance);
+                result.Add(attendance);
+            }
+        }
+
+        await _context.SaveChangesAsync();
+        return result;
+    }
+
+    public async Task<List<StaffAttendanceHistoryDto>> GetStaffAttendanceHistoryAsync(int staffId)
+    {
+        var list = await _context.Attendances
+            .Where(a => a.TeacherId == staffId)
+            .OrderByDescending(a => a.Date)
+            .ToListAsync();
+
+        string statusLabel(int status) => status switch
+        {
+            0 => "Not Marked",
+            1 => "PP",
+            2 => "PO",
+            3 => "A",
+            _ => status.ToString()
+        };
+
+        string formatTime(TimeSpan? t) =>
+            t.HasValue ? $"{t.Value.Hours:D2}:{t.Value.Minutes:D2}" : string.Empty;
+
+        return list.Select(a => new StaffAttendanceHistoryDto
+        {
+            Date = a.Date.Date.ToString("yyyy-MM-dd"),
+            Status = statusLabel(a.Status),
+            TimeIn = formatTime(a.TimeIn),
+            TimeOut = formatTime(a.TimeOut)
+        }).ToList();
+    }
+
     public async Task<List<Attendance>> GetTeacherThisMonthAsync(int teacherId, int month, int year)
     {
         return await _context.Attendances

@@ -62,4 +62,32 @@ public class AdminAttendanceController : ControllerBase
         var result = await _attendanceService.BulkSaveAttendanceAsync(dto, userId);
         return Ok(result);
     }
+
+    /// <summary>Get staff attendance for a date (one row per staff member).</summary>
+    [HttpGet("staff")]
+    public async Task<ActionResult<List<StaffAttendanceDto>>> GetStaffAttendance([FromQuery] DateTime date)
+    {
+        var list = await _attendanceService.GetStaffAttendanceAsync(date);
+        return Ok(list);
+    }
+
+    /// <summary>Bulk save staff attendance for a date (create or update records).</summary>
+    [HttpPost("staff")]
+    public async Task<ActionResult<List<Attendance>>> SaveStaffAttendance([FromBody] StaffAttendanceBulkRequestDto dto)
+    {
+        int? userId = null;
+        var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (int.TryParse(claim, out var uid)) userId = uid;
+
+        var result = await _attendanceService.BulkSaveStaffAttendanceAsync(dto, userId);
+        return Ok(result);
+    }
+
+    /// <summary>Get staff attendance history.</summary>
+    [HttpGet("staff/history/{staffId:int}")]
+    public async Task<ActionResult<List<StaffAttendanceHistoryDto>>> GetStaffAttendanceHistory([FromRoute] int staffId)
+    {
+        var list = await _attendanceService.GetStaffAttendanceHistoryAsync(staffId);
+        return Ok(list);
+    }
 }
