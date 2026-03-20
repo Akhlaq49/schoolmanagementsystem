@@ -46,5 +46,8 @@ public interface IAttendanceService
 
     // Admin: Attendance trends
     Task<AttendanceTrendsResponseDto> GetAttendanceTrendsAsync(string period, DateTime dateFrom, DateTime dateTo, int? classId, int? sectionId);
+
+    // Admin: Class-level summary
+    Task<AdminAttendanceClassSummaryResponseDto> GetClassLevelSummaryAsync(string period);
 }
 

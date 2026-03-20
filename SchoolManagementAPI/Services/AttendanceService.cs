@@ -1381,6 +1381,106 @@ public class AttendanceService : IAttendanceService
         };
     }
 
+    // -----------------------------
+    // Admin: Class-level summary
+    // -----------------------------
+    public async Task<AdminAttendanceClassSummaryResponseDto> GetClassLevelSummaryAsync(string period)
+    {
+        var periodNorm = (period ?? "today").Trim().ToLowerInvariant();
+        var today = DateTime.Today;
+        DateTime from, to;
+
+        if (periodNorm == "week")
+        {
+            var culture = System.Globalization.CultureInfo.CurrentCulture;
+            var dow = culture.DateTimeFormat.FirstDayOfWeek;
+            int diff = (7 + (today.DayOfWeek - dow)) % 7;
+            from = today.AddDays(-diff);
+            to = from.AddDays(6);
+        }
+        else if (periodNorm == "month")
+        {
+            from = new DateTime(today.Year, today.Month, 1);
+            to = from.AddMonths(1).AddDays(-1);
+        }
+        else
+        {
+            from = to = today;
+        }
+
+        var studentGroups = await _context.Students
+            .Where(s => s.ClassId != null && s.SectionId != null)
+            .GroupBy(s => new { ClassId = s.ClassId!.Value, SectionId = s.SectionId!.Value })
+            .Select(g => new { g.Key.ClassId, g.Key.SectionId })
+            .ToListAsync();
+
+        var classIds = studentGroups.Select(x => x.ClassId).Distinct().ToList();
+        var sectionIds = studentGroups.Select(x => x.SectionId).Distinct().ToList();
+
+        var classes = await _context.Classes
+            .Where(c => classIds.Contains(c.ClassId))
+            .ToDictionaryAsync(c => c.ClassId, c => c);
+
+        var sections = await _context.Sections
+            .Where(s => sectionIds.Contains(s.SectionId))
+            .ToDictionaryAsync(s => s.SectionId, s => s);
+
+        var studentIdsByGroup = await _context.Students
+            .Where(s => s.ClassId != null && s.SectionId != null)
+            .GroupBy(s => new { ClassId = s.ClassId!.Value, SectionId = s.SectionId!.Value })
+            .ToDictionaryAsync(g => (g.Key.ClassId, g.Key.SectionId), g => g.Select(s => s.StudentId).ToList());
+
+        var attendance = await _context.Attendances
+            .Where(a =>
+                a.StudentId != null &&
+                a.Date.Date >= from &&
+                a.Date.Date <= to &&
+                a.Status != 0 && a.Status != 6)
+            .ToListAsync();
+
+        var result = new List<ClassSummaryItemDto>();
+        foreach (var g in studentGroups)
+        {
+            var studentIds = studentIdsByGroup.GetValueOrDefault((g.ClassId, g.SectionId));
+            if (studentIds == null || studentIds.Count == 0) continue;
+
+            var studentIdSet = studentIds.ToHashSet();
+            var groupAtt = attendance.Where(a => a.StudentId.HasValue && studentIdSet.Contains(a.StudentId.Value)).ToList();
+
+            int present = groupAtt.Count(x => x.Status == 1 || x.Status == 2 || x.Status == 7);
+            int absent = groupAtt.Count(x => x.Status == 3);
+            int leave = groupAtt.Count(x => x.Status == 4 || x.Status == 5);
+            int total = present + absent + leave;
+            int percent = total > 0 ? (int)Math.Round((present * 100.0) / total) : 0;
+
+            classes.TryGetValue(g.ClassId, out var cls);
+            sections.TryGetValue(g.SectionId, out var sec);
+
+            result.Add(new ClassSummaryItemDto
+            {
+                ClassId = g.ClassId,
+                SectionId = g.SectionId,
+                ClassName = cls?.Name ?? $"Class {g.ClassId}",
+                Section = sec?.Name ?? $"Section {g.SectionId}",
+                Total = total,
+                Present = present,
+                Absent = absent,
+                Leave = leave,
+                Percent = percent
+            });
+        }
+
+        result = result.OrderByDescending(r => r.Percent).ThenBy(r => r.ClassName).ThenBy(r => r.Section).ToList();
+
+        return new AdminAttendanceClassSummaryResponseDto
+        {
+            Period = periodNorm,
+            DateFrom = from.ToString("yyyy-MM-dd"),
+            DateTo = to.ToString("yyyy-MM-dd"),
+            Classes = result
+        };
+    }
+
     private static DateTime GetWeekStart(DateTime date, System.Globalization.CultureInfo culture)
     {
         var dow = culture.DateTimeFormat.FirstDayOfWeek;
