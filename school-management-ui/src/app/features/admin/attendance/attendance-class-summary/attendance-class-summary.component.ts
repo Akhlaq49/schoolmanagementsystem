@@ -2,17 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-
-interface ClassSummary {
-  classId: number;
-  className: string;
-  section: string;
-  total: number;
-  present: number;
-  absent: number;
-  leave: number;
-  percent: number;
-}
+import { ClassLevelSummaryResponse, ClassSummaryItem, ClassSummaryPeriod } from '../../../../core/models/attendance.model';
+import { AttendanceService } from '../../../../core/services/attendance.service';
 
 @Component({
   selector: 'app-admin-attendance-class-summary',
@@ -20,6 +11,11 @@ interface ClassSummary {
   imports: [CommonModule, FormsModule, RouterModule],
   template: `
     <div class="page-container">
+      <div *ngIf="loading" class="loading-overlay">
+        <div class="spinner"></div>
+        <span>Loading...</span>
+      </div>
+      <div *ngIf="error" class="error-banner">{{ error }}</div>
       <div class="page-header-card">
         <div class="header-content">
           <div>
@@ -116,7 +112,11 @@ interface ClassSummary {
     </div>
   `,
   styles: [`
-    .page-container { max-width: 950px; }
+    .page-container { max-width: 950px; position: relative; }
+    .loading-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; z-index: 10; border-radius: 16px; }
+    .loading-overlay .spinner { width: 36px; height: 36px; border: 3px solid #e2e8f0; border-top-color: #1e3a5f; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-banner { background: #fee2e2; color: #dc2626; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem; }
     .page-header-card {
       background: #fff;
       border-radius: 16px;
@@ -204,15 +204,19 @@ interface ClassSummary {
   `]
 })
 export class AdminAttendanceClassSummaryComponent implements OnInit {
-  selectedPeriod = 'today';
-  classData: ClassSummary[] = [];
+  selectedPeriod: ClassSummaryPeriod = 'today';
+  classData: ClassSummaryItem[] = [];
+  loading = false;
+  error: string | null = null;
 
-  get bestClasses(): ClassSummary[] {
+  constructor(private attendanceService: AttendanceService) {}
+
+  get bestClasses(): ClassSummaryItem[] {
     const sorted = [...this.classData].sort((a, b) => b.percent - a.percent);
     return sorted.slice(0, 3);
   }
 
-  get worstClasses(): ClassSummary[] {
+  get worstClasses(): ClassSummaryItem[] {
     const sorted = [...this.classData].sort((a, b) => a.percent - b.percent);
     return sorted.slice(0, 2);
   }
@@ -222,26 +226,32 @@ export class AdminAttendanceClassSummaryComponent implements OnInit {
   }
 
   loadData(): void {
-    this.classData = [
-      { classId: 1, className: 'Grade 10', section: 'A', total: 35, present: 33, absent: 1, leave: 1, percent: 94 },
-      { classId: 2, className: 'Grade 10', section: 'B', total: 38, present: 36, absent: 2, leave: 0, percent: 95 },
-      { classId: 3, className: 'Grade 9', section: 'A', total: 40, present: 34, absent: 4, leave: 2, percent: 85 },
-      { classId: 4, className: 'Grade 9', section: 'B', total: 42, present: 36, absent: 5, leave: 1, percent: 86 },
-      { classId: 5, className: 'Grade 8', section: 'A', total: 36, present: 30, absent: 4, leave: 2, percent: 83 }
-    ];
+    this.loading = true;
+    this.error = null;
+    this.attendanceService.getClassLevelSummary(this.selectedPeriod).subscribe({
+      next: (res: ClassLevelSummaryResponse) => {
+        this.classData = res.classes;
+        this.loading = false;
+      },
+      error: (err: { error?: { message?: string }; message?: string }) => {
+        this.error = err?.error?.message || err?.message || 'Failed to load class summary';
+        this.classData = [];
+        this.loading = false;
+      }
+    });
   }
 
-  isBest(c: ClassSummary): boolean {
-    return this.bestClasses.some(x => x.classId === c.classId && x.section === c.section);
+  isBest(c: ClassSummaryItem): boolean {
+    return this.bestClasses.some(x => x.classId === c.classId && x.sectionId === c.sectionId);
   }
 
-  isWorst(c: ClassSummary): boolean {
-    return this.worstClasses.some(x => x.classId === c.classId && x.section === c.section);
+  isWorst(c: ClassSummaryItem): boolean {
+    return this.worstClasses.some(x => x.classId === c.classId && x.sectionId === c.sectionId);
   }
 
-  getRank(c: ClassSummary): string {
+  getRank(c: ClassSummaryItem): string {
     const sorted = [...this.classData].sort((a, b) => b.percent - a.percent);
-    const idx = sorted.findIndex(x => x.classId === c.classId && x.section === c.section);
+    const idx = sorted.findIndex(x => x.classId === c.classId && x.sectionId === c.sectionId);
     if (idx === 0) return '1st';
     if (idx === 1) return '2nd';
     if (idx === 2) return '3rd';

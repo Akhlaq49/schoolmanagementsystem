@@ -316,3 +316,28 @@ export interface AttendanceTrendsResponse {
   totals: AttendanceTrendsTotals;
 }
 
+// -----------------------------
+// Admin: Class-level Summary
+// -----------------------------
+
+export type ClassSummaryPeriod = 'today' | 'week' | 'month';
+
+export interface ClassSummaryItem {
+  classId: number;
+  sectionId: number;
+  className: string;
+  section: string;
+  total: number;
+  present: number;
+  absent: number;
+  leave: number;
+  percent: number;
+}
+
+export interface ClassLevelSummaryResponse {
+  period: ClassSummaryPeriod;
+  dateFrom: string;
+  dateTo: string;
+  classes: ClassSummaryItem[];
+}
+
