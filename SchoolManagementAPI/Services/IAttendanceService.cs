@@ -38,5 +38,10 @@ public interface IAttendanceService
     // Admin: Monthly grid
     Task<MonthlyGridResponseDto> GetMonthlyGridAsync(int month, int year, int? classId, int? sectionId);
     Task<byte[]> ExportMonthlyGridCsvAsync(int month, int year, int? classId, int? sectionId);
+
+    // Admin: Attendance reports
+    Task<AdminAttendanceReportsResponseDto> GetAdminAttendanceReportsAsync(DateTime dateFrom, DateTime dateTo, int? classId, int? sectionId, string reportType);
+    Task<byte[]> ExportAdminAttendanceReportsCsvAsync(DateTime dateFrom, DateTime dateTo, int? classId, int? sectionId, string reportType);
+    Task<byte[]> ExportAdminAttendanceSingleReportCsvAsync(int reportId, DateTime dateFrom, DateTime dateTo, int? classId, int? sectionId, string reportType);
 }
 

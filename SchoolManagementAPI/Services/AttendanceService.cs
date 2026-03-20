@@ -850,6 +850,276 @@ public class AttendanceService : IAttendanceService
         return Encoding.UTF8.GetBytes(sb.ToString());
     }
 
+    // -----------------------------
+    // Admin: Attendance reports
+    // -----------------------------
+    public async Task<AdminAttendanceReportsResponseDto> GetAdminAttendanceReportsAsync(DateTime dateFrom, DateTime dateTo, int? classId, int? sectionId, string reportType)
+    {
+        var from = dateFrom.Date;
+        var to = dateTo.Date;
+        if (to < from) (from, to) = (to, from);
+
+        var reportTypeNorm = (reportType ?? "summary").Trim().ToLowerInvariant();
+
+        var attendanceQuery = _context.Attendances
+            .Include(a => a.Student)
+            .ThenInclude(s => s!.Class)
+            .Include(a => a.Student)
+            .ThenInclude(s => s!.Section)
+            .Where(a =>
+                a.StudentId != null &&
+                a.Student != null &&
+                a.Date.Date >= from &&
+                a.Date.Date <= to);
+
+        if (classId.HasValue)
+            attendanceQuery = attendanceQuery.Where(a => a.Student!.ClassId == classId.Value);
+        if (sectionId.HasValue)
+            attendanceQuery = attendanceQuery.Where(a => a.Student!.SectionId == sectionId.Value);
+
+        var attendance = await attendanceQuery.ToListAsync();
+
+        // Students covered in filtered population (not only attendance rows).
+        var studentsQuery = _context.Students.AsQueryable();
+        if (classId.HasValue)
+            studentsQuery = studentsQuery.Where(s => s.ClassId == classId.Value);
+        if (sectionId.HasValue)
+            studentsQuery = studentsQuery.Where(s => s.SectionId == sectionId.Value);
+        var studentIds = await studentsQuery.Select(s => s.StudentId).ToListAsync();
+
+        int presentCount = attendance.Count(a => a.Status == 1 || a.Status == 2 || a.Status == 7);
+        int absentCount = attendance.Count(a => a.Status == 3);
+        int leaveCount = attendance.Count(a => a.Status == 4 || a.Status == 5);
+        int denom = presentCount + absentCount + leaveCount;
+        int avgAttendance = denom > 0 ? (int)Math.Round((presentCount * 100.0) / denom) : 0;
+
+        // Working days in selected range: weekdays excluding holiday calendar items.
+        var holidayDates = await _context.AttendanceCalendarItems
+            .Where(ci => ci.Type == "holiday" && ci.Date.Date >= from && ci.Date.Date <= to)
+            .Select(ci => ci.Date.Date)
+            .Distinct()
+            .ToListAsync();
+        var holidaySet = holidayDates.ToHashSet();
+
+        int workingDays = 0;
+        for (var d = from; d <= to; d = d.AddDays(1))
+        {
+            if (d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday) continue;
+            if (holidaySet.Contains(d.Date)) continue;
+            workingDays++;
+        }
+
+        // Absent trend vs previous period.
+        int daysInPeriod = Math.Max(1, (to - from).Days + 1);
+        var prevFrom = from.AddDays(-daysInPeriod);
+        var prevTo = from.AddDays(-1);
+
+        var prevQuery = _context.Attendances
+            .Include(a => a.Student)
+            .Where(a =>
+                a.StudentId != null &&
+                a.Student != null &&
+                a.Date.Date >= prevFrom &&
+                a.Date.Date <= prevTo);
+
+        if (classId.HasValue)
+            prevQuery = prevQuery.Where(a => a.Student!.ClassId == classId.Value);
+        if (sectionId.HasValue)
+            prevQuery = prevQuery.Where(a => a.Student!.SectionId == sectionId.Value);
+
+        var prevAttendance = await prevQuery.ToListAsync();
+        int prevAbsent = prevAttendance.Count(a => a.Status == 3);
+        int prevPresent = prevAttendance.Count(a => a.Status == 1 || a.Status == 2 || a.Status == 7);
+        int prevLeave = prevAttendance.Count(a => a.Status == 4 || a.Status == 5);
+        int prevDenom = prevPresent + prevAbsent + prevLeave;
+        double prevAbsentRate = prevDenom > 0 ? (prevAbsent * 100.0 / prevDenom) : 0;
+        double currAbsentRate = denom > 0 ? (absentCount * 100.0 / denom) : 0;
+        int trendDelta = (int)Math.Round(currAbsentRate - prevAbsentRate);
+        var absentTrend = trendDelta == 0 ? "0%" : $"{(trendDelta > 0 ? "+" : "")}{trendDelta}%";
+
+        string rangeFrom = from.ToString("yyyy-MM-dd");
+        string rangeTo = to.ToString("yyyy-MM-dd");
+        string generatedAt = DateTime.UtcNow.ToString("yyyy-MM-dd");
+
+        var reportRows = new List<AdminAttendanceReportRecordDto>();
+
+        if (reportTypeNorm == "student-wise")
+        {
+            var grouped = attendance
+                .Where(a => a.Student != null)
+                .GroupBy(a => a.StudentId!.Value)
+                .OrderBy(g => g.Key);
+
+            foreach (var g in grouped)
+            {
+                var sample = g.First();
+                var s = sample.Student!;
+                int gp = g.Count(x => x.Status == 1 || x.Status == 2 || x.Status == 7);
+                int ga = g.Count(x => x.Status == 3);
+                int gl = g.Count(x => x.Status == 4 || x.Status == 5);
+                int gd = gp + ga + gl;
+                int gavg = gd > 0 ? (int)Math.Round((gp * 100.0) / gd) : 0;
+
+                reportRows.Add(new AdminAttendanceReportRecordDto
+                {
+                    Id = reportRows.Count + 1,
+                    ReportName = $"Student-wise: {s.Name}",
+                    DateFrom = rangeFrom,
+                    DateTo = rangeTo,
+                    ClassName = s.Class?.NameNumeric ?? s.Class?.Name ?? "All",
+                    SectionName = s.Section?.Name ?? "All",
+                    ClassFilter = $"{s.Class?.Name ?? "Class"}-{s.Section?.Name ?? "Section"}",
+                    RecordCount = g.Count(),
+                    AvgAttendance = gavg,
+                    GeneratedAt = generatedAt
+                });
+            }
+        }
+        else if (reportTypeNorm == "class-wise")
+        {
+            var grouped = attendance
+                .Where(a => a.Student != null)
+                .GroupBy(a => new
+                {
+                    ClassName = a.Student!.Class?.Name ?? "Class",
+                    SectionName = a.Student!.Section?.Name ?? "Section"
+                })
+                .OrderBy(g => g.Key.ClassName)
+                .ThenBy(g => g.Key.SectionName);
+
+            foreach (var g in grouped)
+            {
+                int gp = g.Count(x => x.Status == 1 || x.Status == 2 || x.Status == 7);
+                int ga = g.Count(x => x.Status == 3);
+                int gl = g.Count(x => x.Status == 4 || x.Status == 5);
+                int gd = gp + ga + gl;
+                int gavg = gd > 0 ? (int)Math.Round((gp * 100.0) / gd) : 0;
+
+                reportRows.Add(new AdminAttendanceReportRecordDto
+                {
+                    Id = reportRows.Count + 1,
+                    ReportName = $"{g.Key.ClassName} {g.Key.SectionName} Class-wise",
+                    DateFrom = rangeFrom,
+                    DateTo = rangeTo,
+                    ClassName = g.First().Student?.Class?.NameNumeric ?? g.Key.ClassName,
+                    SectionName = g.Key.SectionName,
+                    ClassFilter = $"{g.Key.ClassName}-{g.Key.SectionName}",
+                    RecordCount = g.Count(),
+                    AvgAttendance = gavg,
+                    GeneratedAt = generatedAt
+                });
+            }
+        }
+        else if (reportTypeNorm == "detailed")
+        {
+            var grouped = attendance
+                .GroupBy(a => a.Date.Date)
+                .OrderBy(g => g.Key);
+
+            foreach (var g in grouped)
+            {
+                int gp = g.Count(x => x.Status == 1 || x.Status == 2 || x.Status == 7);
+                int ga = g.Count(x => x.Status == 3);
+                int gl = g.Count(x => x.Status == 4 || x.Status == 5);
+                int gd = gp + ga + gl;
+                int gavg = gd > 0 ? (int)Math.Round((gp * 100.0) / gd) : 0;
+
+                reportRows.Add(new AdminAttendanceReportRecordDto
+                {
+                    Id = reportRows.Count + 1,
+                    ReportName = $"Detailed: {g.Key:yyyy-MM-dd}",
+                    DateFrom = g.Key.ToString("yyyy-MM-dd"),
+                    DateTo = g.Key.ToString("yyyy-MM-dd"),
+                    ClassName = classId.HasValue ? (g.FirstOrDefault()?.Student?.Class?.NameNumeric ?? $"Class {classId}") : "All",
+                    SectionName = sectionId.HasValue ? (g.FirstOrDefault()?.Student?.Section?.Name ?? $"Section {sectionId}") : "All",
+                    ClassFilter = classId.HasValue ? $"Class {classId}" : "All",
+                    RecordCount = g.Count(),
+                    AvgAttendance = gavg,
+                    GeneratedAt = generatedAt
+                });
+            }
+        }
+        else
+        {
+            // summary
+            reportRows.Add(new AdminAttendanceReportRecordDto
+            {
+                Id = 1,
+                ReportName = "Attendance Summary",
+                DateFrom = rangeFrom,
+                DateTo = rangeTo,
+                ClassName = classId.HasValue ? (attendance.FirstOrDefault()?.Student?.Class?.NameNumeric ?? $"Class {classId}") : "All",
+                SectionName = sectionId.HasValue ? (attendance.FirstOrDefault()?.Student?.Section?.Name ?? $"Section {sectionId}") : "All",
+                ClassFilter = classId.HasValue ? $"Class {classId}{(sectionId.HasValue ? $"-Section {sectionId}" : "")}" : "All",
+                RecordCount = attendance.Count,
+                AvgAttendance = avgAttendance,
+                GeneratedAt = generatedAt
+            });
+        }
+
+        return new AdminAttendanceReportsResponseDto
+        {
+            Analytics = new AdminAttendanceReportsAnalyticsDto
+            {
+                TotalRecords = attendance.Count,
+                AvgAttendance = avgAttendance,
+                PresentDays = workingDays,
+                StudentsCovered = studentIds.Count,
+                AbsentTrend = absentTrend
+            },
+            Reports = reportRows
+        };
+    }
+
+    public async Task<byte[]> ExportAdminAttendanceReportsCsvAsync(DateTime dateFrom, DateTime dateTo, int? classId, int? sectionId, string reportType)
+    {
+        var data = await GetAdminAttendanceReportsAsync(dateFrom, dateTo, classId, sectionId, reportType);
+        var sb = new StringBuilder();
+        sb.AppendLine("id,reportName,dateFrom,dateTo,className,sectionName,classFilter,recordCount,avgAttendance,generatedAt");
+        foreach (var r in data.Reports)
+        {
+            sb.AppendLine(string.Join(",",
+                r.Id,
+                EscapeCsv(r.ReportName),
+                r.DateFrom,
+                r.DateTo,
+                EscapeCsv(r.ClassName),
+                EscapeCsv(r.SectionName),
+                EscapeCsv(r.ClassFilter),
+                r.RecordCount,
+                r.AvgAttendance,
+                r.GeneratedAt
+            ));
+        }
+        return Encoding.UTF8.GetBytes(sb.ToString());
+    }
+
+    public async Task<byte[]> ExportAdminAttendanceSingleReportCsvAsync(int reportId, DateTime dateFrom, DateTime dateTo, int? classId, int? sectionId, string reportType)
+    {
+        var data = await GetAdminAttendanceReportsAsync(dateFrom, dateTo, classId, sectionId, reportType);
+        var row = data.Reports.FirstOrDefault(r => r.Id == reportId);
+        if (row == null)
+        {
+            return Encoding.UTF8.GetBytes("message\nReport not found");
+        }
+
+        var sb = new StringBuilder();
+        sb.AppendLine("id,reportName,dateFrom,dateTo,className,sectionName,classFilter,recordCount,avgAttendance,generatedAt");
+        sb.AppendLine(string.Join(",",
+            row.Id,
+            EscapeCsv(row.ReportName),
+            row.DateFrom,
+            row.DateTo,
+            EscapeCsv(row.ClassName),
+            EscapeCsv(row.SectionName),
+            EscapeCsv(row.ClassFilter),
+            row.RecordCount,
+            row.AvgAttendance,
+            row.GeneratedAt
+        ));
+        return Encoding.UTF8.GetBytes(sb.ToString());
+    }
+
     private static string EscapeCsv(string? value)
     {
         if (string.IsNullOrEmpty(value)) return "";
