@@ -3,22 +3,18 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { NotificationService } from '../../../../shared/services/notification.service';
-
-interface ReportRecord {
-  id: number;
-  reportName: string;
-  dateFrom: string;
-  dateTo: string;
-  classFilter: string;
-  recordCount: number;
-  avgAttendance: number;
-  generatedAt: string;
-}
+import { AttendanceService } from '../../../../core/services/attendance.service';
+import { ClassService } from '../../../../core/services/class.service';
+import { SectionService } from '../../../../core/services/section.service';
+import { AdminAttendanceReportRecord, AdminAttendanceReportType } from '../../../../core/models/attendance.model';
+import { Class } from '../../../../core/models/student.model';
+import { Section } from '../../../../core/models/section.model';
+import { InlineSpinnerComponent } from '../../../../shared/components/inline-spinner/inline-spinner.component';
 
 @Component({
   selector: 'app-admin-attendance-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, InlineSpinnerComponent],
   template: `
     <div class="page-container">
       <div class="page-header-card">
@@ -30,8 +26,9 @@ interface ReportRecord {
             <h2><i class="fa fa-file-text"></i> Attendance Reports</h2>
             <p class="page-subtitle">Date-range reports, analytics, and export</p>
           </div>
-          <button type="button" class="btn btn-primary" (click)="exportReport()">
-            <i class="fa fa-download"></i> Export
+          <button type="button" class="btn btn-primary" (click)="exportReport()" [disabled]="loading || exporting || generating">
+            <app-inline-spinner *ngIf="exporting" [size]="13" [thickness]="2"></app-inline-spinner>
+            <i *ngIf="!exporting" class="fa fa-download"></i> {{ exporting ? 'Exporting...' : 'Export' }}
           </button>
         </div>
       </div>
@@ -49,16 +46,16 @@ interface ReportRecord {
           </div>
           <div class="filter-group">
             <label>Class</label>
-            <select [(ngModel)]="filterClass" (ngModelChange)="applyFilters()" class="form-control">
-              <option value="">All</option>
-              <option *ngFor="let c of classOptions" [value]="c">{{ c }}</option>
+            <select [(ngModel)]="filterClassId" (ngModelChange)="onClassChange()" class="form-control">
+              <option [ngValue]="null">All</option>
+              <option *ngFor="let c of classOptions" [ngValue]="c.classId">{{ c.name }}</option>
             </select>
           </div>
           <div class="filter-group">
             <label>Section</label>
-            <select [(ngModel)]="filterSection" (ngModelChange)="applyFilters()" class="form-control">
-              <option value="">All</option>
-              <option *ngFor="let s of sectionOptions" [value]="s">{{ s }}</option>
+            <select [(ngModel)]="filterSectionId" (ngModelChange)="applyFilters()" class="form-control" [disabled]="!filterClassId">
+              <option [ngValue]="null">All</option>
+              <option *ngFor="let s of sectionOptions" [ngValue]="s.sectionId">{{ s.name }}</option>
             </select>
           </div>
           <div class="filter-group">
@@ -71,8 +68,9 @@ interface ReportRecord {
             </select>
           </div>
           <div class="filter-group filter-actions">
-            <button type="button" class="btn btn-secondary" (click)="generateReport()">
-              <i class="fa fa-refresh"></i> Generate
+            <button type="button" class="btn btn-secondary" (click)="generateReport()" [disabled]="loading || generating || exporting">
+              <app-inline-spinner *ngIf="generating" [size]="13" [thickness]="2"></app-inline-spinner>
+              <i *ngIf="!generating" class="fa fa-refresh"></i> {{ generating ? 'Generating...' : 'Generate' }}
             </button>
           </div>
         </div>
@@ -112,6 +110,7 @@ interface ReportRecord {
               <th>Report Name</th>
               <th>Date Range</th>
               <th>Class</th>
+              <th>Section</th>
               <th>Records</th>
               <th>Avg %</th>
               <th>Generated</th>
@@ -123,13 +122,15 @@ interface ReportRecord {
               <td>{{ (currentPage - 1) * pageSize + i + 1 }}</td>
               <td>{{ r.reportName }}</td>
               <td>{{ r.dateFrom }} to {{ r.dateTo }}</td>
-              <td>{{ r.classFilter || 'All' }}</td>
+              <td>{{ r.className || 'All' }}</td>
+              <td>{{ r.sectionName || 'All' }}</td>
               <td>{{ r.recordCount }}</td>
               <td><strong>{{ r.avgAttendance }}%</strong></td>
               <td>{{ r.generatedAt }}</td>
               <td>
-                <button type="button" class="btn-icon" (click)="exportSingle(r)" title="Export">
-                  <i class="fa fa-download"></i>
+                <button type="button" class="btn-icon" (click)="exportSingle(r)" title="Export" [disabled]="exportingRowId === r.id || exporting || generating || loading">
+                  <app-inline-spinner *ngIf="exportingRowId === r.id" [size]="12" [thickness]="2"></app-inline-spinner>
+                  <i *ngIf="exportingRowId !== r.id" class="fa fa-download"></i>
                 </button>
               </td>
             </tr>
@@ -243,12 +244,16 @@ interface ReportRecord {
 export class AdminAttendanceReportsComponent implements OnInit {
   dateFrom = '';
   dateTo = '';
-  filterClass = '';
-  filterSection = '';
-  reportType = 'summary';
-  classOptions = ['Grade 10', 'Grade 9', 'Grade 8'];
-  sectionOptions = ['A', 'B'];
-  reports: ReportRecord[] = [];
+  filterClassId: number | null = null;
+  filterSectionId: number | null = null;
+  reportType: AdminAttendanceReportType = 'summary';
+  classOptions: Class[] = [];
+  sectionOptions: Section[] = [];
+  reports: AdminAttendanceReportRecord[] = [];
+  loading = false;
+  generating = false;
+  exporting = false;
+  exportingRowId: number | null = null;
   analytics = {
     totalRecords: 0,
     avgAttendance: 0,
@@ -263,7 +268,7 @@ export class AdminAttendanceReportsComponent implements OnInit {
     return Math.ceil(this.reports.length / this.pageSize) || 1;
   }
 
-  get paginatedReports(): ReportRecord[] {
+  get paginatedReports(): AdminAttendanceReportRecord[] {
     const start = (this.currentPage - 1) * this.pageSize;
     return this.reports.slice(start, start + this.pageSize);
   }
@@ -272,30 +277,125 @@ export class AdminAttendanceReportsComponent implements OnInit {
     return Math.min(this.currentPage * this.pageSize, this.reports.length);
   }
 
-  constructor(private notify: NotificationService) {}
+  constructor(
+    private notify: NotificationService,
+    private attendanceService: AttendanceService,
+    private classService: ClassService,
+    private sectionService: SectionService
+  ) {}
 
   ngOnInit(): void {
     const t = new Date();
     this.dateFrom = new Date(t.getFullYear(), t.getMonth(), 1).toISOString().split('T')[0];
     this.dateTo = t.toISOString().split('T')[0];
-    this.loadMockData();
+    this.classService.getAllClasses().subscribe({
+      next: (classes) => { this.classOptions = classes; },
+      error: () => this.notify.error('Failed to load classes')
+    });
+    this.fetchReports();
   }
 
   applyFilters(): void {
-    this.loadMockData();
+    this.fetchReports();
+  }
+
+  onClassChange(): void {
+    this.filterSectionId = null;
+    this.sectionOptions = [];
+    if (this.filterClassId) {
+      this.sectionService.getSectionsByClass(this.filterClassId).subscribe({
+        next: (sections) => { this.sectionOptions = sections; },
+        error: () => this.notify.error('Failed to load sections')
+      });
+    }
+    this.fetchReports();
   }
 
   generateReport(): void {
-    this.loadMockData();
-    this.notify.success('Report generated');
+    if (!this.dateFrom || !this.dateTo) {
+      this.notify.error('Please select date range first');
+      return;
+    }
+    this.loading = true;
+    this.generating = true;
+    this.attendanceService.generateAdminAttendanceReports({
+      dateFrom: this.dateFrom,
+      dateTo: this.dateTo,
+      classId: this.filterClassId,
+      sectionId: this.filterSectionId,
+      reportType: this.reportType
+    }).subscribe({
+      next: (res) => {
+        this.reports = res.reports;
+        this.analytics = res.analytics;
+        this.currentPage = 1;
+        this.loading = false;
+        this.generating = false;
+        this.notify.success('Report generated');
+      },
+      error: (err: any) => {
+        this.loading = false;
+        this.generating = false;
+        this.notify.error(err?.error?.message ?? 'Failed to generate report');
+      }
+    });
   }
 
   exportReport(): void {
-    this.notify.success('Export started. File will download shortly.');
+    if (!this.dateFrom || !this.dateTo) {
+      this.notify.error('Please select date range first');
+      return;
+    }
+    this.exporting = true;
+    this.attendanceService.exportAdminAttendanceReportsCsv(
+      this.dateFrom,
+      this.dateTo,
+      this.reportType,
+      this.filterClassId,
+      this.filterSectionId
+    ).subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `attendance_reports_${this.dateFrom}_${this.dateTo}_${this.reportType}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.exporting = false;
+        this.notify.success('Export downloaded');
+      },
+      error: (err: any) => {
+        this.exporting = false;
+        this.notify.error(err?.error?.message ?? 'Export failed');
+      }
+    });
   }
 
-  exportSingle(r: ReportRecord): void {
-    this.notify.success(`Exporting: ${r.reportName}`);
+  exportSingle(r: AdminAttendanceReportRecord): void {
+    this.exportingRowId = r.id;
+    this.attendanceService.exportAdminAttendanceSingleReportCsv(
+      r.id,
+      this.dateFrom,
+      this.dateTo,
+      this.reportType,
+      this.filterClassId,
+      this.filterSectionId
+    ).subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `attendance_report_${r.id}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.exportingRowId = null;
+        this.notify.success(`Exported: ${r.reportName}`);
+      },
+      error: (err: any) => {
+        this.exportingRowId = null;
+        this.notify.error(err?.error?.message ?? 'Failed to export report');
+      }
+    });
   }
 
   goToPrevPage(): void {
@@ -306,23 +406,26 @@ export class AdminAttendanceReportsComponent implements OnInit {
     if (this.currentPage < this.totalPages) this.currentPage++;
   }
 
-  private loadMockData(): void {
-    const fmt = (d: Date) => d.toISOString().split('T')[0];
-    const now = new Date();
-    this.reports = [
-      { id: 1, reportName: 'March 2025 Summary', dateFrom: '2025-03-01', dateTo: '2025-03-31', classFilter: 'All', recordCount: 1250, avgAttendance: 92, generatedAt: fmt(now) },
-      { id: 2, reportName: 'Grade 10 - March', dateFrom: '2025-03-01', dateTo: '2025-03-31', classFilter: 'Grade 10', recordCount: 380, avgAttendance: 94, generatedAt: fmt(new Date(now.getTime() - 864e5)) },
-      { id: 3, reportName: 'Feb Summary Report', dateFrom: '2025-02-01', dateTo: '2025-02-28', classFilter: 'All', recordCount: 1180, avgAttendance: 91, generatedAt: '2025-03-05' },
-      { id: 4, reportName: 'Grade 9-A Detailed', dateFrom: '2025-03-10', dateTo: '2025-03-15', classFilter: 'Grade 9-A', recordCount: 120, avgAttendance: 88, generatedAt: fmt(new Date(now.getTime() - 864e5 * 2)) },
-      { id: 5, reportName: 'Weekly Report', dateFrom: '2025-03-03', dateTo: '2025-03-07', classFilter: 'All', recordCount: 320, avgAttendance: 93, generatedAt: '2025-03-08' }
-    ];
-    this.analytics = {
-      totalRecords: 1250,
-      avgAttendance: 92,
-      presentDays: 22,
-      studentsCovered: 195,
-      absentTrend: '-2%'
-    };
-    this.currentPage = 1;
+  private fetchReports(): void {
+    if (!this.dateFrom || !this.dateTo) return;
+    this.loading = true;
+    this.attendanceService.getAdminAttendanceReports(
+      this.dateFrom,
+      this.dateTo,
+      this.reportType,
+      this.filterClassId,
+      this.filterSectionId
+    ).subscribe({
+      next: (res) => {
+        this.reports = res.reports;
+        this.analytics = res.analytics;
+        this.currentPage = 1;
+        this.loading = false;
+      },
+      error: (err: any) => {
+        this.loading = false;
+        this.notify.error(err?.error?.message ?? 'Failed to load reports');
+      }
+    });
   }
 }

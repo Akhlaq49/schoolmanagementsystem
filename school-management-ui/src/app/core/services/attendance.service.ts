@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { AdminAttendanceDailySummary, Attendance, AttendanceCalendarItem, AttendanceCorrection, ClassAttendanceSheetItem, CheckInRequest, CheckOutRequest, CreateCorrectionRequest, LeaveApplication, MonthlyGridResponse, StaffAttendance, StaffAttendanceBulkRequest, StaffAttendanceHistory, UpsertAttendanceCalendarItemRequest, UpdateAttendanceRequest } from '../models/attendance.model';
+import { AdminAttendanceDailySummary, AdminAttendanceReportsResponse, AdminAttendanceReportType, Attendance, AttendanceCalendarItem, AttendanceCorrection, ClassAttendanceSheetItem, CheckInRequest, CheckOutRequest, CreateCorrectionRequest, LeaveApplication, MonthlyGridResponse, StaffAttendance, StaffAttendanceBulkRequest, StaffAttendanceHistory, UpsertAttendanceCalendarItemRequest, UpdateAttendanceRequest } from '../models/attendance.model';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -264,6 +264,75 @@ export class AttendanceService {
     if (classId != null) params = params.set('classId', classId.toString());
     if (sectionId != null) params = params.set('sectionId', sectionId.toString());
     return this.http.get(`${this.adminAttendanceUrl}/monthly/grid/export`, {
+      params,
+      responseType: 'blob'
+    });
+  }
+
+  /** Admin: attendance reports (table + analytics). */
+  getAdminAttendanceReports(
+    dateFrom: string,
+    dateTo: string,
+    reportType: AdminAttendanceReportType,
+    classId?: number | null,
+    sectionId?: number | null
+  ): Observable<AdminAttendanceReportsResponse> {
+    let params = new HttpParams()
+      .set('dateFrom', dateFrom)
+      .set('dateTo', dateTo)
+      .set('reportType', reportType);
+    if (classId != null) params = params.set('classId', classId.toString());
+    if (sectionId != null) params = params.set('sectionId', sectionId.toString());
+    return this.http.get<AdminAttendanceReportsResponse>(`${this.adminAttendanceUrl}/reports`, { params });
+  }
+
+  /** Admin: attendance reports generate action. */
+  generateAdminAttendanceReports(dto: {
+    dateFrom: string;
+    dateTo: string;
+    classId?: number | null;
+    sectionId?: number | null;
+    reportType: AdminAttendanceReportType;
+  }): Observable<AdminAttendanceReportsResponse> {
+    return this.http.post<AdminAttendanceReportsResponse>(`${this.adminAttendanceUrl}/reports/generate`, dto);
+  }
+
+  /** Admin: export filtered reports list CSV. */
+  exportAdminAttendanceReportsCsv(
+    dateFrom: string,
+    dateTo: string,
+    reportType: AdminAttendanceReportType,
+    classId?: number | null,
+    sectionId?: number | null
+  ): Observable<Blob> {
+    let params = new HttpParams()
+      .set('dateFrom', dateFrom)
+      .set('dateTo', dateTo)
+      .set('reportType', reportType);
+    if (classId != null) params = params.set('classId', classId.toString());
+    if (sectionId != null) params = params.set('sectionId', sectionId.toString());
+    return this.http.get(`${this.adminAttendanceUrl}/reports/export`, {
+      params,
+      responseType: 'blob'
+    });
+  }
+
+  /** Admin: export one report row CSV by id. */
+  exportAdminAttendanceSingleReportCsv(
+    reportId: number,
+    dateFrom: string,
+    dateTo: string,
+    reportType: AdminAttendanceReportType,
+    classId?: number | null,
+    sectionId?: number | null
+  ): Observable<Blob> {
+    let params = new HttpParams()
+      .set('dateFrom', dateFrom)
+      .set('dateTo', dateTo)
+      .set('reportType', reportType);
+    if (classId != null) params = params.set('classId', classId.toString());
+    if (sectionId != null) params = params.set('sectionId', sectionId.toString());
+    return this.http.get(`${this.adminAttendanceUrl}/reports/export/${reportId}`, {
       params,
       responseType: 'blob'
     });

@@ -255,3 +255,35 @@ export interface MonthlyGridResponse {
   gridCells: MonthlyGridCell[];
 }
 
+// -----------------------------
+// Admin: Attendance Reports
+// -----------------------------
+
+export type AdminAttendanceReportType = 'summary' | 'detailed' | 'class-wise' | 'student-wise';
+
+export interface AdminAttendanceReportsAnalytics {
+  totalRecords: number;
+  avgAttendance: number;
+  presentDays: number;
+  studentsCovered: number;
+  absentTrend: string;
+}
+
+export interface AdminAttendanceReportRecord {
+  id: number;
+  reportName: string;
+  dateFrom: string;
+  dateTo: string;
+  className: string;
+  sectionName: string;
+  classFilter: string;
+  recordCount: number;
+  avgAttendance: number;
+  generatedAt: string;
+}
+
+export interface AdminAttendanceReportsResponse {
+  analytics: AdminAttendanceReportsAnalytics;
+  reports: AdminAttendanceReportRecord[];
+}
+
