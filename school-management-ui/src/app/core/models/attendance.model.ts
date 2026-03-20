@@ -287,3 +287,32 @@ export interface AdminAttendanceReportsResponse {
   reports: AdminAttendanceReportRecord[];
 }
 
+// -----------------------------
+// Admin: Attendance Trends
+// -----------------------------
+
+export type AttendanceTrendPeriod = 'daily' | 'weekly' | 'monthly';
+
+export interface AttendanceTrendDataPoint {
+  label: string;
+  present: number;
+  absent: number;
+  leave: number;
+  total: number;
+}
+
+export interface AttendanceTrendsTotals {
+  present: number;
+  absent: number;
+  leave: number;
+  percent: number;
+}
+
+export interface AttendanceTrendsResponse {
+  period: AttendanceTrendPeriod;
+  dateFrom: string;
+  dateTo: string;
+  dataPoints: AttendanceTrendDataPoint[];
+  totals: AttendanceTrendsTotals;
+}
+

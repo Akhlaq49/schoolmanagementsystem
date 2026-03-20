@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { AdminAttendanceDailySummary, AdminAttendanceReportsResponse, AdminAttendanceReportType, Attendance, AttendanceCalendarItem, AttendanceCorrection, ClassAttendanceSheetItem, CheckInRequest, CheckOutRequest, CreateCorrectionRequest, LeaveApplication, MonthlyGridResponse, StaffAttendance, StaffAttendanceBulkRequest, StaffAttendanceHistory, UpsertAttendanceCalendarItemRequest, UpdateAttendanceRequest } from '../models/attendance.model';
+import { AdminAttendanceDailySummary, AdminAttendanceReportsResponse, AdminAttendanceReportType, Attendance, AttendanceCalendarItem, AttendanceCorrection, AttendanceTrendPeriod, AttendanceTrendsResponse, ClassAttendanceSheetItem, CheckInRequest, CheckOutRequest, CreateCorrectionRequest, LeaveApplication, MonthlyGridResponse, StaffAttendance, StaffAttendanceBulkRequest, StaffAttendanceHistory, UpsertAttendanceCalendarItemRequest, UpdateAttendanceRequest } from '../models/attendance.model';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -315,6 +315,22 @@ export class AttendanceService {
       params,
       responseType: 'blob'
     });
+  }
+
+  /** Admin: attendance trends (daily/weekly/monthly). */
+  getAdminAttendanceTrends(
+    period: AttendanceTrendPeriod,
+    dateFrom?: string,
+    dateTo?: string,
+    classId?: number | null,
+    sectionId?: number | null
+  ): Observable<AttendanceTrendsResponse> {
+    let params = new HttpParams().set('period', period);
+    if (dateFrom) params = params.set('dateFrom', dateFrom);
+    if (dateTo) params = params.set('dateTo', dateTo);
+    if (classId != null) params = params.set('classId', classId.toString());
+    if (sectionId != null) params = params.set('sectionId', sectionId.toString());
+    return this.http.get<AttendanceTrendsResponse>(`${this.adminAttendanceUrl}/trends`, { params });
   }
 
   /** Admin: export one report row CSV by id. */

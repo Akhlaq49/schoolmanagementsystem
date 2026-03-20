@@ -3,20 +3,17 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { NotificationService } from '../../../../shared/services/notification.service';
-
-interface TrendDataPoint {
-  label: string;
-  present: number;
-  absent: number;
-  leave: number;
-  total: number;
-}
+import { AttendanceService } from '../../../../core/services/attendance.service';
+import { AttendanceTrendDataPoint, AttendanceTrendPeriod } from '../../../../core/models/attendance.model';
 
 @Component({
   selector: 'app-admin-attendance-trends',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   template: `
+    <div *ngIf="loading" class="loading-overlay">
+      <i class="fa fa-spinner fa-spin fa-2x"></i>
+    </div>
     <div class="page-container">
       <div class="page-header-card">
         <div class="header-content">
@@ -33,13 +30,13 @@ interface TrendDataPoint {
       <div class="controls-card">
         <h3>View By</h3>
         <div class="period-tabs">
-          <button type="button" class="tab-btn" [class.active]="period === 'daily'" (click)="setPeriod('daily')">
+          <button type="button" class="tab-btn" [class.active]="period === 'daily'" (click)="setPeriod('daily')" [disabled]="loading">
             <i class="fa fa-calendar-o"></i> Daily
           </button>
-          <button type="button" class="tab-btn" [class.active]="period === 'weekly'" (click)="setPeriod('weekly')">
+          <button type="button" class="tab-btn" [class.active]="period === 'weekly'" (click)="setPeriod('weekly')" [disabled]="loading">
             <i class="fa fa-calendar"></i> Weekly
           </button>
-          <button type="button" class="tab-btn" [class.active]="period === 'monthly'" (click)="setPeriod('monthly')">
+          <button type="button" class="tab-btn" [class.active]="period === 'monthly'" (click)="setPeriod('monthly')" [disabled]="loading">
             <i class="fa fa-calendar-check-o"></i> Monthly
           </button>
         </div>
@@ -51,7 +48,12 @@ interface TrendDataPoint {
         <span class="leg"><span class="dot leave"></span> Leave</span>
       </div>
 
-      <div class="chart-card">
+      <div class="empty-state" *ngIf="!loading && chartData.length === 0">
+        <i class="fa fa-line-chart"></i>
+        <p>No attendance data found for the selected period.</p>
+      </div>
+
+      <div class="chart-card" *ngIf="chartData.length > 0">
         <h3>Attendance Trends — {{ periodLabel }}</h3>
         <div class="chart-bars">
           <div *ngFor="let d of chartData" class="bar-row">
@@ -66,7 +68,7 @@ interface TrendDataPoint {
         </div>
       </div>
 
-      <div class="summary-cards">
+      <div class="summary-cards" *ngIf="chartData.length > 0">
         <div class="summary-card">
           <span class="val present">{{ totals.present }}</span>
           <span class="lbl">Total Present</span>
@@ -85,7 +87,7 @@ interface TrendDataPoint {
         </div>
       </div>
 
-      <div class="table-card">
+      <div class="table-card" *ngIf="chartData.length > 0">
         <div class="table-header">
           <h3>Trend Data ({{ chartData.length }} records)</h3>
         </div>
@@ -117,6 +119,15 @@ interface TrendDataPoint {
     </div>
   `,
   styles: [`
+    .tab-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .empty-state { text-align: center; padding: 3rem; color: #9ca3af; }
+    .empty-state i { font-size: 3rem; margin-bottom: 0.5rem; display: block; }
+    .loading-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(255,255,255,0.7);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9000; color: #1e3a5f;
+    }
     .page-container { max-width: 900px; }
     .page-header-card {
       background: #fff;
@@ -227,23 +238,27 @@ interface TrendDataPoint {
   `]
 })
 export class AdminAttendanceTrendsComponent implements OnInit {
-  period: 'daily' | 'weekly' | 'monthly' = 'daily';
-  chartData: TrendDataPoint[] = [];
+  period: AttendanceTrendPeriod = 'daily';
+  chartData: AttendanceTrendDataPoint[] = [];
   totals = { present: 0, absent: 0, leave: 0, percent: 0 };
+  loading = false;
 
   get periodLabel(): string {
     return this.period === 'daily' ? 'Daily' : this.period === 'weekly' ? 'Weekly' : 'Monthly';
   }
 
-  constructor(private notify: NotificationService) {}
+  constructor(
+    private notify: NotificationService,
+    private attendanceService: AttendanceService
+  ) {}
 
   ngOnInit(): void {
-    this.loadMockData();
+    this.fetchTrends();
   }
 
-  setPeriod(p: 'daily' | 'weekly' | 'monthly'): void {
+  setPeriod(p: AttendanceTrendPeriod): void {
     this.period = p;
-    this.loadMockData();
+    this.fetchTrends();
   }
 
   getPercent(value: number, total: number): number {
@@ -251,41 +266,30 @@ export class AdminAttendanceTrendsComponent implements OnInit {
     return Math.round((value / total) * 100);
   }
 
-  private loadMockData(): void {
-    if (this.period === 'daily') {
-      this.chartData = [
-        { label: 'Mar 10', present: 178, absent: 12, leave: 5, total: 195 },
-        { label: 'Mar 11', present: 182, absent: 8, leave: 5, total: 195 },
-        { label: 'Mar 12', present: 175, absent: 15, leave: 5, total: 195 },
-        { label: 'Mar 13', present: 180, absent: 10, leave: 5, total: 195 },
-        { label: 'Mar 14', present: 170, absent: 20, leave: 5, total: 195 }
-      ];
-    } else if (this.period === 'weekly') {
-      this.chartData = [
-        { label: 'Week 1', present: 890, absent: 58, leave: 27, total: 975 },
-        { label: 'Week 2', present: 905, absent: 45, leave: 25, total: 975 },
-        { label: 'Week 3', present: 878, absent: 72, leave: 25, total: 975 },
-        { label: 'Week 4', present: 892, absent: 58, leave: 25, total: 975 },
-        { label: 'Week 5', present: 450, absent: 35, leave: 15, total: 500 }
-      ];
-    } else {
-      this.chartData = [
-        { label: 'Jan 2025', present: 3850, absent: 245, leave: 130, total: 4225 },
-        { label: 'Feb 2025', present: 3620, absent: 310, leave: 125, total: 4055 },
-        { label: 'Mar 2025', present: 4015, absent: 198, leave: 142, total: 4355 },
-        { label: 'Apr 2025', present: 3900, absent: 220, leave: 135, total: 4255 },
-        { label: 'May 2025', present: 3780, absent: 265, leave: 140, total: 4185 }
-      ];
-    }
-    const p = this.chartData.reduce((s, d) => s + d.present, 0);
-    const a = this.chartData.reduce((s, d) => s + d.absent, 0);
-    const l = this.chartData.reduce((s, d) => s + d.leave, 0);
-    const t = p + a + l;
-    this.totals = {
-      present: p,
-      absent: a,
-      leave: l,
-      percent: t > 0 ? Math.round((p / t) * 100) : 0
-    };
+  private getDateRange(): { dateFrom: string; dateTo: string } {
+    const t = new Date();
+    const dateTo = t.toISOString().split('T')[0];
+    const from = new Date(t);
+    if (this.period === 'monthly') from.setMonth(from.getMonth() - 5);
+    else if (this.period === 'weekly') from.setDate(from.getDate() - 56);
+    else from.setDate(from.getDate() - 13);
+    const dateFrom = from.toISOString().split('T')[0];
+    return { dateFrom, dateTo };
+  }
+
+  private fetchTrends(): void {
+    const { dateFrom, dateTo } = this.getDateRange();
+    this.loading = true;
+    this.attendanceService.getAdminAttendanceTrends(this.period, dateFrom, dateTo).subscribe({
+      next: (res) => {
+        this.chartData = res.dataPoints;
+        this.totals = res.totals;
+        this.loading = false;
+      },
+      error: (err: any) => {
+        this.loading = false;
+        this.notify.error(err?.error?.message ?? 'Failed to load attendance trends');
+      }
+    });
   }
 }
