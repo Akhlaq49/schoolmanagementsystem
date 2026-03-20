@@ -1256,6 +1256,138 @@ public class AttendanceService : IAttendanceService
         }).ToList();
     }
 
+    // -----------------------------
+    // Admin: Attendance trends
+    // -----------------------------
+    public async Task<AttendanceTrendsResponseDto> GetAttendanceTrendsAsync(string period, DateTime dateFrom, DateTime dateTo, int? classId, int? sectionId)
+    {
+        var from = dateFrom.Date;
+        var to = dateTo.Date;
+        if (to < from) (from, to) = (to, from);
+
+        var periodNorm = (period ?? "daily").Trim().ToLowerInvariant();
+
+        var query = _context.Attendances
+            .Include(a => a.Student)
+            .Where(a =>
+                a.StudentId != null &&
+                a.Student != null &&
+                a.Date.Date >= from &&
+                a.Date.Date <= to &&
+                a.Status != 0 && a.Status != 6); // exclude Not Marked, Holiday
+
+        if (classId.HasValue)
+            query = query.Where(a => a.Student!.ClassId == classId.Value);
+        if (sectionId.HasValue)
+            query = query.Where(a => a.Student!.SectionId == sectionId.Value);
+
+        var attendance = await query.ToListAsync();
+
+        var dataPoints = new List<AttendanceTrendDataPointDto>();
+
+        if (periodNorm == "daily")
+        {
+            var grouped = attendance
+                .GroupBy(a => a.Date.Date)
+                .OrderBy(g => g.Key);
+
+            foreach (var g in grouped)
+            {
+                int present = g.Count(x => x.Status == 1 || x.Status == 2 || x.Status == 7);
+                int absent = g.Count(x => x.Status == 3);
+                int leave = g.Count(x => x.Status == 4 || x.Status == 5);
+                int total = present + absent + leave;
+
+                dataPoints.Add(new AttendanceTrendDataPointDto
+                {
+                    Label = g.Key.ToString("MMM d"),
+                    Present = present,
+                    Absent = absent,
+                    Leave = leave,
+                    Total = total
+                });
+            }
+        }
+        else if (periodNorm == "weekly")
+        {
+            var culture = System.Globalization.CultureInfo.CurrentCulture;
+            var grouped = attendance
+                .GroupBy(a => GetWeekStart(a.Date.Date, culture))
+                .OrderBy(g => g.Key);
+
+            int weekNum = 1;
+            foreach (var g in grouped)
+            {
+                int present = g.Count(x => x.Status == 1 || x.Status == 2 || x.Status == 7);
+                int absent = g.Count(x => x.Status == 3);
+                int leave = g.Count(x => x.Status == 4 || x.Status == 5);
+                int total = present + absent + leave;
+
+                dataPoints.Add(new AttendanceTrendDataPointDto
+                {
+                    Label = $"Week {weekNum}",
+                    Present = present,
+                    Absent = absent,
+                    Leave = leave,
+                    Total = total
+                });
+                weekNum++;
+            }
+        }
+        else
+        {
+            var grouped = attendance
+                .GroupBy(a => new { a.Date.Year, a.Date.Month })
+                .OrderBy(g => g.Key.Year)
+                .ThenBy(g => g.Key.Month);
+
+            foreach (var g in grouped)
+            {
+                int present = g.Count(x => x.Status == 1 || x.Status == 2 || x.Status == 7);
+                int absent = g.Count(x => x.Status == 3);
+                int leave = g.Count(x => x.Status == 4 || x.Status == 5);
+                int total = present + absent + leave;
+
+                var dt = new DateTime(g.Key.Year, g.Key.Month, 1);
+                dataPoints.Add(new AttendanceTrendDataPointDto
+                {
+                    Label = dt.ToString("MMM yyyy"),
+                    Present = present,
+                    Absent = absent,
+                    Leave = leave,
+                    Total = total
+                });
+            }
+        }
+
+        int totPresent = dataPoints.Sum(d => d.Present);
+        int totAbsent = dataPoints.Sum(d => d.Absent);
+        int totLeave = dataPoints.Sum(d => d.Leave);
+        int totAll = totPresent + totAbsent + totLeave;
+
+        return new AttendanceTrendsResponseDto
+        {
+            Period = periodNorm,
+            DateFrom = from.ToString("yyyy-MM-dd"),
+            DateTo = to.ToString("yyyy-MM-dd"),
+            DataPoints = dataPoints,
+            Totals = new AttendanceTrendsTotalsDto
+            {
+                Present = totPresent,
+                Absent = totAbsent,
+                Leave = totLeave,
+                Percent = totAll > 0 ? (int)Math.Round((totPresent * 100.0) / totAll) : 0
+            }
+        };
+    }
+
+    private static DateTime GetWeekStart(DateTime date, System.Globalization.CultureInfo culture)
+    {
+        var dow = culture.DateTimeFormat.FirstDayOfWeek;
+        int diff = (7 + (date.DayOfWeek - dow)) % 7;
+        return date.AddDays(-diff).Date;
+    }
+
     private static TimeSpan? ParseTimeSpan(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return null;

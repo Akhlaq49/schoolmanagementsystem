@@ -43,5 +43,8 @@ public interface IAttendanceService
     Task<AdminAttendanceReportsResponseDto> GetAdminAttendanceReportsAsync(DateTime dateFrom, DateTime dateTo, int? classId, int? sectionId, string reportType);
     Task<byte[]> ExportAdminAttendanceReportsCsvAsync(DateTime dateFrom, DateTime dateTo, int? classId, int? sectionId, string reportType);
     Task<byte[]> ExportAdminAttendanceSingleReportCsvAsync(int reportId, DateTime dateFrom, DateTime dateTo, int? classId, int? sectionId, string reportType);
+
+    // Admin: Attendance trends
+    Task<AttendanceTrendsResponseDto> GetAttendanceTrendsAsync(string period, DateTime dateFrom, DateTime dateTo, int? classId, int? sectionId);
 }
 
