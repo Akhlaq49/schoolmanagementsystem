@@ -2,19 +2,14 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import {
+  LowAttendancePeriod,
+  LowAttendanceResponse,
+  LowAttendanceStudent
+} from '../../../../core/models/attendance.model';
+import { AttendanceService } from '../../../../core/services/attendance.service';
 
-interface LowAttendanceStudent {
-  studentId: number;
-  roll: string;
-  name: string;
-  className: string;
-  section: string;
-  present: number;
-  absent: number;
-  total: number;
-  percent: number;
-  level: 'warning' | 'critical';
-}
+type LowAttendanceStudentWithLevel = LowAttendanceStudent & { level: 'warning' | 'critical' };
 
 @Component({
   selector: 'app-admin-attendance-low-attendance',
@@ -34,22 +29,35 @@ interface LowAttendanceStudent {
         </div>
       </div>
 
+      <div *ngIf="loading" class="loading-overlay">
+        <div class="spinner"></div>
+        <span>Loading...</span>
+      </div>
+      <div *ngIf="error" class="error-banner">{{ error }}</div>
       <div class="filters-card">
         <h3>Threshold & Filters</h3>
         <div class="filter-row">
+          <div class="filter-group">
+            <label>Period</label>
+            <select [(ngModel)]="selectedPeriod" (ngModelChange)="loadData()" class="form-control">
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Class</label>
+            <select [(ngModel)]="filterClassId" (ngModelChange)="loadData()" class="form-control">
+              <option [ngValue]="null">All</option>
+              <option *ngFor="let c of classOptions" [ngValue]="c.classId">{{ c.className }}</option>
+            </select>
+          </div>
           <div class="filter-group">
             <label>Show students below</label>
             <div class="threshold-input">
               <input type="range" min="50" max="95" [(ngModel)]="threshold" (ngModelChange)="applyThreshold()" class="slider">
               <span class="threshold-val">{{ threshold }}%</span>
             </div>
-          </div>
-          <div class="filter-group">
-            <label>Class</label>
-            <select [(ngModel)]="filterClass" (ngModelChange)="applyThreshold()" class="form-control">
-              <option value="">All</option>
-              <option *ngFor="let c of classOptions" [value]="c">{{ c }}</option>
-            </select>
           </div>
         </div>
       </div>
@@ -132,7 +140,11 @@ interface LowAttendanceStudent {
     </div>
   `,
   styles: [`
-    .page-container { max-width: 1000px; }
+    .page-container { max-width: 1000px; position: relative; }
+    .loading-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; z-index: 10; border-radius: 16px; }
+    .loading-overlay .spinner { width: 36px; height: 36px; border: 3px solid #e2e8f0; border-top-color: #1e3a5f; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-banner { background: #fee2e2; color: #dc2626; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem; }
     .page-header-card {
       background: #fff;
       border-radius: 16px;
@@ -226,13 +238,18 @@ interface LowAttendanceStudent {
   `]
 })
 export class AdminAttendanceLowAttendanceComponent implements OnInit {
+  selectedPeriod: LowAttendancePeriod = 'today';
+  filterClassId: number | null = null;
+  classOptions: { classId: number; className: string }[] = [];
   threshold = 85;
-  filterClass = '';
-  classOptions = ['Grade 10', 'Grade 9', 'Grade 8'];
-  students: LowAttendanceStudent[] = [];
-  filteredList: LowAttendanceStudent[] = [];
+  students: LowAttendanceStudentWithLevel[] = [];
+  filteredList: LowAttendanceStudentWithLevel[] = [];
   pageSize = 10;
   currentPage = 1;
+  loading = false;
+  error: string | null = null;
+
+  constructor(private attendanceService: AttendanceService) {}
 
   get criticalCount(): number {
     return this.filteredList.filter(s => s.level === 'critical').length;
@@ -246,7 +263,7 @@ export class AdminAttendanceLowAttendanceComponent implements OnInit {
     return Math.ceil(this.filteredList.length / this.pageSize) || 1;
   }
 
-  get paginatedList(): LowAttendanceStudent[] {
+  get paginatedList(): LowAttendanceStudentWithLevel[] {
     const start = (this.currentPage - 1) * this.pageSize;
     return this.filteredList.slice(start, start + this.pageSize);
   }
@@ -256,16 +273,39 @@ export class AdminAttendanceLowAttendanceComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.loadMockData();
-    this.applyThreshold();
+    this.loadData();
+  }
+
+  loadData(): void {
+    this.loading = true;
+    this.error = null;
+    this.attendanceService.getLowAttendanceStudents(this.selectedPeriod, this.filterClassId).subscribe({
+      next: (res: LowAttendanceResponse) => {
+        this.classOptions = res.classOptions;
+        this.students = res.students.map(s => ({
+          ...s,
+          level: (s.percent < 75 ? 'critical' : 'warning') as 'critical' | 'warning'
+        }));
+        this.applyThreshold();
+        this.loading = false;
+      },
+      error: (err: { error?: { message?: string }; message?: string }) => {
+        this.error = err?.error?.message || err?.message || 'Failed to load low-attendance students';
+        this.students = [];
+        this.filteredList = [];
+        this.classOptions = [];
+        this.loading = false;
+      }
+    });
   }
 
   applyThreshold(): void {
-    let list = this.students.filter(s => s.percent < this.threshold);
-    if (this.filterClass) {
-      list = list.filter(s => s.className === this.filterClass);
-    }
-    this.filteredList = list;
+    this.filteredList = this.students
+      .filter(s => s.percent < this.threshold)
+      .map(s => ({
+        ...s,
+        level: (s.percent < 75 ? 'critical' : 'warning') as 'critical' | 'warning'
+      }));
     this.currentPage = 1;
   }
 
@@ -275,15 +315,5 @@ export class AdminAttendanceLowAttendanceComponent implements OnInit {
 
   goToNextPage(): void {
     if (this.currentPage < this.totalPages) this.currentPage++;
-  }
-
-  private loadMockData(): void {
-    this.students = [
-      { studentId: 1, roll: 'R101', name: 'Ali Khan', className: 'Grade 10', section: 'A', present: 12, absent: 8, total: 22, percent: 55, level: 'critical' },
-      { studentId: 2, roll: 'R105', name: 'Omar Riaz', className: 'Grade 10', section: 'A', present: 16, absent: 4, total: 22, percent: 73, level: 'critical' },
-      { studentId: 3, roll: 'R112', name: 'Hassan Ali', className: 'Grade 9', section: 'B', present: 17, absent: 3, total: 22, percent: 77, level: 'warning' },
-      { studentId: 4, roll: 'R118', name: 'Zara Khan', className: 'Grade 9', section: 'B', present: 18, absent: 2, total: 22, percent: 82, level: 'warning' },
-      { studentId: 5, roll: 'R125', name: 'Ahmad Shah', className: 'Grade 8', section: 'A', present: 18, absent: 4, total: 22, percent: 82, level: 'warning' }
-    ];
   }
 }

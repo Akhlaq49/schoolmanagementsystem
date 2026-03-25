@@ -341,3 +341,34 @@ export interface ClassLevelSummaryResponse {
   classes: ClassSummaryItem[];
 }
 
+// -----------------------------
+// Admin: Low-attendance Students
+// -----------------------------
+
+export type LowAttendancePeriod = 'today' | 'week' | 'month';
+
+export interface LowAttendanceStudent {
+  studentId: number;
+  roll: string;
+  name: string;
+  className: string;
+  section: string;
+  present: number;
+  absent: number;
+  total: number;
+  percent: number;
+}
+
+export interface LowAttendanceClassOption {
+  classId: number;
+  className: string;
+}
+
+export interface LowAttendanceResponse {
+  period: LowAttendancePeriod;
+  dateFrom: string;
+  dateTo: string;
+  students: LowAttendanceStudent[];
+  classOptions: LowAttendanceClassOption[];
+}
+

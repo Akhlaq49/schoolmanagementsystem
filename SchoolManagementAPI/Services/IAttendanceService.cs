@@ -49,5 +49,8 @@ public interface IAttendanceService
 
     // Admin: Class-level summary
     Task<AdminAttendanceClassSummaryResponseDto> GetClassLevelSummaryAsync(string period);
+
+    // Admin: Low-attendance students
+    Task<AdminAttendanceLowAttendanceResponseDto> GetLowAttendanceStudentsAsync(string period, int? classId);
 }
 

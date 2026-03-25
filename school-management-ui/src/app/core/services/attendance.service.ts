@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { AdminAttendanceDailySummary, AdminAttendanceReportsResponse, AdminAttendanceReportType, Attendance, AttendanceCalendarItem, AttendanceCorrection, AttendanceTrendPeriod, AttendanceTrendsResponse, ClassAttendanceSheetItem, ClassLevelSummaryResponse, ClassSummaryPeriod, CheckInRequest, CheckOutRequest, CreateCorrectionRequest, LeaveApplication, MonthlyGridResponse, StaffAttendance, StaffAttendanceBulkRequest, StaffAttendanceHistory, UpsertAttendanceCalendarItemRequest, UpdateAttendanceRequest } from '../models/attendance.model';
+import { AdminAttendanceDailySummary, AdminAttendanceReportsResponse, AdminAttendanceReportType, Attendance, AttendanceCalendarItem, AttendanceCorrection, AttendanceTrendPeriod, AttendanceTrendsResponse, ClassAttendanceSheetItem, ClassLevelSummaryResponse, ClassSummaryPeriod, CheckInRequest, CheckOutRequest, CreateCorrectionRequest, LeaveApplication, LowAttendancePeriod, LowAttendanceResponse, MonthlyGridResponse, StaffAttendance, StaffAttendanceBulkRequest, StaffAttendanceHistory, UpsertAttendanceCalendarItemRequest, UpdateAttendanceRequest } from '../models/attendance.model';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -321,6 +321,13 @@ export class AttendanceService {
   getClassLevelSummary(period: ClassSummaryPeriod): Observable<ClassLevelSummaryResponse> {
     const params = new HttpParams().set('period', period);
     return this.http.get<ClassLevelSummaryResponse>(`${this.adminAttendanceUrl}/class-summary`, { params });
+  }
+
+  /** Admin: low-attendance students (today/week/month). */
+  getLowAttendanceStudents(period: LowAttendancePeriod, classId?: number | null): Observable<LowAttendanceResponse> {
+    let params = new HttpParams().set('period', period);
+    if (classId != null) params = params.set('classId', classId.toString());
+    return this.http.get<LowAttendanceResponse>(`${this.adminAttendanceUrl}/low-attendance`, { params });
   }
 
   /** Admin: attendance trends (daily/weekly/monthly). */
