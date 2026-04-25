@@ -106,18 +106,25 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngularApp", policy =>
     {
-        policy.SetIsOriginAllowed(origin =>
-              {
-                  if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
-                  {
-                      return false;
-                  }
+        //policy.SetIsOriginAllowed(origin =>
+        //      {
+        //          if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+        //          {
+        //              return false;
+        //          }
 
-                  return uri.IsLoopback;
-              })
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+        //          return uri.IsLoopback;
+        //      })
+        //      .AllowAnyHeader()
+        //      .AllowAnyMethod()
+        //      .AllowCredentials();
+        policy.WithOrigins(
+          
+                "http://excellenceacademy.pk",
+                "https://excellenceacademy.pk"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod();
     });
 });
 
